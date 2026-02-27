@@ -161,9 +161,10 @@
   align-items: center;
   height: 100%;
   padding: 0 20px;
-  font-size: 12px;
-  color: #e8e8ed;
-  font-weight: 400;
+  font-size: 13px;
+  color: var(--color-nav-text);
+  /* 預設改為深可可色，解決淺燕麥白背景吃字問題 */
+  font-weight: 500;
   letter-spacing: -0.01em;
   transition: color var(--transition-fast);
   opacity: 0.8;
@@ -172,6 +173,18 @@
 .nav-links a:hover {
   color: var(--color-nav-text-hover);
   opacity: 1;
+}
+
+/* 實心白底（非首頁或往下捲動）時的字體自動變深色 */
+.navbar.scrolled .logo,
+.navbar.scrolled .nav-links a {
+  color: var(--color-nav-text);
+  /* 切換為深可可色 */
+}
+
+.navbar.scrolled .nav-links a:hover {
+  color: var(--color-nav-text-hover);
+  /* 切換為深橘色 */
 }
 
 .nav-actions {
@@ -465,6 +478,12 @@ main {
   width: 90%;
   flex-grow: 1;
   margin-top: 40px;
+  border-radius: 32px 32px 0 0;
+  overflow: hidden;
+}
+
+.std-image-wrapper img {
+  border-radius: 32px 32px 0 0;
 }
 
 /* Section 5: Details Grid (2 columns) */
@@ -486,11 +505,14 @@ main {
   flex-direction: column;
   align-items: center;
   padding-top: 65px;
+  padding-bottom: 0;
   text-align: center;
   overflow: hidden;
   position: relative;
   box-shadow: 0 10px 30px var(--color-shadow-light);
   transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  isolation: isolate;
+  /* 修復 Safari/iOS 上 border-radius 與 transform 的遮罩失效問題 */
 }
 
 .grid-item.dark {
@@ -504,11 +526,39 @@ main {
   box-shadow: 0 20px 40px rgba(100, 80, 60, 0.08);
 }
 
+.grid-item:hover .grid-image-wrapper {
+  width: 100%;
+  flex-grow: 1;
+  margin-top: 30px;
+  border-radius: 0 0 32px 32px;
+  overflow: hidden;
+}
+
 .grid-item:hover .grid-image-wrapper img {
   transform: scale(1.04);
 }
 
+.grid-image-wrapper {
+  width: 100%;
+  /* Changed from 90% */
+  height: 480px;
+  /* Kept height */
+  margin-top: 30px;
+  border-radius: 0 0 32px 32px;
+  /* Changed border-radius */
+  overflow: hidden;
+  /* Added overflow */
+}
+
 .grid-image-wrapper img {
+  width: 100%;
+  /* Added width */
+  height: 100%;
+  /* Added height */
+  object-fit: cover;
+  /* Added object-fit */
+  border-radius: 0 0 32px 32px;
+  /* Changed border-radius */
   transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
