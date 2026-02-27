@@ -1,32 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Apple-inspired Color Palette (Refined Depth) */
-  --color-bg-light: #f5f5f7;
-  /* 淺灰底 */
-  --color-bg-white: #fbfbfd;
-  /* 柔和白 (非純白) */
-  --color-text-light: #1d1d1f;
-  /* 極深灰 (非純黑) */
+  /* Warm Apple-inspired Lifestyle Palette */
+  --color-bg-light: #f9f6f0;
+  /* 燕麥白 (Oatmeal) - 替代冷灰 */
+  --color-bg-white: #ffffff;
+  /* 純白 (White) - 提升卡片乾淨度 */
+  --color-text-light: #4a423d;
+  /* 深可可 (Cocoa) - 替代銳利的極深黑 */
 
-  --color-bg-dark: #121212;
-  /* 極深空灰 (非純黑) */
-  --color-bg-dark-card: #1c1c1e;
-  /* 深色卡片底色 (增加層次) */
-  --color-text-dark: #f5f5f7;
-  /* 柔和白字 (非純白) */
+  --color-bg-dark: #2c2724;
+  /* 濃咖啡黑 (Espresso) - 替代黑灰色 */
+  --color-bg-dark-card: #3a332f;
+  /* 暖灰棕卡片色 */
+  --color-text-dark: #fdfbf7;
+  /* 暖白柔和字 - 替代冷白字 */
 
-  --color-accent: #0066cc;
-  /* Apple Blue */
-  --color-accent-hover: #0077ED;
+  --color-accent: #d2691e;
+  /* 大地磚橘 (Terracotta) - 替代科技藍 */
+  --color-accent-hover: #b85b17;
 
-  --color-nav-bg: rgba(18, 18, 18, 0.82);
-  /* 配合深空灰的毛玻璃 */
-  --color-nav-text: #f5f5f7;
-  --color-nav-text-hover: #ffffff;
+  --color-nav-bg: rgba(249, 246, 240, 0.85);
+  /* 燕麥色毛玻璃 */
+  --color-nav-text: #4a423d;
+  /* 深可可字 */
+  --color-nav-text-hover: #d2691e;
 
-  --color-gray-dark: #86868b;
-  --color-gray-light: #a1a1a6;
+  --color-gray-dark: #6b6057;
+  /* 暖深灰 (加重以提升在燕麥底的辨識度) */
+  --color-gray-light: #d2cdc7;
+  /* 暖淺灰 (提亮以提升在深咖啡底的辨識度) */
+
+  --color-shadow-light: rgba(100, 80, 60, 0.05);
+  /* 帶有溫度的陰影 */
 
   /* Typography */
   --font-family-base: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", "PingFang TC", "Microsoft JhengHei", sans-serif;
@@ -41,12 +47,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  /* 暫時關閉全自動深色模式，以免因為系統預設深色導致整體變黑 */
-  /* :root {
-    --color-bg-light: #121212;
-    --color-text-light: #f5f5f7;
-    --color-bg-white: #1c1c1e;
-  } */
+  /* 自動深色模式目前預設關閉，確保訪客能完整體驗淺色燕麥溫馨版 */
 }
 
 * {

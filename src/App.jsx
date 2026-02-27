@@ -143,7 +143,7 @@ function App() {
         <section className={`section-features ${featuresRef ? 'reveal' : ''}`} ref={featuresRef}>
           <div className="features-header text-container">
             <h2 className="headline-regular">每一口，都是對牠的極致寵愛。</h2>
-            <p className="subhead-pro" style={{ color: '#86868b' }}>我們將人類級別的最佳實踐，應用在牠的餐桌上。</p>
+            <p className="subhead-pro" style={{ color: 'var(--color-gray-dark)' }}>我們將人類級別的最佳實踐，應用在牠的餐桌上。</p>
           </div>
           <div className="features-grid">
             <div className="feature-card">
@@ -174,7 +174,7 @@ function App() {
           <div className="text-container">
             <p className="kicker">全新推出</p>
             <h2 className="headline-regular">Polar 鮮糧</h2>
-            <p className="subhead-pro" style={{ color: '#86868b' }}>日常的每一餐，都可以是無與倫比的享受。</p>
+            <p className="subhead-pro" style={{ color: 'var(--color-gray-dark)' }}>日常的每一餐，都可以是無與倫比的享受。</p>
             <div className="btns-wrapper">
               <button className="btn-blue">進一步了解</button>
               <button className="btn-link">購買</button>
@@ -210,7 +210,7 @@ function App() {
           <div className="grid-item dark">
             <div className="text-container">
               <h3>特級超級視力寶</h3>
-              <p style={{ color: '#a1a1a6' }}>保護牠清澈無瑕的雙眼。</p>
+              <p style={{ color: 'var(--color-gray-light)' }}>保護牠清澈無瑕的雙眼。</p>
               <div className="btns-wrapper" style={{ marginTop: '4px' }}>
                 <button className="btn-blue" style={{ fontSize: '15px', padding: '8px 16px' }}>進一步了解</button>
                 <button className="btn-link" style={{ fontSize: '15px' }}>購買</button>
