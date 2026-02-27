@@ -1,0 +1,180 @@
+.expandable-card-small {
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: var(--glass-border);
+    border-radius: var(--pet-border-radius);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 10px 30px var(--color-shadow-light);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.card-image-wrapper {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    /* 也可以用 var(--pet-border-radius) */
+    overflow: hidden;
+    margin-bottom: 20px;
+    border: 4px solid var(--color-bg-white);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.card-image-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card-content h3 {
+    font-family: var(--font-family-display);
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--color-text-light);
+    margin-bottom: 8px;
+}
+
+.card-content p {
+    font-size: 15px;
+    color: var(--color-gray-dark);
+}
+
+/* 展開狀態的覆蓋層與卡片 */
+.expandable-overlay-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+
+.expandable-overlay-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(58, 51, 47, 0.6);
+    /* --color-bg-dark 半透 */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.expandable-card-large {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    background-color: var(--color-bg-light);
+    border-radius: var(--pet-border-radius);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    z-index: 10001;
+}
+
+/* 強化玻璃擬態 */
+.expandable-card-large.glass-panel {
+    background-color: rgba(251, 247, 243, 0.85);
+    /* 更有實體感的燕麥白 */
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: var(--glass-border);
+}
+
+.card-large-inner {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+@media (min-width: 768px) {
+    .card-large-inner {
+        flex-direction: row;
+    }
+}
+
+.card-image-large-wrapper {
+    width: 100%;
+    height: 300px;
+    position: relative;
+}
+
+@media (min-width: 768px) {
+    .card-image-large-wrapper {
+        width: 45%;
+        height: auto;
+        min-height: 400px;
+    }
+}
+
+.card-image-large-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0;
+}
+
+.card-content-large {
+    padding: 40px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.card-content-large h3 {
+    font-family: var(--font-family-display);
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--color-text-light);
+    margin-bottom: 12px;
+}
+
+.card-content-large p {
+    font-size: 18px;
+    color: var(--color-accent);
+    margin-bottom: 24px;
+}
+
+.card-details p {
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--color-gray-dark);
+    margin-bottom: 32px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--color-bg-white);
+    color: var(--color-text-light);
+    border: none;
+    font-size: 18px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px var(--color-shadow-light);
+    transition: transform var(--transition-fast);
+}
+
+.close-btn:hover {
+    transform: scale(1.1);
+    color: var(--color-accent-hover);
+}

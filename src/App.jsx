@@ -4,6 +4,7 @@ import './App.css';
 import Home from './pages/Home';
 import About from './pages/About';
 import Category from './pages/Category';
+import CustomCursor from './components/CustomCursor';
 
 // 切換路由時，自動將畫面捲軸移至最上方
 const ScrollToTop = () => {
@@ -40,6 +41,7 @@ function AppContent() {
 
   return (
     <div className="app-container">
+      <CustomCursor />
       <ScrollToTop />
 
       {/* 導覽列 Navbar (Global Ribbon) */}

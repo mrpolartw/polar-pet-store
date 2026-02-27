@@ -1,38 +1,38 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Warm Apple-inspired Lifestyle Palette */
-  --color-bg-light: #f9f6f0;
-  /* 燕麥白 (Oatmeal) - 替代冷灰 */
+  /* Warm Earth Tones & Pet-inspired Palette */
+  --color-bg-light: #fbf7f3;
+  /* 拿鐵燕麥白 (Latte/Oat) - 主背景色 */
   --color-bg-white: #ffffff;
-  /* 純白 (White) - 提升卡片乾淨度 */
+  /* 純白 (White) - 提升卡片乾淨度與毛玻璃亮度 */
   --color-text-light: #4a423d;
-  /* 深可可 (Cocoa) - 替代銳利的極深黑 */
+  /* 深炭棕 (Charcoal Brown) - 柔和的深色文字 */
 
-  --color-bg-dark: #2c2724;
-  /* 濃咖啡黑 (Espresso) - 替代黑灰色 */
-  --color-bg-dark-card: #3a332f;
-  /* 暖灰棕卡片色 */
-  --color-text-dark: #fdfbf7;
-  /* 暖白柔和字 - 替代冷白字 */
+  --color-bg-dark: #3a332f;
+  /* 深可可 (Cocoa) - 深色區塊主背 */
+  --color-bg-dark-card: #48403a;
+  /* 稍微提亮的深灰色 - 用於深底上的卡片 */
+  --color-text-dark: #fbf7f3;
+  /* 暖白柔和字 - 用於深底上的文字 */
 
-  --color-accent: #d2691e;
-  /* 大地磚橘 (Terracotta) - 替代科技藍 */
-  --color-accent-hover: #b85b17;
+  --color-accent: #c48c58;
+  /* 暖砂橘/焦糖色 (Caramel) - 主要強調色，取代傳統科技藍與突兀的橘 */
+  --color-accent-hover: #a67243;
 
-  --color-nav-bg: rgba(249, 246, 240, 0.85);
-  /* 燕麥色毛玻璃 */
+  --color-nav-bg: rgba(251, 247, 243, 0.45);
+  /* 燕麥色毛玻璃底色，加強透明度 */
   --color-nav-text: #4a423d;
   /* 深可可字 */
-  --color-nav-text-hover: #d2691e;
+  --color-nav-text-hover: #c48c58;
 
-  --color-gray-dark: #6b6057;
-  /* 暖深灰 (加重以提升在燕麥底的辨識度) */
-  --color-gray-light: #d2cdc7;
-  /* 暖淺灰 (提亮以提升在深咖啡底的辨識度) */
+  --color-gray-dark: #8c8279;
+  /* 暖深灰 */
+  --color-gray-light: #e5dfd8;
+  /* 暖淡灰 */
 
-  --color-shadow-light: rgba(100, 80, 60, 0.05);
-  /* 帶有溫度的陰影 */
+  --color-shadow-light: rgba(74, 66, 61, 0.08);
+  /* 帶有大地溫度的溫暖陰影 */
 
   /* Typography */
   --font-family-base: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", "PingFang TC", "Microsoft JhengHei", sans-serif;
@@ -40,6 +40,10 @@
 
   /* Glassmorphism */
   --nav-backdrop-filter: saturate(180%) blur(20px);
+  --glass-bg: rgba(251, 247, 243, 0.45);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.5);
+  --pet-border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+  /* 肉球 / 有機圓潤造型 */
 
   /* Animations */
   --transition-fast: 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);

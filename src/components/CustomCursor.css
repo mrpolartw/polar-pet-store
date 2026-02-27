@@ -1,0 +1,57 @@
+/* 全域強制隱藏預設滑鼠，包含所有自訂卡片與按鈕的 pointer */
+* {
+    cursor: none !important;
+}
+
+/* 隱藏並定位游標的小點遺留設定移除掉 */
+
+/* 包裝層：專職接收 framer-motion 的 X, Y 位置，不具備 CSS transform 動畫 */
+.cursor-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* SVG 肉球本身，專注於形狀、顏色與飄浮動畫 */
+.cursor-paw {
+    width: 28px;
+    height: 28px;
+    color: var(--color-accent);
+    /* 將旋轉中心調整至圖片中心，並加入持續的呼吸漂浮感 */
+    animation: paw-float 4s ease-in-out infinite;
+    transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+        height 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+        color 0.3s ease, background-color 0.3s ease, margin 0.3s ease;
+    filter: drop-shadow(0 4px 8px var(--color-shadow-light));
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* hover 可點擊元素時的膨脹與變色 */
+.cursor-paw.hover {
+    width: 48px;
+    height: 48px;
+    color: var(--color-accent-hover);
+    /* 加入毛玻璃背景作為底墊，凸顯肉球 */
+    background-color: var(--color-nav-bg);
+    border-radius: var(--pet-border-radius);
+    padding: 8px;
+    backdrop-filter: blur(4px);
+    margin-left: -10px;
+    margin-top: -10px;
+}
+
+@keyframes paw-float {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(-5deg);
+    }
+
+    50% {
+        transform: translateY(-4px) rotate(5deg);
+    }
+}
