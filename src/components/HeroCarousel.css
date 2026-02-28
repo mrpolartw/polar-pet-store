@@ -1,10 +1,15 @@
 .hero-carousel {
     position: relative;
     width: 100%;
-    height: 85vh;
-    min-height: 700px;
+    /* 在小螢幕時享受 100% 滿版 */
+    max-width: 1220px;
+    /* 在大螢幕時限制在圖片原始寬度，剛好對齊上方 1200px 的導覽列內容 */
+    margin: 0 auto 60px auto;
+    /* 置中並與下方區塊保持舒適距離 */
+    aspect-ratio: 2 / 1;
+    /* 100% 保持圖片原始比例，完美呈現不裁切 */
     overflow: hidden;
-    background-color: var(--color-bg-dark);
+    /* 移除任何 border-radius 與浮誇陰影，確保為純淨方形 */
 }
 
 .carousel-inner {
@@ -31,9 +36,9 @@
     width: 100%;
     height: 100%;
     background-size: cover;
+    /* 因為外層已經設定 aspect-ratio 2:1 等同圖片比利，Cover 就不會切到圖片了 */
     background-position: center;
-    /* 加入黑色漸層遮罩，讓文字清晰 */
-    box-shadow: inset 0 0 0 2000px rgba(44, 39, 36, 0.35);
+    background-repeat: no-repeat;
     z-index: 1;
 }
 

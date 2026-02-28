@@ -2,6 +2,8 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  padding-top: 110px;
+  /* 防止加高的雙層導覽列遮擋輪播圖與內文 */
 }
 
 /* -------------------------------------
@@ -113,9 +115,9 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 44px;
+  /* 移除固定高度，改用 padding 讓內部撐開 */
+  padding: 8px 0;
   background: var(--color-nav-bg);
-  /* 以燕麥色取代深空灰毛玻璃 */
   transition: background-color 0.4s ease;
   z-index: 1000;
   display: flex;
@@ -123,73 +125,150 @@
 }
 
 .navbar.scrolled {
-  background: rgba(249, 246, 240, 0.72);
+  background: rgba(249, 246, 240, 0.9);
   backdrop-filter: var(--nav-backdrop-filter);
   -webkit-backdrop-filter: var(--nav-backdrop-filter);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  /* 增添浮動感 */
 }
 
+/* 讓 navbar-content 可以擁有上下垂直堆疊的彈性容器 */
 .navbar-content {
   width: 100%;
-  max-width: 1024px;
-  height: 100%;
-  padding: 0 16px;
+  max-width: 1200px;
+  /* 放寬以容納雙排設計 */
+  padding: 0 24px;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+}
+
+/* ----------------- Top Bar (上排小選單) ----------------- */
+.navbar-top {
+  display: flex;
+  justify-content: flex-end;
+  /* 全部靠右對齊 */
   align-items: center;
+  padding-bottom: 8px;
+  gap: 16px;
+}
+
+.nav-social-icons {
+  display: flex;
+  gap: 12px;
+}
+
+.nav-social-icons a {
+  color: var(--color-text-muted);
+  transition: color var(--transition-fast);
+  display: flex;
+  align-items: center;
+}
+
+.nav-social-icons a:hover {
+  color: var(--color-accent);
+}
+
+.nav-top-links {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.nav-top-links li {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+/* 在每個輔助連結之間加上斜線 / 作為分隔 (除了社群圖示區) */
+.nav-top-links li:not(:first-child)::before {
+  content: "/";
+  margin-right: 12px;
+  color: var(--color-text-light);
+  /* 淡淡的斜線 */
+  font-size: 11px;
+}
+
+.nav-top-links a {
+  font-size: 11px;
+  /* 極小字體 */
+  color: var(--color-text-muted);
+  font-weight: 600;
+  transition: color var(--transition-fast);
+  letter-spacing: 0.05em;
+}
+
+.nav-top-links a:hover {
+  color: var(--color-accent);
+}
+
+.nav-search-btn {
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-fast);
+}
+
+.nav-search-btn:hover {
+  color: var(--color-accent);
+}
+
+
+/* ----------------- 分隔虛線 ----------------- */
+.navbar-divider {
+  width: 100%;
+  border-bottom: 1px dashed rgba(139, 115, 85, 0.2);
+  /* 大地色系細緻虛線 */
+  margin-bottom: 8px;
+}
+
+/* ----------------- Main Bar (主選單區) ----------------- */
+.navbar-main {
+  display: flex;
+  justify-content: flex-start;
+  /* 靠左對齊 */
+  align-items: center;
+  padding: 4px 0;
 }
 
 .logo {
-  font-family: var(--font-family-display);
-  font-weight: 600;
-  font-size: 17px;
-  color: var(--color-nav-text);
-  letter-spacing: -0.01em;
-  cursor: pointer;
-}
-
-.nav-links {
-  display: flex;
-  height: 100%;
-}
-
-.nav-links li {
-  height: 100%;
-}
-
-.nav-links a {
   display: flex;
   align-items: center;
-  height: 100%;
-  padding: 0 20px;
-  font-size: 13px;
-  color: var(--color-nav-text);
-  /* 預設改為深可可色，解決淺燕麥白背景吃字問題 */
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  transition: color var(--transition-fast);
+  margin-right: 48px;
+  /* 創造與主導覽列的間距 */
+}
+
+.logo img {
+  height: 48px;
+  /* 放大 Logo 以符合雙層高度的氣勢 */
+  width: auto;
+  object-fit: contain;
+  transition: opacity var(--transition-fast);
+}
+
+.logo:hover img {
   opacity: 0.8;
 }
 
-.nav-links a:hover {
-  color: var(--color-nav-text-hover);
-  opacity: 1;
-}
-
-/* 實心白底（非首頁或往下捲動）時的字體自動變深色 */
-.navbar.scrolled .logo,
-.navbar.scrolled .nav-links a {
-  color: var(--color-nav-text);
-  /* 切換為深可可色 */
-}
-
-.navbar.scrolled .nav-links a:hover {
-  color: var(--color-nav-text-hover);
-  /* 切換為深橘色 */
-}
-
-.nav-actions {
+.nav-main-links {
   display: flex;
-  gap: 16px;
+  gap: 32px;
+  /* 寬鬆的間距 */
+  align-items: center;
+}
+
+.nav-main-links a {
+  font-size: 14px;
+  color: var(--color-nav-text);
+  font-weight: 700;
+  /* 加粗增強重點 */
+  letter-spacing: 0.02em;
+  transition: color var(--transition-fast);
+}
+
+.nav-main-links a:hover {
+  color: var(--color-accent);
 }
 
 /* -------------------------------------

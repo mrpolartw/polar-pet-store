@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Facebook, Instagram, MessageCircle, Search } from 'lucide-react'; // 引入設計師所需的圖示
 import './App.css';
 import Home from './pages/Home';
 import About from './pages/About';
 import Category from './pages/Category';
 import CustomCursor from './components/CustomCursor';
+import LogoImg from './png/LOGO去背景.png';
 
 // 切換路由時，自動將畫面捲軸移至最上方
 const ScrollToTop = () => {
@@ -47,17 +49,36 @@ function AppContent() {
       {/* 導覽列 Navbar (Global Ribbon) */}
       <nav className={navbarClass}>
         <div className="navbar-content">
-          <Link to="/" className="logo">Polar</Link>
-          <ul className="nav-links">
-            <li><Link to="/">商品</Link></li>
-            <li><Link to="/">關節專區</Link></li>
-            <li><Link to="/">零食專區</Link></li>
-            <li><Link to="/about">關於 Mr.Polar</Link></li>
-            <li><Link to="/support">服務支援</Link></li>
-          </ul>
-          <div className="nav-actions">
-            <span className="icon-search"></span>
-            <span className="icon-cart"></span>
+          {/* 上方小選單與社群 */}
+          <div className="navbar-top">
+            <div className="nav-social-icons">
+              <a href="#fb"><Facebook size={14} /></a>
+              <a href="#ig"><Instagram size={14} /></a>
+              <a href="#line"><MessageCircle size={14} /></a>
+            </div>
+            <ul className="nav-top-links">
+              <li><Link to="/products">商品列表</Link></li>
+              <li><Link to="/cart">購物車</Link></li>
+              <li><Link to="/contact">聯絡我們</Link></li>
+              <li><Link to="/blog">部落格</Link></li>
+              <li><Link to="/order">訂單查詢</Link></li>
+              <li><Link to="/login">會員登入</Link></li>
+              <li className="nav-search-btn"><Search size={14} /></li>
+            </ul>
+          </div>
+
+          <div className="navbar-divider"></div> {/* 水平虛線 */}
+
+          {/* 下方主選單與 LOGO */}
+          <div className="navbar-main">
+            <Link to="/" className="logo">
+              <img src={LogoImg} alt="Polar Logo" />
+            </Link>
+            <ul className="nav-main-links">
+              <li><Link to="/joints">骨骼關節</Link></li>
+              <li><Link to="/about">品牌介紹</Link></li>
+              {/* 保留些許原本的主要結構作為備用空間，可視需求調整 */}
+            </ul>
           </div>
         </div>
       </nav>
