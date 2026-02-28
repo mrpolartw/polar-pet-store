@@ -271,6 +271,51 @@
   color: var(--color-accent);
 }
 
+/* ----------------- Navbar RWD (防跑版機制) ----------------- */
+@media (max-width: 992px) {
+  .navbar-top {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .nav-top-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .nav-top-links li:not(:first-child)::before {
+    margin: 0 6px;
+  }
+
+  .navbar-main {
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .logo {
+    margin-right: 0;
+  }
+
+  .nav-main-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .app-container {
+    padding-top: 150px;
+    /* 小螢幕疊加後高度更高，預留更多空間 */
+  }
+}
+
+@media (max-width: 576px) {
+  .app-container {
+    padding-top: 180px;
+  }
+}
+
 /* -------------------------------------
  * Image Wrapper with Fallback (Skeleton)
  * ------------------------------------- */
