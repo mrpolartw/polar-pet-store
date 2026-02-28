@@ -49,11 +49,11 @@ function AppContent() {
         <div className="navbar-content">
           <Link to="/" className="logo">Polar</Link>
           <ul className="nav-links">
-            <li><Link to="/">首頁</Link></li>
-            <li><Link to="/about">關於 Polar</Link></li>
-            <li><Link to="/main-food">主食系列</Link></li>
-            <li><Link to="/snacks">零食點心</Link></li>
-            <li><Link to="/health">極致保健</Link></li>
+            <li><Link to="/">商品</Link></li>
+            <li><Link to="/">關節專區</Link></li>
+            <li><Link to="/">零食專區</Link></li>
+            <li><Link to="/about">關於 Mr.Polar</Link></li>
+            <li><Link to="/support">服務支援</Link></li>
           </ul>
           <div className="nav-actions">
             <span className="icon-search"></span>
