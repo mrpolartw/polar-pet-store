@@ -1,30 +1,79 @@
+/* =========================================
+   Polar Pet Store - Global CSS (Apple Style Optimized)
+   ========================================= */
+
+/* -------------------------------------
+ * 0. 核心變數設定 (Design Tokens)
+ * ------------------------------------- */
+:root {
+  /* 品牌核心色 */
+  --color-brand-blue: #003153; /* 統一的品牌深藍色 */
+  --color-brand-coffee: #8B5A2B; /* 統一的滑鼠懸停咖啡色 (Hover) */
+  --color-brand-coffee-light: #C68E58; /* 淺拿鐵色，專用於深色背景上的 Hover */
+  
+  /* 介面基礎色 */
+  --color-bg-white: #ffffff;
+  --color-bg-light: #f5f5f7;
+  --color-bg-dark: #1d1d1f;
+  --color-bg-dark-card: #2d2d2f;
+  
+  /* 文字與灰階 */
+  --color-text-dark: #1d1d1f;
+  --color-text-light: #f5f5f7;
+  --color-gray-dark: #86868b;
+  --color-gray-light: #d2d2d7;
+  
+  /* 排版與其他設定 */
+  --font-family-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --transition-fast: 0.2s ease;
+  --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --pet-border-radius: 28px;
+  
+  /* 毛玻璃效果參數 */
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.3);
+  --color-shadow-light: rgba(0, 0, 0, 0.05);
+}
+
+/* -------------------------------------
+ * 1. 基礎重置 (確保滿版無白邊)
+ * ------------------------------------- */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; /* 防止滿版元素產生水平捲軸 */
+}
+
 .app-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-top: 110px;
-  /* 防止加高的雙層導覽列遮擋輪播圖與內文 */
+  padding-top: 48px; /* 配合新版極細導覽列的高度 */
+  background-color: var(--color-bg-white);
 }
 
 /* -------------------------------------
- * Global Typography & Components
+ * 2. 全域排版與元件 (Typography & Components)
  * ------------------------------------- */
 .headline-pro {
   font-family: var(--font-family-display);
-  font-size: 64px;
+  font-size: clamp(40px, 6vw, 64px); /* 自適應縮放 */
   line-height: 1.0625;
   font-weight: 600;
   letter-spacing: -0.009em;
   margin-bottom: 8px;
+  color: var(--color-text-dark);
 }
 
 .subhead-pro {
   font-family: var(--font-family-display);
-  font-size: 28px;
+  font-size: clamp(20px, 3vw, 28px);
   line-height: 1.14286;
   font-weight: 400;
   letter-spacing: .007em;
   margin-bottom: 12px;
+  color: var(--color-gray-dark);
 }
 
 .description-pro {
@@ -32,14 +81,14 @@
   line-height: 1.4211;
   font-weight: 400;
   letter-spacing: 0.012em;
-  color: var(--color-gray-light);
+  color: var(--color-gray-dark);
   max-width: 600px;
   margin: 0 auto 20px auto;
 }
 
 .headline-regular {
   font-family: var(--font-family-display);
-  font-size: 56px;
+  font-size: clamp(36px, 5vw, 56px);
   line-height: 1.07143;
   font-weight: 600;
   letter-spacing: -0.005em;
@@ -50,23 +99,23 @@
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: #bf4800;
-  /* Apple-like orange for new items */
+  color: var(--color-brand-coffee); /* 新品標籤也改為咖啡色系 */
   text-transform: uppercase;
   margin-bottom: 8px;
 }
 
+/* --- 按鈕系統 (套用品牌藍與咖啡 Hover) --- */
 .btns-wrapper {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 16px;
-  margin-top: 14px;
+  margin-top: 24px;
 }
 
 .btn-blue {
-  background-color: var(--color-accent);
-  color: #ffffff;
-  /* 按鈕內的字為了對比可保持這層純白 */
+  background-color: var(--color-brand-blue);
+  color: var(--color-bg-white);
   border: none;
   border-radius: 980px;
   padding: 12px 22px;
@@ -78,15 +127,15 @@
 }
 
 .btn-blue:hover {
-  background-color: var(--color-accent-hover);
+  background-color: var(--color-brand-coffee); /* 滑鼠移入變咖啡色 */
   transform: scale(1.02);
 }
 
 .btn-link {
-  color: var(--color-accent);
+  color: var(--color-brand-blue);
   background: transparent;
   border: none;
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 400;
   letter-spacing: -0.022em;
   cursor: pointer;
@@ -96,7 +145,8 @@
 }
 
 .btn-link:hover {
-  color: var(--color-accent-hover);
+  color: var(--color-brand-coffee); /* 滑鼠移入變咖啡色 */
+  text-decoration: underline;
 }
 
 .btn-link::after {
@@ -105,220 +155,291 @@
   margin-left: 4px;
   font-size: 13px;
   font-weight: 700;
+  text-decoration: none;
 }
 
 /* -------------------------------------
- * Navbar (Global Ribbon)
+ * 3. 導覽列基底 (Navbar Base)
  * ------------------------------------- */
-.navbar {
+.navbar-wrapper {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  /* 移除固定高度，改用 padding 讓內部撐開 */
-  padding: 8px 0;
-  background: var(--color-nav-bg);
-  transition: background-color 0.4s ease;
   z-index: 1000;
-  display: flex;
-  justify-content: center;
 }
 
-.navbar.scrolled {
-  background: rgba(249, 246, 240, 0.9);
-  backdrop-filter: var(--nav-backdrop-filter);
-  -webkit-backdrop-filter: var(--nav-backdrop-filter);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  /* 增添浮動感 */
-}
-
-/* 讓 navbar-content 可以擁有上下垂直堆疊的彈性容器 */
-.navbar-content {
+.navbar-apple {
+  position: relative; /* 配合 navbar-wrapper */
   width: 100%;
-  max-width: 1200px;
-  /* 放寬以容納雙排設計 */
-  padding: 0 24px;
-  display: flex;
-  flex-direction: column;
-}
-
-/* ----------------- Top Bar (上排小選單) ----------------- */
-.navbar-top {
-  display: flex;
-  justify-content: flex-end;
-  /* 全部靠右對齊 */
-  align-items: center;
-  padding-bottom: 8px;
-  gap: 16px;
-}
-
-.nav-social-icons {
-  display: flex;
-  gap: 12px;
-}
-
-.nav-social-icons a {
-  color: var(--color-text-muted);
-  transition: color var(--transition-fast);
-  display: flex;
-  align-items: center;
-}
-
-.nav-social-icons a:hover {
-  color: var(--color-accent);
-}
-
-.nav-top-links {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.nav-top-links li {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-
-/* 在每個輔助連結之間加上斜線 / 作為分隔 (除了社群圖示區) */
-.nav-top-links li:not(:first-child)::before {
-  content: "/";
-  margin-right: 12px;
-  color: var(--color-text-light);
-  /* 淡淡的斜線 */
-  font-size: 11px;
-}
-
-.nav-top-links a {
-  font-size: 11px;
-  /* 極小字體 */
-  color: var(--color-text-muted);
-  font-weight: 600;
-  transition: color var(--transition-fast);
-  letter-spacing: 0.05em;
-}
-
-.nav-top-links a:hover {
-  color: var(--color-accent);
-}
-
-.nav-search-btn {
-  color: var(--color-text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: color var(--transition-fast);
-}
-
-.nav-search-btn:hover {
-  color: var(--color-accent);
-}
-
-
-/* ----------------- 分隔虛線 ----------------- */
-.navbar-divider {
-  width: 100%;
-  border-bottom: 1px dashed rgba(139, 115, 85, 0.2);
-  /* 大地色系細緻虛線 */
-  margin-bottom: 8px;
-}
-
-/* ----------------- Main Bar (主選單區) ----------------- */
-.navbar-main {
-  display: flex;
-  justify-content: flex-start;
-  /* 靠左對齊 */
-  align-items: center;
-  padding: 4px 0;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  margin-right: 48px;
-  /* 創造與主導覽列的間距 */
-}
-
-.logo img {
   height: 48px;
-  /* 放大 Logo 以符合雙層高度的氣勢 */
-  width: auto;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: background-color var(--transition-smooth);
+  z-index: 10;
+}
+
+.navbar-apple.scrolled {
+  background: rgba(249, 246, 240, 0.95);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.nav-logo img {
+  height: 50px; /* Logo 尺寸 */
   object-fit: contain;
   transition: opacity var(--transition-fast);
 }
 
-.logo:hover img {
+.nav-logo:hover img {
   opacity: 0.8;
 }
 
-.nav-main-links {
+/* -------------------------------------
+ * 4. 桌機版導覽與 Mega Menu (Desktop)
+ * ------------------------------------- */
+.nav-desktop-links {
   display: flex;
-  gap: 32px;
-  /* 寬鬆的間距 */
+  gap: 36px;
   align-items: center;
+  height: 100%;
 }
 
-.nav-main-links a {
-  font-size: 14px;
-  color: var(--color-nav-text);
-  font-weight: 700;
-  /* 加粗增強重點 */
+.nav-desktop-links a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-brand-blue); /* 統一品牌藍 */
+  text-decoration: none;
+  opacity: 0.9;
+  transition: all var(--transition-fast);
   letter-spacing: 0.02em;
-  transition: color var(--transition-fast);
 }
 
-.nav-main-links a:hover {
-  color: var(--color-accent);
+.nav-desktop-links a:hover,
+.nav-item-dropdown.active a {
+  opacity: 1;
+  color: var(--color-brand-coffee); /* Hover 及 Active 變咖啡色 */
 }
 
-/* ----------------- Navbar RWD (防跑版機制) ----------------- */
-@media (max-width: 992px) {
-  .navbar-top {
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .nav-top-links {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .nav-top-links li:not(:first-child)::before {
-    margin: 0 6px;
-  }
-
-  .navbar-main {
-    flex-direction: column;
-    justify-content: center;
-    gap: 12px;
-  }
-
-  .logo {
-    margin-right: 0;
-  }
-
-  .nav-main-links {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 16px;
-  }
-
-  .app-container {
-    padding-top: 150px;
-    /* 小螢幕疊加後高度更高，預留更多空間 */
-  }
+/* 桌機版大型下拉選單 (Mega Menu) */
+.mega-menu {
+  position: absolute;
+  top: 48px; 
+  left: 0;
+  width: 100%;
+  background-color: var(--color-brand-blue); /* 深藍色背景 */
+  color: var(--color-bg-white);
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height var(--transition-smooth), opacity 0.3s ease;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
-@media (max-width: 576px) {
-  .app-container {
-    padding-top: 180px;
-  }
+.mega-menu.show {
+  max-height: 400px;
+  opacity: 1;
+}
+
+.mega-menu-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px 60px 24px;
+  display: flex;
+  gap: 80px;
+}
+
+.mega-menu-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mega-menu-column h4 {
+  font-size: 12px;
+  color: #8fa1c5;
+  margin-bottom: 4px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.mega-menu-column a {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-bg-white);
+  text-decoration: none;
+  transition: color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.mega-menu-column a:hover {
+  color: var(--color-brand-coffee-light); /* 深色背景上的 Hover 使用淺拿鐵色確保辨識度 */
 }
 
 /* -------------------------------------
- * Image Wrapper with Fallback (Skeleton)
+ * 5. 行動版導覽與多層滑動選單 (Mobile)
  * ------------------------------------- */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* 搜尋、購物車、漢堡按鈕 */
+.icon-btn, .hamburger-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--color-brand-blue); /* 統一品牌藍 */
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.icon-btn:hover, .hamburger-btn:hover {
+  color: var(--color-brand-coffee); /* Hover 變咖啡色 */
+  transform: scale(1.08);
+}
+
+.hamburger-btn {
+  font-size: 24px;
+  font-weight: 300;
+}
+
+/* 手機滿版遮罩 (Overlay) */
+.nav-overlay {
+  position: fixed;
+  top: 48px;
+  left: 0;
+  width: 100%;
+  height: calc(100vh - 48px);
+  background-color: var(--color-bg-white);
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0.4s;
+  overflow: hidden;
+}
+
+.nav-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 手機版雙層滑動軌道 */
+.nav-overlay-slider {
+  display: flex;
+  width: 200%;
+  height: 100%;
+  transition: transform var(--transition-smooth);
+}
+
+.nav-overlay-panel {
+  width: 50%;
+  height: 100%;
+  padding: 0 24px;
+  overflow-y: auto;
+}
+
+.nav-links-mobile {
+  list-style: none;
+  padding: 20px 0;
+  margin: 0;
+}
+
+.nav-links-mobile li {
+  border-bottom: 1px solid var(--color-gray-light);
+}
+
+.nav-links-mobile a {
+  display: block;
+  padding: 18px 0;
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--color-brand-blue);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+.nav-links-mobile a:hover {
+  color: var(--color-brand-coffee); /* Hover 變咖啡色 */
+}
+
+/* 手機次級選單前進按鈕 */
+.nav-mobile-next-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 18px 0;
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--color-brand-blue);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.nav-mobile-next-btn:hover {
+  color: var(--color-brand-coffee);
+}
+
+.nav-mobile-next-btn .arrow {
+  color: var(--color-gray-dark);
+  font-size: 16px;
+  font-weight: bold;
+}
+
+/* 手機次級選單返回按鈕 */
+.nav-mobile-back-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 24px 0 12px 0;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--color-gray-dark);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--color-gray-light);
+  margin-bottom: 10px;
+  transition: color var(--transition-fast);
+}
+
+.nav-mobile-back-btn:hover {
+  color: var(--color-brand-coffee);
+}
+
+.mobile-sub-title {
+  font-size: 12px;
+  color: var(--color-gray-dark);
+  margin-top: 16px;
+  margin-bottom: 4px;
+  border-bottom: none !important;
+  font-weight: 500;
+}
+
+/* -------------------------------------
+ * 6. 動畫、骨架屏與主頁內容區塊 (Main Content)
+ * ------------------------------------- */
+
+/* 骨架屏 (Skeleton) */
 .img-wrapper {
   position: relative;
   display: flex;
@@ -334,13 +455,8 @@
   transition: opacity 0.8s ease-in-out;
 }
 
-.img-wrapper.loading img {
-  opacity: 0;
-}
-
-.img-wrapper.loaded img {
-  opacity: 1;
-}
+.img-wrapper.loading img { opacity: 0; }
+.img-wrapper.loaded img { opacity: 1; }
 
 .skeleton-loader {
   position: absolute;
@@ -360,65 +476,41 @@
 }
 
 @keyframes loadingSkeleton {
-  0% {
-    background-position: 200% 0;
-  }
-
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-/* -------------------------------------
- * Reveal Animations Setup
- * ------------------------------------- */
-.reveal .text-container,
-.text-container {
+/* 滑動顯示動畫 (Reveal) */
+.reveal .text-container, .text-container {
   opacity: 0;
   transform: translateY(40px);
   transition: opacity 1.2s cubic-bezier(0.25, 1, 0.5, 1), transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
   z-index: 10;
 }
 
-.reveal .img-wrapper,
-.img-wrapper {
+.reveal .img-wrapper, .img-wrapper {
   opacity: 0;
   transform: scale(0.97) translateY(20px);
   transition: all 1.4s cubic-bezier(0.25, 1, 0.5, 1) 0.15s;
 }
 
-/* 當加上 reveal class，就跑動畫 */
-.reveal .text-container {
-  opacity: 1;
-  transform: translateY(0);
-}
+.reveal .text-container { opacity: 1; transform: translateY(0); }
+.reveal .img-wrapper { opacity: 1; transform: scale(1) translateY(0); }
 
-.reveal .img-wrapper {
-  opacity: 1;
-  transform: scale(1) translateY(0);
-}
-
-/* -------------------------------------
- * Main Content Sections
- * ------------------------------------- */
-main {
-  margin-top: 44px;
-  /* Offset for fixed navbar */
-}
-
-/* Section 1: Hero Pro (Dark/Warm Tone) */
+/* Section 1: Hero Pro */
 .section-pro {
   background: linear-gradient(180deg, var(--color-bg-dark) 0%, var(--color-bg-dark-card) 100%);
-  color: var(--color-text-dark);
+  color: var(--color-text-light);
   position: relative;
   overflow: hidden;
-  height: 85vh;
-  min-height: 700px;
+  width: 100vw;
+  min-height: 85vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 8vh;
+  padding-top: 10vh;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .pro-image-wrapper {
@@ -429,12 +521,14 @@ main {
   border-radius: 20px 20px 0 0;
 }
 
-/* Section 2: Stats (Light) */
+/* Section 2: Stats */
 .section-stats {
   background-color: var(--color-bg-light);
   padding: 140px 20px;
   display: flex;
   justify-content: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .stats-container {
@@ -442,7 +536,8 @@ main {
   width: 100%;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 20px;
 }
 
 .stat-item {
@@ -456,35 +551,22 @@ main {
   transition: all 1s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
-.reveal .stat-item {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.reveal .stat-item:nth-child(1) {
-  transition-delay: 0.1s;
-}
-
-.reveal .stat-item:nth-child(3) {
-  transition-delay: 0.2s;
-}
-
-.reveal .stat-item:nth-child(5) {
-  transition-delay: 0.3s;
-}
+.reveal .stat-item { opacity: 1; transform: translateY(0); }
+.reveal .stat-item:nth-child(1) { transition-delay: 0.1s; }
+.reveal .stat-item:nth-child(3) { transition-delay: 0.2s; }
+.reveal .stat-item:nth-child(5) { transition-delay: 0.3s; }
 
 .stat-item.divider {
   flex: 0 0 1px;
   height: 80px;
-  background-color: #d2d2d7;
+  background-color: var(--color-gray-light);
 }
 
 .stat-number {
-  font-size: 72px;
+  font-size: clamp(48px, 6vw, 72px);
   font-weight: 600;
   letter-spacing: -0.01em;
-  background: linear-gradient(135deg, var(--color-accent) 0%, #a64d12 100%);
-  /* 加深的大地棕橘漸層 */
+  background: linear-gradient(135deg, var(--color-brand-blue) 0%, var(--color-brand-coffee) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -493,8 +575,9 @@ main {
 }
 
 .stat-desc {
-  font-size: 19px;
-  color: var(--color-text-light);
+  font-size: 17px;
+  line-height: 1.4;
+  color: var(--color-text-dark);
   font-weight: 500;
   max-width: 200px;
 }
@@ -506,11 +589,13 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .features-header {
   text-align: center;
-  margin-bottom: 100px;
+  margin-bottom: 80px;
   max-width: 800px;
 }
 
@@ -536,92 +621,71 @@ main {
   transform: translateY(30px);
   transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
   box-shadow: 0 10px 30px var(--color-shadow-light);
-  /* 營造微弱懸浮卡片感 */
 }
 
-/* Feature 懸浮動畫 */
 .feature-card:hover {
   transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 20px 40px rgba(100, 80, 60, 0.08);
+  box-shadow: 0 20px 40px rgba(139, 90, 43, 0.08); /* 配合咖啡色的陰影 */
 }
 
-.reveal .feature-card {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.reveal .feature-card:nth-child(1) {
-  transition-delay: 0.1s;
-}
-
-.reveal .feature-card:nth-child(2) {
-  transition-delay: 0.2s;
-}
-
-.reveal .feature-card:nth-child(3) {
-  transition-delay: 0.3s;
-}
-
-.reveal .feature-card:nth-child(4) {
-  transition-delay: 0.4s;
-}
-
-.feature-icon {
-  font-size: 40px;
-  margin-bottom: 24px;
-}
+.reveal .feature-card { opacity: 1; transform: translateY(0); }
+.reveal .feature-card:nth-child(1) { transition-delay: 0.1s; }
+.reveal .feature-card:nth-child(2) { transition-delay: 0.2s; }
+.reveal .feature-card:nth-child(3) { transition-delay: 0.3s; }
+.reveal .feature-card:nth-child(4) { transition-delay: 0.4s; }
 
 .feature-card h3 {
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 12px;
-  color: var(--color-text-light);
+  color: var(--color-text-dark);
 }
 
 .feature-card p {
   font-size: 17px;
   line-height: 1.47;
-  color: #86868b;
+  color: var(--color-gray-dark);
 }
 
-/* Section 4: Standard Product (Light) */
+/* Section 4: Standard Product */
 .section-standard {
   background-color: var(--color-bg-white);
-  color: var(--color-text-light);
+  color: var(--color-text-dark);
   position: relative;
   overflow: hidden;
-  height: 80vh;
-  min-height: 700px;
+  width: 100vw;
+  min-height: 80vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   padding-top: 120px;
-  padding-bottom: 80px;
+  padding-bottom: 0;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .std-image-wrapper {
-  max-width: 1000px;
-  width: 90%;
+  max-width: 1200px;
+  width: 95%;
   flex-grow: 1;
-  margin-top: 40px;
+  margin-top: 60px;
   border-radius: 32px 32px 0 0;
   overflow: hidden;
+  display: flex;
+  align-items: flex-end;
 }
 
-.std-image-wrapper img {
-  border-radius: 32px 32px 0 0;
-}
-
-/* Section 5: Details Grid (2 columns) */
+/* Section 5: Details Grid */
 .section-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
-  padding: 24px;
+  padding: 40px 24px;
   max-width: 1400px;
   margin: 0 auto;
   background-color: transparent;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .grid-item {
@@ -642,37 +706,24 @@ main {
   box-shadow: 0 10px 30px var(--color-shadow-light);
   transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
   isolation: isolate;
-  /* 修復 Safari/iOS 上 border-radius 與 transform 的遮罩失效問題 */
 }
 
 .grid-item.dark {
-  background: linear-gradient(135deg, var(--color-bg-dark) 0%, var(--color-bg-dark-card) 100%);
-  color: var(--color-text-dark);
+  background: linear-gradient(135deg, var(--color-brand-blue) 0%, var(--color-bg-dark-card) 100%);
+  color: var(--color-text-light);
 }
 
-/* Grid 懸浮動畫 */
 .grid-item:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 20px 40px rgba(100, 80, 60, 0.08);
-}
-
-.grid-item:hover .grid-image-wrapper {
-  width: 100%;
-  flex-grow: 1;
-  margin-top: 30px;
-  border-radius: var(--pet-border-radius);
-  overflow: hidden;
-}
-
-.grid-item:hover .grid-image-wrapper img {
-  transform: scale(1.04);
+  transform: scale(0.99);
+  box-shadow: 0 15px 35px rgba(139, 90, 43, 0.08); /* 咖啡色調的懸停陰影 */
 }
 
 .grid-image-wrapper {
-  width: 100%;
-  height: 480px;
-  margin-top: 30px;
-  border-radius: var(--pet-border-radius);
+  width: 90%;
+  height: auto;
+  flex-grow: 1;
+  margin-top: 40px;
+  border-radius: 24px 24px 0 0;
   overflow: hidden;
 }
 
@@ -680,8 +731,11 @@ main {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: var(--pet-border-radius);
-  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.grid-item:hover .grid-image-wrapper img {
+  transform: scale(1.03);
 }
 
 .grid-item h3 {
@@ -701,15 +755,8 @@ main {
   margin-bottom: 14px;
 }
 
-.grid-image-wrapper {
-  width: 90%;
-  height: 480px;
-  margin-top: 30px;
-  border-radius: 24px 24px 0 0;
-}
-
 /* -------------------------------------
- * Footer Style
+ * 7. Footer 頁尾區塊
  * ------------------------------------- */
 .footer-global {
   background-color: var(--color-bg-light);
@@ -718,7 +765,6 @@ main {
   font-size: 12px;
   display: flex;
   justify-content: center;
-  margin-top: 20px;
 }
 
 .footer-content {
@@ -727,15 +773,10 @@ main {
   padding: 0 22px;
 }
 
-.footer-mini-text {
-  padding-bottom: 24px;
-  line-height: 1.4;
-}
-
 .footer-divider {
   width: 100%;
   height: 1px;
-  background-color: #d2d2d7;
+  background-color: var(--color-gray-light);
   margin-bottom: 30px;
 }
 
@@ -752,7 +793,7 @@ main {
 }
 
 .footer-column h4 {
-  color: #1d1d1f;
+  color: var(--color-text-dark);
   font-weight: 600;
   margin-bottom: 10px;
   font-size: 12px;
@@ -760,6 +801,7 @@ main {
 
 .footer-column ul {
   padding: 0;
+  list-style: none;
 }
 
 .footer-column ul li {
@@ -768,15 +810,17 @@ main {
 
 .footer-column a {
   color: #515154;
+  text-decoration: none;
+  transition: color var(--transition-fast);
 }
 
 .footer-column a:hover {
-  color: #1d1d1f;
+  color: var(--color-brand-coffee); /* 頁尾連結 Hover 也改為咖啡色 */
   text-decoration: underline;
 }
 
 .footer-bottom {
-  border-top: 1px solid #d2d2d7;
+  border-top: 1px solid var(--color-gray-light);
   padding-top: 16px;
   display: flex;
   justify-content: space-between;
@@ -787,125 +831,76 @@ main {
 .footer-legal a {
   color: var(--color-gray-dark);
   margin: 0 8px;
+  text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 .footer-legal a:hover {
-  color: var(--color-text-light);
+  color: var(--color-brand-coffee);
 }
 
 .footer-legal a:first-child {
   margin-left: 0;
 }
 
-
 /* -------------------------------------
- * Responsive Overrides
+ * 8. 響應式佈局 (Responsive Design)
  * ------------------------------------- */
-@media (max-width: 1024px) {
-  .nav-links {
-    display: none;
+
+/* 【大螢幕 (電腦)】: 隱藏漢堡按鈕與下拉遮罩 */
+@media (min-width: 835px) {
+  .hamburger-btn {
+    display: none !important; 
+  }
+  .nav-overlay.open {
+    display: none !important; 
   }
 }
 
-@media (max-width: 834px) {
-
-  .headline-pro,
-  .headline-regular {
-    font-size: 48px;
+/* 【平板微調】 */
+@media (max-width: 1024px) {
+  .section-pro, .section-standard {
+    min-height: 600px;
+    padding-top: 100px;
   }
-
-  .subhead-pro {
-    font-size: 24px;
-  }
-
-  .section-pro,
-  .section-standard {
-    height: auto;
-    min-height: 550px;
-    padding-top: 80px;
-  }
-
-  .section-stats {
+  .section-stats, .section-features {
     padding: 80px 20px;
   }
-
-  .section-features {
-    padding: 80px 20px;
-  }
-
   .features-grid {
     gap: 24px;
   }
-
-  .section-grid {
-    padding: 16px;
-  }
 }
 
-@media (max-width: 768px) {
-
-  .headline-pro,
-  .headline-regular {
-    font-size: 40px;
+/* 【小螢幕 (平板/手機)】 */
+@media (max-width: 834px) {
+  /* 隱藏桌機版選單與 Mega Menu */
+  .nav-desktop-links, .mega-menu {
+    display: none !important; 
   }
-
-  .subhead-pro {
-    font-size: 20px;
+  
+  /* 顯示漢堡選單 */
+  .hamburger-btn {
+    display: flex; 
   }
-
-  .description-pro {
-    font-size: 16px;
-    padding: 0 20px;
-  }
-
-  /* Stats Section fix */
+  
+  /* 區塊單欄化 */
   .stats-container {
     flex-direction: column;
     gap: 40px;
   }
-
   .stat-item.divider {
     height: 1px;
-    width: 80px;
+    width: 60px; 
   }
-
-  /* Features block fix */
-  .features-grid {
+  .features-grid, .section-grid {
     grid-template-columns: 1fr;
   }
-
-  .feature-card {
-    padding: 40px;
-  }
-
-  .section-features {
-    padding: 60px 20px;
-  }
-
-  /* Grid Fix */
-  .section-grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-
   .grid-item {
-    height: 550px;
-    border-radius: 24px;
+    height: 500px;
   }
-
-  /* Footer Fix */
-  .footer-global {
-    padding: 40px 0 30px 0;
-  }
-
   .footer-bottom {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
-  }
-
-  .footer-legal {
-    margin-top: 10px;
   }
 }

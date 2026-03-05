@@ -1,5 +1,5 @@
 import React from 'react';
-import './About.css'; // 復用通用內頁佈局樣式
+ // 復用通用內頁佈局樣式
 
 const Category = ({ title, subtitle }) => {
     return (
