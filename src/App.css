@@ -1,5 +1,5 @@
 /* =========================================
-   Polar Pet Store - Global CSS (Apple Style Optimized)
+   Polar Pet Store - Global CSS (Warm & Premium Pet Style)
    ========================================= */
 
 /* -------------------------------------
@@ -7,58 +7,59 @@
  * ------------------------------------- */
 :root {
   /* 品牌核心色 */
-  --color-brand-blue: #003153; /* 統一的品牌深藍色 */
-  --color-brand-coffee: #8B5A2B; /* 統一的滑鼠懸停咖啡色 (Hover) */
-  --color-brand-coffee-light: #C68E58; /* 淺拿鐵色，專用於深色背景上的 Hover */
+  --color-brand-blue: #003153; 
+  --color-brand-coffee: #8B5A2B; 
+  --color-brand-coffee-light: #C68E58; 
+
+  /* 🌿 介面基礎色 (溫暖的大地/奶油色系) */
+  --color-bg-white: #FCF9F2; 
+  --color-bg-light: #F3EFE6; 
+  --color-bg-dark: #001A2C; 
+  --color-bg-dark-card: #002640; 
   
-  /* 介面基礎色 */
-  --color-bg-white: #ffffff;
-  --color-bg-light: #f5f5f7;
-  --color-bg-dark: #1d1d1f;
-  --color-bg-dark-card: #2d2d2f;
-  
-  /* 文字與灰階 */
-  --color-text-dark: #1d1d1f;
-  --color-text-light: #f5f5f7;
-  --color-gray-dark: #86868b;
-  --color-gray-light: #d2d2d7;
+  /* 🐾 文字與灰階 */
+  --color-text-dark: #33241B; 
+  --color-text-light: #FCF9F2;
+  --color-gray-dark: #8A7E71; 
+  --color-gray-light: #E6DFD3; 
   
   /* 排版與其他設定 */
   --font-family-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --transition-fast: 0.2s ease;
   --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  --pet-border-radius: 28px;
+  --pet-border-radius: 32px; 
   
   /* 毛玻璃效果參數 */
-  --glass-bg: rgba(255, 255, 255, 0.6);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.3);
-  --color-shadow-light: rgba(0, 0, 0, 0.05);
+  --glass-bg: rgba(252, 249, 242, 0.65); 
+  --glass-border: 1px solid rgba(255, 255, 255, 0.6);
+  --color-shadow-light: rgba(139, 90, 43, 0.05); 
 }
 
 /* -------------------------------------
- * 1. 基礎重置 (確保滿版無白邊)
+ * 1. 基礎重置 (Base & Reset)
  * ------------------------------------- */
 html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  overflow-x: hidden; /* 防止滿版元素產生水平捲軸 */
+  overflow-x: hidden;
+  background-color: var(--color-bg-white);
 }
 
 .app-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-top: 48px; /* 配合新版極細導覽列的高度 */
+  padding-top: 48px;
   background-color: var(--color-bg-white);
 }
 
 /* -------------------------------------
- * 2. 全域排版與元件 (Typography & Components)
+ * 2. 全域排版與元件 (Typography & Buttons)
  * ------------------------------------- */
 .headline-pro {
   font-family: var(--font-family-display);
-  font-size: clamp(40px, 6vw, 64px); /* 自適應縮放 */
+  font-size: clamp(40px, 6vw, 64px);
   line-height: 1.0625;
   font-weight: 600;
   letter-spacing: -0.009em;
@@ -93,18 +94,19 @@ html, body {
   font-weight: 600;
   letter-spacing: -0.005em;
   margin-bottom: 8px;
+  color: var(--color-text-dark);
 }
 
 .kicker {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--color-brand-coffee); /* 新品標籤也改為咖啡色系 */
+  color: var(--color-brand-coffee);
   text-transform: uppercase;
   margin-bottom: 8px;
 }
 
-/* --- 按鈕系統 (套用品牌藍與咖啡 Hover) --- */
+/* 按鈕系統 */
 .btns-wrapper {
   display: flex;
   justify-content: center;
@@ -115,20 +117,22 @@ html, body {
 
 .btn-blue {
   background-color: var(--color-brand-blue);
-  color: var(--color-bg-white);
+  color: #ffffff; 
   border: none;
   border-radius: 980px;
   padding: 12px 22px;
   font-size: 17px;
-  font-weight: 400;
-  letter-spacing: -0.022em;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   cursor: pointer;
   transition: all var(--transition-fast);
+  box-shadow: 0 4px 14px rgba(0, 49, 83, 0.2); 
 }
 
 .btn-blue:hover {
-  background-color: var(--color-brand-coffee); /* 滑鼠移入變咖啡色 */
-  transform: scale(1.02);
+  background-color: var(--color-brand-coffee);
+  box-shadow: 0 6px 20px rgba(139, 90, 43, 0.25); 
+  transform: translateY(-2px);
 }
 
 .btn-link {
@@ -136,8 +140,7 @@ html, body {
   background: transparent;
   border: none;
   font-size: 19px;
-  font-weight: 400;
-  letter-spacing: -0.022em;
+  font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -145,7 +148,7 @@ html, body {
 }
 
 .btn-link:hover {
-  color: var(--color-brand-coffee); /* 滑鼠移入變咖啡色 */
+  color: var(--color-brand-coffee);
   text-decoration: underline;
 }
 
@@ -159,7 +162,7 @@ html, body {
 }
 
 /* -------------------------------------
- * 3. 導覽列基底 (Navbar Base)
+ * 3. 導覽列與大型選單 (Navbar & Mega Menu)
  * ------------------------------------- */
 .navbar-wrapper {
   position: fixed;
@@ -170,20 +173,20 @@ html, body {
 }
 
 .navbar-apple {
-  position: relative; /* 配合 navbar-wrapper */
+  position: relative;
   width: 100%;
   height: 48px;
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(252, 249, 242, 0.85); 
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(139, 90, 43, 0.08); 
   transition: background-color var(--transition-smooth);
   z-index: 10;
 }
 
 .navbar-apple.scrolled {
   background: rgba(249, 246, 240, 0.95);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 15px rgba(139, 90, 43, 0.05);
 }
 
 .navbar-container {
@@ -197,7 +200,7 @@ html, body {
 }
 
 .nav-logo img {
-  height: 50px; /* Logo 尺寸 */
+  height: 50px;
   object-fit: contain;
   transition: opacity var(--transition-fast);
 }
@@ -206,9 +209,6 @@ html, body {
   opacity: 0.8;
 }
 
-/* -------------------------------------
- * 4. 桌機版導覽與 Mega Menu (Desktop)
- * ------------------------------------- */
 .nav-desktop-links {
   display: flex;
   gap: 36px;
@@ -217,11 +217,11 @@ html, body {
 }
 
 .nav-desktop-links a {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-brand-blue); /* 統一品牌藍 */
+  font-size: 14px;
+  font-weight: 600; 
+  color: var(--color-brand-blue);
   text-decoration: none;
-  opacity: 0.9;
+  opacity: 0.85;
   transition: all var(--transition-fast);
   letter-spacing: 0.02em;
 }
@@ -229,22 +229,21 @@ html, body {
 .nav-desktop-links a:hover,
 .nav-item-dropdown.active a {
   opacity: 1;
-  color: var(--color-brand-coffee); /* Hover 及 Active 變咖啡色 */
+  color: var(--color-brand-coffee);
 }
 
-/* 桌機版大型下拉選單 (Mega Menu) */
 .mega-menu {
   position: absolute;
   top: 48px; 
   left: 0;
   width: 100%;
-  background-color: var(--color-brand-blue); /* 深藍色背景 */
+  background-color: var(--color-brand-blue);
   color: var(--color-bg-white);
   overflow: hidden;
   max-height: 0;
   opacity: 0;
   transition: max-height var(--transition-smooth), opacity 0.3s ease;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  box-shadow: 0 15px 40px rgba(0, 49, 83, 0.15); 
 }
 
 .mega-menu.show {
@@ -267,8 +266,8 @@ html, body {
 }
 
 .mega-menu-column h4 {
-  font-size: 12px;
-  color: #8fa1c5;
+  font-size: 13px;
+  color: var(--color-brand-coffee-light); 
   margin-bottom: 4px;
   font-weight: 500;
   letter-spacing: 0.04em;
@@ -283,11 +282,73 @@ html, body {
 }
 
 .mega-menu-column a:hover {
-  color: var(--color-brand-coffee-light); /* 深色背景上的 Hover 使用淺拿鐵色確保辨識度 */
+  color: var(--color-brand-coffee-light);
 }
 
 /* -------------------------------------
- * 5. 行動版導覽與多層滑動選單 (Mobile)
+ * 4. 購物袋彈窗 (Cart Dropdown)
+ * ------------------------------------- */
+.cart-dropdown-overlay {
+  position: absolute;
+  top: 45px;
+  right: -10px;
+  width: 280px;
+  background-color: rgba(255, 253, 248, 0.98); 
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 18px; 
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+  padding: 25px 20px;
+  z-index: 1001;
+  animation: appleFadeIn 0.3s ease-out;
+}
+
+.cart-status-text {
+  font-size: 14px;
+  color: var(--color-gray-dark); /* 改用變數統一灰色 */
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.cart-divider {
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.05);
+  margin-bottom: 10px;
+}
+
+.cart-menu-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.cart-menu-links li a {
+  display: flex;
+  align-items: center;
+  padding: 12px 5px;
+  color: var(--color-brand-blue); /* ★ 同步導覽列顏色 */
+  text-decoration: none;
+  font-size: 14px; /* ★ 同步導覽列字級 */
+  font-weight: 600; /* ★ 同步導覽列字重 */
+  transition: color var(--transition-fast);
+}
+
+.cart-menu-links li a .icon {
+  margin-right: 12px;
+  font-size: 16px;
+}
+
+.cart-menu-links li a:hover {
+  color: var(--color-brand-coffee); /* ★ Hover 同步為咖啡色 */
+}
+
+@keyframes appleFadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* -------------------------------------
+ * 5. 行動版導覽與多層滑動選單 (Mobile Nav)
  * ------------------------------------- */
 .nav-actions {
   display: flex;
@@ -295,13 +356,12 @@ html, body {
   gap: 16px;
 }
 
-/* 搜尋、購物車、漢堡按鈕 */
 .icon-btn, .hamburger-btn {
   background: none;
   border: none;
   font-size: 20px;
   cursor: pointer;
-  color: var(--color-brand-blue); /* 統一品牌藍 */
+  color: var(--color-brand-blue);
   padding: 0;
   display: flex;
   align-items: center;
@@ -310,7 +370,7 @@ html, body {
 }
 
 .icon-btn:hover, .hamburger-btn:hover {
-  color: var(--color-brand-coffee); /* Hover 變咖啡色 */
+  color: var(--color-brand-coffee);
   transform: scale(1.08);
 }
 
@@ -318,8 +378,107 @@ html, body {
   font-size: 24px;
   font-weight: 300;
 }
+/* Section 2: Stats */
+.section-stats {
+  background-color: var(--color-bg-light); 
+  padding: 140px 20px;
+  display: flex;
+  flex-direction: column; /* ★ 關鍵：讓內容變成上下垂直排列 */
+  align-items: center;    /* ★ 關鍵：讓所有內容水平置中 */
+  width: 100%;
+  box-sizing: border-box;
+}
+/* -------------------------------------
+ * 第 6 區塊：合作通路展示 (Marquee)
+ * ------------------------------------- */
+.section-partners {
+  padding: 100px 0;
+  background-color: var(--color-bg-white); 
+  overflow: hidden;
+  width: 100%;
+  /* 👇 加入這三行，強制讓裡面的標題絕對置中 */
+  display: flex;
+  flex-direction: column;
+  align-items: center; 
+}
 
-/* 手機滿版遮罩 (Overlay) */
+/* 👇 新增標題專用 class */
+.partners-header {
+  text-align: center;
+  margin-bottom: 50px;
+  width: 100%;
+}
+
+.marquee-container {
+  width: 100vw; /* 改用 100vw 確保突破所有容器，達到螢幕全滿版 */
+  margin: 0 auto;
+  overflow: hidden;
+  position: relative;
+  -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: scrollLeft 30s linear infinite;
+  align-items: center;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+.partner-logo {
+  width: 160px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 40px;
+  opacity: 1; 
+  filter: none; 
+  transition: transform 0.4s ease;
+  cursor: pointer;
+}
+
+.partner-logo:hover {
+  transform: scale(1.1);
+}
+
+.partner-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; 
+}
+
+@keyframes scrollLeft {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@media (max-width: 834px) {
+  .section-partners { padding: 60px 0; }
+  .partner-logo { 
+    width: 120px; 
+    margin: 0 20px; 
+  }
+}
+/* ★ 新增：設定這段文字的置中與下方間距 */
+.stats-header {
+  text-align: center;
+  margin-bottom: 80px; /* 這裡控制文字和下方數字的距離，可依喜好調整 */
+  max-width: 800px;
+}
+
+.stats-container {
+  max-width: 1024px;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
 .nav-overlay {
   position: fixed;
   top: 48px;
@@ -339,7 +498,6 @@ html, body {
   visibility: visible;
 }
 
-/* 手機版雙層滑動軌道 */
 .nav-overlay-slider {
   display: flex;
   width: 200%;
@@ -375,10 +533,9 @@ html, body {
 }
 
 .nav-links-mobile a:hover {
-  color: var(--color-brand-coffee); /* Hover 變咖啡色 */
+  color: var(--color-brand-coffee);
 }
 
-/* 手機次級選單前進按鈕 */
 .nav-mobile-next-btn {
   width: 100%;
   display: flex;
@@ -404,7 +561,6 @@ html, body {
   font-weight: bold;
 }
 
-/* 手機次級選單返回按鈕 */
 .nav-mobile-back-btn {
   width: 100%;
   background: none;
@@ -427,19 +583,17 @@ html, body {
 }
 
 .mobile-sub-title {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-gray-dark);
   margin-top: 16px;
   margin-bottom: 4px;
   border-bottom: none !important;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 /* -------------------------------------
- * 6. 動畫、骨架屏與主頁內容區塊 (Main Content)
+ * 6. 動畫、骨架屏 (Animations & Loaders)
  * ------------------------------------- */
-
-/* 骨架屏 (Skeleton) */
 .img-wrapper {
   position: relative;
   display: flex;
@@ -464,14 +618,14 @@ html, body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, #1d1d1f 25%, #2d2d2f 50%, #1d1d1f 75%);
+  background: linear-gradient(90deg, #001A2C 25%, #002640 50%, #001A2C 75%);
   background-size: 200% 100%;
   animation: loadingSkeleton 1.5s infinite;
 }
 
 .section-standard .skeleton-loader,
 .grid-item:not(.dark) .skeleton-loader {
-  background: linear-gradient(90deg, #f5f5f7 25%, #e8e8ed 50%, #f5f5f7 75%);
+  background: linear-gradient(90deg, #F3EFE6 25%, #E6DFD3 50%, #F3EFE6 75%);
   background-size: 200% 100%;
 }
 
@@ -480,7 +634,7 @@ html, body {
   100% { background-position: -200% 0; }
 }
 
-/* 滑動顯示動畫 (Reveal) */
+/* 滑動顯示動畫 */
 .reveal .text-container, .text-container {
   opacity: 0;
   transform: translateY(40px);
@@ -497,10 +651,14 @@ html, body {
 .reveal .text-container { opacity: 1; transform: translateY(0); }
 .reveal .img-wrapper { opacity: 1; transform: scale(1) translateY(0); }
 
+/* -------------------------------------
+ * 7. 主頁內容區塊 (Page Sections)
+ * ------------------------------------- */
+
 /* Section 1: Hero Pro */
 .section-pro {
   background: linear-gradient(180deg, var(--color-bg-dark) 0%, var(--color-bg-dark-card) 100%);
-  color: var(--color-text-light);
+  color: var(--color-bg-white);
   position: relative;
   overflow: hidden;
   width: 100vw;
@@ -518,12 +676,12 @@ html, body {
   width: 90%;
   flex-grow: 1;
   margin-top: 40px;
-  border-radius: 20px 20px 0 0;
+  border-radius: var(--pet-border-radius) var(--pet-border-radius) 0 0;
 }
 
 /* Section 2: Stats */
 .section-stats {
-  background-color: var(--color-bg-light);
+  background-color: var(--color-bg-light); 
   padding: 140px 20px;
   display: flex;
   justify-content: center;
@@ -564,7 +722,7 @@ html, body {
 
 .stat-number {
   font-size: clamp(48px, 6vw, 72px);
-  font-weight: 600;
+  font-weight: 700; 
   letter-spacing: -0.01em;
   background: linear-gradient(135deg, var(--color-brand-blue) 0%, var(--color-brand-coffee) 100%);
   -webkit-background-clip: text;
@@ -609,8 +767,8 @@ html, body {
 
 .feature-card {
   background-color: var(--glass-bg);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: var(--glass-border);
   border-radius: var(--pet-border-radius);
   padding: 50px;
@@ -625,7 +783,7 @@ html, body {
 
 .feature-card:hover {
   transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 20px 40px rgba(139, 90, 43, 0.08); /* 配合咖啡色的陰影 */
+  box-shadow: 0 20px 40px rgba(139, 90, 43, 0.08); 
 }
 
 .reveal .feature-card { opacity: 1; transform: translateY(0); }
@@ -643,7 +801,7 @@ html, body {
 
 .feature-card p {
   font-size: 17px;
-  line-height: 1.47;
+  line-height: 1.5;
   color: var(--color-gray-dark);
 }
 
@@ -669,7 +827,7 @@ html, body {
   width: 95%;
   flex-grow: 1;
   margin-top: 60px;
-  border-radius: 32px 32px 0 0;
+  border-radius: var(--pet-border-radius) var(--pet-border-radius) 0 0;
   overflow: hidden;
   display: flex;
   align-items: flex-end;
@@ -709,13 +867,13 @@ html, body {
 }
 
 .grid-item.dark {
-  background: linear-gradient(135deg, var(--color-brand-blue) 0%, var(--color-bg-dark-card) 100%);
-  color: var(--color-text-light);
+  background: linear-gradient(135deg, var(--color-bg-dark) 0%, var(--color-bg-dark-card) 100%);
+  color: var(--color-bg-white);
 }
 
 .grid-item:hover {
   transform: scale(0.99);
-  box-shadow: 0 15px 35px rgba(139, 90, 43, 0.08); /* 咖啡色調的懸停陰影 */
+  box-shadow: 0 15px 35px rgba(139, 90, 43, 0.08);
 }
 
 .grid-image-wrapper {
@@ -723,7 +881,7 @@ html, body {
   height: auto;
   flex-grow: 1;
   margin-top: 40px;
-  border-radius: 24px 24px 0 0;
+  border-radius: var(--pet-border-radius) var(--pet-border-radius) 0 0;
   overflow: hidden;
 }
 
@@ -756,13 +914,13 @@ html, body {
 }
 
 /* -------------------------------------
- * 7. Footer 頁尾區塊
+ * 8. Footer 頁尾區塊
  * ------------------------------------- */
 .footer-global {
-  background-color: var(--color-bg-light);
+  background-color: var(--color-bg-light); 
   padding: 60px 0 40px 0;
   color: var(--color-gray-dark);
-  font-size: 12px;
+  font-size: 13px;
   display: flex;
   justify-content: center;
 }
@@ -796,7 +954,7 @@ html, body {
   color: var(--color-text-dark);
   font-weight: 600;
   margin-bottom: 10px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .footer-column ul {
@@ -809,13 +967,13 @@ html, body {
 }
 
 .footer-column a {
-  color: #515154;
+  color: var(--color-gray-dark);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 .footer-column a:hover {
-  color: var(--color-brand-coffee); /* 頁尾連結 Hover 也改為咖啡色 */
+  color: var(--color-brand-coffee); 
   text-decoration: underline;
 }
 
@@ -844,20 +1002,13 @@ html, body {
 }
 
 /* -------------------------------------
- * 8. 響應式佈局 (Responsive Design)
+ * 9. 響應式佈局 (Responsive Design)
  * ------------------------------------- */
-
-/* 【大螢幕 (電腦)】: 隱藏漢堡按鈕與下拉遮罩 */
 @media (min-width: 835px) {
-  .hamburger-btn {
-    display: none !important; 
-  }
-  .nav-overlay.open {
-    display: none !important; 
-  }
+  .hamburger-btn { display: none !important; }
+  .nav-overlay.open { display: none !important; }
 }
 
-/* 【平板微調】 */
 @media (max-width: 1024px) {
   .section-pro, .section-standard {
     min-height: 600px;
@@ -866,24 +1017,13 @@ html, body {
   .section-stats, .section-features {
     padding: 80px 20px;
   }
-  .features-grid {
-    gap: 24px;
-  }
+  .features-grid { gap: 24px; }
 }
 
-/* 【小螢幕 (平板/手機)】 */
 @media (max-width: 834px) {
-  /* 隱藏桌機版選單與 Mega Menu */
-  .nav-desktop-links, .mega-menu {
-    display: none !important; 
-  }
+  .nav-desktop-links, .mega-menu { display: none !important; }
+  .hamburger-btn { display: flex; }
   
-  /* 顯示漢堡選單 */
-  .hamburger-btn {
-    display: flex; 
-  }
-  
-  /* 區塊單欄化 */
   .stats-container {
     flex-direction: column;
     gap: 40px;
@@ -895,9 +1035,7 @@ html, body {
   .features-grid, .section-grid {
     grid-template-columns: 1fr;
   }
-  .grid-item {
-    height: 500px;
-  }
+  .grid-item { height: 500px; }
   .footer-bottom {
     flex-direction: column;
     align-items: flex-start;
