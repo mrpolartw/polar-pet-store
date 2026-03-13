@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, Menu, X } from 'lucide-react';
+
+// 👇 修正：加上 ./ 變成相對路徑，這樣 Vite 才找得到檔案
+import Cart from './pages/Shop/Cart';
+import Checkout from './pages/Shop/Checkout';
 
 // --- Styles & Assets ---
 import './App.css';
@@ -84,7 +88,6 @@ function AppContent() {
     setIsCartOpen(false); // 避免購物袋與其他下拉選單重疊
   };
 
-
   // ----------------------------------------
   // 5. 畫面渲染 (Render)
   // ----------------------------------------
@@ -151,9 +154,11 @@ function AppContent() {
                 {isCartOpen && (
                   <div className="cart-dropdown-overlay">
                     <div className="cart-dropdown-content">
-                      <p className="cart-status-text">購物袋是空的。</p>
+                      <p className="cart-status-text">準備好結帳了嗎？</p>
                       <div className="cart-divider"></div>
                       <ul className="cart-menu-links">
+                        {/* 👇 新增：讓顧客可以點擊進入專屬的購物袋頁面 */}
+                        <li><Link to="/cart" onClick={() => setIsCartOpen(false)}>查看購物袋</Link></li>
                         <li><Link to="/orders" onClick={() => setIsCartOpen(false)}>訂單</Link></li>
                         <li><Link to="/favorites" onClick={() => setIsCartOpen(false)}>你的收藏</Link></li>
                         <li><Link to="/account" onClick={() => setIsCartOpen(false)}>帳號</Link></li>
@@ -244,6 +249,10 @@ function AppContent() {
         <Route path="/main-food" element={<Category title="主食系列" subtitle="滿足獵食天性的極致營養" />} />
         <Route path="/snacks" element={<Category title="原肉手工點心" subtitle="純粹無添加的週末幸福獎勵" />} />
         <Route path="/health" element={<Category title="極致保健" subtitle="保護牠清澈無瑕的雙眼與活力" />} />
+        
+        {/* 購物車頁面路由確保已設定 */}
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
         <Route path="*" element={<Home />} />
       </Routes>
 
@@ -296,8 +305,10 @@ function AppContent() {
 // App Entry
 // ==========================================
 function App() {
+  // 👇 換成一般的註解，放在 return 外面就沒問題了
+  // 加上 basename，讓 React 知道網站的根目錄在哪裡
   return (
-    <Router>
+    <Router basename="/polar-pet-store">
       <AppContent />
     </Router>
   );
