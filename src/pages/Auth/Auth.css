@@ -1,8 +1,33 @@
 /* ============================================
-   Auth Pages — Login / Register / ForgotPassword
-   延伸 Polar 設計語言：暖色調 + Apple 風格
+   Auth.css — Login / Register / ForgotPassword
+   Polar 設計語言：暖色調 + Apple 風格
+   ============================================
+
+   目錄
+   1.  頁面佈局
+   2.  左側品牌面板
+   3.  右側表單區域
+   4.  標題區
+   5.  表單欄位
+   6.  密碼欄位
+   7.  錯誤 / 成功提示
+   8.  功能列（記住我 + 忘記密碼）
+   9.  主 CTA 按鈕
+   10. 分隔線
+   11. 切換登入/註冊
+   12. 條款同意
+   13. 密碼強度條
+   14. 雙欄表單
+   15. 步驟指示器
+   16. 社交登入按鈕
+   17. 毛孩卡片
+   18. 響應式設計
    ============================================ */
 
+
+/* ─────────────────────────────────────────
+   1. 頁面佈局
+───────────────────────────────────────── */
 .auth-page {
   min-height: 100vh;
   display: flex;
@@ -10,7 +35,10 @@
   background-color: var(--color-bg-white);
 }
 
-/* ── 左側品牌面板（桌面） ── */
+
+/* ─────────────────────────────────────────
+   2. 左側品牌面板（桌面）
+───────────────────────────────────────── */
 .auth-brand-panel {
   display: none;
   flex: 0 0 42%;
@@ -22,12 +50,7 @@
   justify-content: space-between;
 }
 
-@media (min-width: 900px) {
-  .auth-brand-panel {
-    display: flex;
-  }
-}
-
+/* 裝飾光暈 */
 .auth-brand-panel::before {
   content: '';
   position: absolute;
@@ -52,22 +75,24 @@
   pointer-events: none;
 }
 
+/* Logo */
 .auth-brand-logo {
   display: flex;
   align-items: center;
   z-index: 1;
-  background: none;
-  border: none;
-  padding: 0;
   width: fit-content;
 }
+
 .auth-brand-logo img {
-  height: auto;
   width: 200px;
+  height: auto;
   max-width: 100%;
   display: block;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
 }
 
+/* 品牌文字 */
 .auth-brand-content {
   z-index: 1;
 }
@@ -89,6 +114,7 @@
   max-width: 300px;
 }
 
+/* 特色列表 */
 .auth-brand-features {
   z-index: 1;
   display: flex;
@@ -117,7 +143,10 @@
   color: var(--color-brand-coffee-light);
 }
 
-/* ── 右側表單區域 ── */
+
+/* ─────────────────────────────────────────
+   3. 右側表單區域
+───────────────────────────────────────── */
 .auth-form-panel {
   flex: 1;
   display: flex;
@@ -142,24 +171,24 @@
 }
 
 .auth-mobile-logo img {
-  height: auto;
   width: 200px;
+  height: auto;
   max-width: 100%;
   display: block;
 }
 
-@media (min-width: 900px) {
-  .auth-mobile-logo {
-    display: none;
-  }
-  .auth-form-panel {
-    min-height: 100vh;
-  }
+/* 表單列 */
+.auth-form {
+  display: flex;
+  flex-direction: column;
 }
 
-/* ── 標題區 ── */
+
+/* ─────────────────────────────────────────
+   4. 標題區
+───────────────────────────────────────── */
 .auth-header {
-  margin-bottom: 36px;
+  margin-bottom: 32px;
 }
 
 .auth-header h1 {
@@ -177,13 +206,10 @@
   line-height: 1.5;
 }
 
-/* ── 表單 ── */
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
 
+/* ─────────────────────────────────────────
+   5. 表單欄位
+───────────────────────────────────────── */
 .auth-field {
   margin-bottom: 16px;
 }
@@ -197,7 +223,17 @@
   letter-spacing: 0.01em;
 }
 
-/* 密碼欄位容器 */
+/* 雙欄排版 */
+.auth-row-half {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+
+/* ─────────────────────────────────────────
+   6. 密碼欄位
+───────────────────────────────────────── */
 .auth-password-wrapper {
   position: relative;
   display: flex;
@@ -225,7 +261,39 @@
   color: var(--color-brand-coffee);
 }
 
-/* ── 錯誤訊息 ── */
+/* 密碼強度條 */
+.password-strength {
+  margin-top: 8px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background-color: var(--color-gray-light);
+  transition: background-color 0.3s ease;
+}
+
+.strength-bar.active-weak   { background-color: #e74c3c; }
+.strength-bar.active-medium { background-color: #f39c12; }
+.strength-bar.active-strong { background-color: #27ae60; }
+
+.strength-label {
+  font-size: 11px;
+  color: var(--color-gray-dark);
+  min-width: 36px;
+  text-align: right;
+}
+
+
+/* ─────────────────────────────────────────
+   7. 錯誤 / 成功提示
+───────────────────────────────────────── */
+
+/* 欄位錯誤 */
 .auth-field-error {
   font-size: 12px;
   color: #e74c3c;
@@ -235,7 +303,7 @@
   gap: 4px;
 }
 
-/* 全域錯誤提示 */
+/* 全域錯誤 */
 .auth-global-error {
   background: #fff2f0;
   border: 1px solid #ffccc7;
@@ -249,35 +317,38 @@
   gap: 10px;
 }
 
-/* 成功提示 */
+/* 成功訊息 */
 .auth-success-box {
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
-  border-radius: 10px;
-  padding: 24px;
+  border-radius: 16px;
+  padding: 32px 24px;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 .auth-success-box .success-icon {
-  font-size: 40px;
+  font-size: 48px;
   margin-bottom: 12px;
 }
 
 .auth-success-box h3 {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: #166534;
   margin-bottom: 8px;
 }
 
 .auth-success-box p {
-  font-size: 14px;
-  color: #4ade80;
+  font-size: 15px;
   color: #16a34a;
+  line-height: 1.5;
 }
 
-/* ── 功能列（記住我 + 忘記密碼）── */
+
+/* ─────────────────────────────────────────
+   8. 功能列（記住我 + 忘記密碼）
+───────────────────────────────────────── */
 .auth-options-row {
   display: flex;
   justify-content: space-between;
@@ -315,7 +386,10 @@
   text-decoration: underline;
 }
 
-/* ── 主 CTA 按鈕 ── */
+
+/* ─────────────────────────────────────────
+   9. 主 CTA 按鈕
+───────────────────────────────────────── */
 .auth-submit-btn {
   width: 100%;
   padding: 16px;
@@ -340,7 +414,7 @@
   display: inline-block;
   width: 18px;
   height: 18px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-top-color: #fff;
   border-radius: 50%;
   animation: auth-spin 0.7s linear infinite;
@@ -352,7 +426,10 @@
   to { transform: rotate(360deg); }
 }
 
-/* ── 分隔線 ── */
+
+/* ─────────────────────────────────────────
+   10. 分隔線
+───────────────────────────────────────── */
 .auth-divider {
   display: flex;
   align-items: center;
@@ -370,7 +447,10 @@
   background-color: var(--color-gray-light);
 }
 
-/* ── 切換登入/註冊 ── */
+
+/* ─────────────────────────────────────────
+   11. 切換登入 / 註冊
+───────────────────────────────────────── */
 .auth-switch {
   text-align: center;
   font-size: 15px;
@@ -396,7 +476,10 @@
   text-decoration: underline;
 }
 
-/* ── 條款同意 ── */
+
+/* ─────────────────────────────────────────
+   12. 條款同意
+───────────────────────────────────────── */
 .auth-terms {
   display: flex;
   align-items: flex-start;
@@ -422,53 +505,23 @@
   font-weight: 500;
 }
 
-/* ── 密碼強度條 ── */
-.password-strength {
-  margin-top: 8px;
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
 
-.strength-bar {
-  flex: 1;
-  height: 3px;
-  border-radius: 2px;
-  background-color: var(--color-gray-light);
-  transition: background-color 0.3s ease;
-}
-
-.strength-bar.active-weak    { background-color: #e74c3c; }
-.strength-bar.active-medium  { background-color: #f39c12; }
-.strength-bar.active-strong  { background-color: #27ae60; }
-
-.strength-label {
-  font-size: 11px;
-  color: var(--color-gray-dark);
-  min-width: 36px;
-  text-align: right;
-}
-
-/* ── 雙欄表單 ── */
-.auth-row-half {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 480px) {
-  .auth-row-half {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ── 步驟指示器（Register 用）── */
+/* ─────────────────────────────────────────
+   13. 步驟指示器（Register 用）
+───────────────────────────────────────── */
 .auth-steps {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 32px;
+}
+
+.auth-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
 }
 
 .auth-step-dot {
@@ -489,7 +542,22 @@
   background-color: var(--color-brand-coffee);
 }
 
-/* ── 社交登入（預留位置）── */
+.auth-step-label {
+  font-size: 11px;
+  color: var(--color-gray-dark);
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.auth-step-label.active {
+  color: var(--color-brand-blue);
+  font-weight: 600;
+}
+
+
+/* ─────────────────────────────────────────
+   14. 社交登入按鈕
+───────────────────────────────────────── */
 .auth-social-btn {
   width: 100%;
   padding: 13px 16px;
@@ -511,4 +579,150 @@
 .auth-social-btn:hover {
   border-color: var(--color-brand-blue);
   background: var(--color-bg-light);
+}
+
+
+/* ─────────────────────────────────────────
+   15. 毛孩卡片
+───────────────────────────────────────── */
+
+/* 卡片容器 */
+.pet-card {
+  background: var(--color-bg-white);
+  border: 1.5px solid var(--color-gray-light);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(139, 90, 43, 0.06);
+  transition: box-shadow 0.3s ease;
+}
+
+.pet-card:hover {
+  box-shadow: 0 6px 24px rgba(139, 90, 43, 0.1);
+}
+
+/* 卡片標題列 */
+.pet-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-gray-light);
+}
+
+.pet-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-brand-blue);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 移除按鈕 */
+.pet-remove-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(231, 76, 60, 0.06);
+  border: 1.5px solid rgba(231, 76, 60, 0.25);
+  color: #e74c3c;
+  border-radius: 980px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.01em;
+}
+
+.pet-remove-btn:hover {
+  background: #e74c3c;
+  border-color: #e74c3c;
+  color: white;
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.pet-remove-btn:active {
+  transform: scale(0.97);
+}
+
+/* 新增毛孩按鈕 */
+.pet-add-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border: 2px dashed var(--color-brand-coffee-light);
+  border-radius: 16px;
+  background: rgba(198, 142, 88, 0.04);
+  color: var(--color-brand-coffee);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  margin-bottom: 20px;
+  letter-spacing: 0.02em;
+}
+
+.pet-add-btn:hover {
+  background: rgba(139, 90, 43, 0.08);
+  border-color: var(--color-brand-coffee);
+  border-style: solid;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(139, 90, 43, 0.12);
+  color: var(--color-brand-blue);
+}
+
+.pet-add-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.pet-add-btn svg {
+  background: var(--color-brand-coffee);
+  color: white;
+  border-radius: 50%;
+  padding: 2px;
+  transition: background 0.2s ease;
+}
+
+.pet-add-btn:hover svg {
+  background: var(--color-brand-blue);
+}
+
+
+/* ─────────────────────────────────────────
+   16. 響應式設計
+───────────────────────────────────────── */
+@media (min-width: 900px) {
+  .auth-brand-panel {
+    display: flex;
+  }
+
+  .auth-mobile-logo {
+    display: none;
+  }
+
+  .auth-form-panel {
+    min-height: 100vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-row-half {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-form-panel {
+    padding: 40px 20px;
+  }
+
+  .auth-header h1 {
+    font-size: 26px;
+  }
 }

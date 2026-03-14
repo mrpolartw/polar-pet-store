@@ -20,7 +20,7 @@ import Register from './pages/Auth/Register';
 import ForgotPassword from './pages/Auth/ForgotPassword';
 
 // --- Account Pages ---
-import Account from './pages/Account';
+import Account from './pages/Account/Account';
 
 // --- Other Pages & Components ---
 import Home from './pages/Home';
