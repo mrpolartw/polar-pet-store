@@ -1,0 +1,624 @@
+/* ============================================
+   Account Dashboard — 會員中心
+   延伸 Polar 設計語言
+   ============================================ */
+
+.account-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 60px 20px 100px;
+  min-height: 80vh;
+}
+
+.account-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .account-layout {
+    grid-template-columns: 1fr;
+  }
+  .account-page {
+    padding: 40px 16px 80px;
+  }
+}
+
+/* ── 側邊欄 ── */
+.account-sidebar {
+  position: sticky;
+  top: 80px;
+}
+
+.account-profile-card {
+  background-color: var(--color-bg-white);
+  border: 1px solid var(--color-gray-light);
+  border-radius: var(--pet-border-radius);
+  padding: 32px 24px;
+  text-align: center;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px var(--color-shadow-light);
+}
+
+.account-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-brand-blue) 0%, var(--color-brand-coffee) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  margin: 0 auto 16px;
+  letter-spacing: -1px;
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.account-user-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 4px;
+}
+
+.account-user-email {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+  margin-bottom: 14px;
+}
+
+.account-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 980px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  letter-spacing: 0.02em;
+}
+
+.account-points-row {
+  background: var(--color-bg-light);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-gray-dark);
+}
+
+.account-points-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-brand-coffee);
+}
+
+/* 側邊導航 */
+.account-nav {
+  background-color: var(--color-bg-white);
+  border: 1px solid var(--color-gray-light);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px var(--color-shadow-light);
+}
+
+.account-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-dark);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: all var(--transition-fast);
+  border-bottom: 1px solid var(--color-gray-light);
+}
+
+.account-nav-item:last-child {
+  border-bottom: none;
+}
+
+.account-nav-item:hover {
+  background-color: var(--color-bg-light);
+  color: var(--color-brand-coffee);
+}
+
+.account-nav-item.active {
+  background-color: var(--color-bg-light);
+  color: var(--color-brand-blue);
+  font-weight: 600;
+}
+
+.account-nav-item.active .account-nav-icon {
+  color: var(--color-brand-blue);
+}
+
+.account-nav-icon {
+  color: var(--color-gray-dark);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+
+.account-nav-item:hover .account-nav-icon {
+  color: var(--color-brand-coffee);
+}
+
+.account-nav-item.logout-btn:hover {
+  background-color: #fff5f5;
+  color: #e74c3c;
+}
+
+.account-nav-item.logout-btn:hover .account-nav-icon {
+  color: #e74c3c;
+}
+
+/* 手機版 Tab Bar */
+.account-mobile-tabs {
+  display: none;
+  overflow-x: auto;
+  gap: 8px;
+  padding: 0 0 16px;
+  margin-bottom: 24px;
+  scrollbar-width: none;
+}
+
+.account-mobile-tabs::-webkit-scrollbar { display: none; }
+
+@media (max-width: 860px) {
+  .account-sidebar { display: none; }
+  .account-mobile-tabs { display: flex; }
+}
+
+.account-mobile-tab {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border-radius: 980px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1.5px solid var(--color-gray-light);
+  background: white;
+  color: var(--color-text-dark);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.account-mobile-tab.active {
+  background: var(--color-brand-blue);
+  border-color: var(--color-brand-blue);
+  color: white;
+}
+
+/* ── 主內容區 ── */
+.account-content {
+  background-color: var(--color-bg-white);
+  border: 1px solid var(--color-gray-light);
+  border-radius: var(--pet-border-radius);
+  padding: 40px;
+  min-height: 500px;
+  box-shadow: 0 4px 20px var(--color-shadow-light);
+}
+
+@media (max-width: 600px) {
+  .account-content {
+    padding: 24px 16px;
+    border-radius: 20px;
+  }
+}
+
+.account-section-title {
+  font-family: var(--font-family-display);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-gray-light);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── 個人資料表單 ── */
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .profile-form-row { grid-template-columns: 1fr; }
+}
+
+.profile-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-bottom: 6px;
+}
+
+.profile-save-btn {
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+/* ── 訂單列表 ── */
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-card {
+  border: 1px solid var(--color-gray-light);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: box-shadow var(--transition-fast);
+}
+
+.order-card:hover {
+  box-shadow: 0 4px 20px var(--color-shadow-light);
+}
+
+.order-card-header {
+  padding: 16px 20px;
+  background: var(--color-bg-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-id {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.order-date {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+}
+
+.order-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 980px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.order-status-badge.delivered {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.order-status-badge.processing {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.order-status-badge.shipping {
+  background: #fefce8;
+  color: #854d0e;
+}
+
+.order-status-badge.cancelled {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.order-card-body {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.order-items-preview {
+  display: flex;
+  gap: -8px;
+  flex-shrink: 0;
+}
+
+.order-item-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  border: 2px solid white;
+  object-fit: cover;
+  margin-left: -8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.order-item-img:first-child { margin-left: 0; }
+
+.order-info {
+  flex: 1;
+}
+
+.order-total {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.order-item-count {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+  margin-top: 2px;
+}
+
+.order-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-order-action {
+  padding: 8px 16px;
+  border-radius: 980px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1.5px solid var(--color-brand-blue);
+  background: transparent;
+  color: var(--color-brand-blue);
+}
+
+.btn-order-action:hover {
+  background: var(--color-brand-blue);
+  color: white;
+}
+
+.btn-order-action.primary {
+  background: var(--color-brand-blue);
+  color: white;
+}
+
+.btn-order-action.primary:hover {
+  background: var(--color-brand-coffee);
+  border-color: var(--color-brand-coffee);
+}
+
+/* ── 空狀態 ── */
+.account-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-gray-dark);
+}
+
+.account-empty-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.account-empty-state h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 8px;
+}
+
+.account-empty-state p {
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+/* ── 地址管理 ── */
+.address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.address-card {
+  border: 1.5px solid var(--color-gray-light);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: pointer;
+}
+
+.address-card:hover {
+  border-color: var(--color-brand-blue);
+  box-shadow: 0 4px 16px var(--color-shadow-light);
+}
+
+.address-card.default {
+  border-color: var(--color-brand-coffee);
+}
+
+.address-default-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--color-brand-coffee);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 980px;
+}
+
+.address-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-gray-dark);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.address-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 4px;
+}
+
+.address-detail {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+  line-height: 1.6;
+}
+
+.address-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-gray-light);
+}
+
+.btn-address-action {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 980px;
+  border: 1px solid var(--color-gray-light);
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-dark);
+  transition: all var(--transition-fast);
+}
+
+.btn-address-action:hover {
+  background: var(--color-bg-light);
+  border-color: var(--color-brand-blue);
+  color: var(--color-brand-blue);
+}
+
+.btn-add-address {
+  border: 2px dashed var(--color-gray-light);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-gray-dark);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  min-height: 130px;
+}
+
+.btn-add-address:hover {
+  border-color: var(--color-brand-blue);
+  color: var(--color-brand-blue);
+  background: var(--color-bg-light);
+}
+
+/* ── 帳號安全 ── */
+.security-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.security-item {
+  border: 1px solid var(--color-gray-light);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.security-item-info h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 4px;
+}
+
+.security-item-info p {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+}
+
+/* ── 點數進度條 ── */
+.tier-progress-section {
+  background: var(--color-bg-light);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.tier-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-gray-dark);
+  margin-bottom: 8px;
+}
+
+.tier-progress-bar {
+  height: 6px;
+  background: var(--color-gray-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.tier-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-brand-blue), var(--color-brand-coffee));
+  transition: width 1s ease;
+}
+
+/* 通知 */
+.account-toast {
+  position: fixed;
+  bottom: 32px;
+  right: 24px;
+  background: var(--color-text-dark);
+  color: white;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
