@@ -13,6 +13,9 @@ import LogoImg from './png/LOGO去背景.png';
 // --- Shop Pages ---
 import Cart from './pages/Shop/Cart';
 import Checkout from './pages/Shop/Checkout';
+// 訂單查詢頁面
+import OrderQuery from './pages/Shop/OrderQuery';
+import ProductRegister from './pages/Shop/ProductRegister';
 
 // --- Auth Pages ---
 import Login from './pages/Auth/Login';
@@ -27,6 +30,7 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Category from './pages/Category';
 import CustomCursor from './components/CustomCursor';
+import Products from './pages/Shop/Products';
 
 
 // ==========================================
@@ -617,7 +621,9 @@ function AppContent() {
                 <div className="mega-menu-column">
                   <h4>售後支援</h4>
                   <Link to="/order" onClick={() => setActiveDropdown(null)}>訂單查詢</Link>
+                  <Link to="/register-product" onClick={() => setActiveDropdown(null)}>產品序號登記</Link>
                   <Link to="/faq" onClick={() => setActiveDropdown(null)}>常見問題 (FAQ)</Link>
+                  
                 </div>
               </>
             )}
@@ -704,6 +710,7 @@ function AppContent() {
               </li>
               <li className="mobile-sub-title" style={{ marginTop: '24px' }}>售後支援</li>
               <li><Link to="/order" onClick={toggleMenu}>訂單查詢</Link></li>
+              <li><Link to="/register-product" onClick={toggleMenu}>產品序號登記</Link></li>
               <li><Link to="/faq" onClick={toggleMenu}>常見問題 (FAQ)</Link></li>
             </ul>
           </div>
@@ -715,6 +722,7 @@ function AppContent() {
         {/* ── 核心頁面 ── */}
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
+        <Route path="order" element={<OrderQuery />} />
 
         {/* ── 購物流程 ── */}
         <Route path="/cart" element={<Cart />} />
@@ -724,9 +732,10 @@ function AppContent() {
         <Route path="/account" element={<Account />} />
         <Route path="/orders" element={<Account />} />
         <Route path="/favorites" element={<Account />} />
+        <Route path="/register-product" element={<ProductRegister />} />
 
         {/* ── 商品分類 ── */}
-        <Route path="/products" element={<Category title="所有商品" subtitle="探索 Polar 完整產品系列" />} />
+        <Route path="/products" element={<Products title="所有商品" subtitle="探索 Polar 完整產品系列" />} />
         <Route path="/main-food" element={<Category title="主食系列" subtitle="滿足獵食天性的極致營養" />} />
         <Route path="/snacks" element={<Category title="原肉手工點心" subtitle="純粹無添加的週末幸福獎勵" />} />
         <Route path="/health" element={<Category title="極致保健" subtitle="保護牠清澈無瑕的雙眼與活力" />} />
