@@ -476,6 +476,7 @@ html, body {
   width: 100%;
   display: flex;
   justify-content: space-between;
+  justify-content: center; align-items: center;
   align-items: flex-start;
   gap: 20px;
 }
@@ -694,6 +695,7 @@ html, body {
   width: 100%;
   display: flex;
   justify-content: space-between;
+  align-items: center;
   align-items: flex-start;
   gap: 20px;
 }
@@ -749,6 +751,7 @@ html, body {
   align-items: center;
   width: 100%;
   box-sizing: border-box;
+  
 }
 
 .features-header {
@@ -820,6 +823,7 @@ html, body {
   padding-bottom: 0;
   text-align: center;
   box-sizing: border-box;
+  
 }
 
 .std-image-wrapper {
@@ -861,14 +865,14 @@ html, body {
   text-align: center;
   overflow: hidden;
   position: relative;
-  box-shadow: 0 10px 30px var(--color-shadow-light);
+  box-shadow: 0 10px 30px var(--color-brand-coffee);
   transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
   isolation: isolate;
 }
 
 .grid-item.dark {
   background: linear-gradient(135deg, var(--color-bg-dark) 0%, var(--color-bg-dark-card) 100%);
-  color: var(--color-bg-white);
+  color: var(--color-brand-coffee-light);
 }
 
 .grid-item:hover {
@@ -1027,6 +1031,8 @@ html, body {
   .stats-container {
     flex-direction: column;
     gap: 40px;
+    justify-content: center; 
+    align-items: center;
   }
   .stat-item.divider {
     height: 1px;
@@ -1813,5 +1819,13 @@ html, body {
   }
   .form-row.half-half, .payment-grid, .option-grid {
     grid-template-columns: 1fr;
+  }
+  .features-grid {
+    grid-template-columns: 1fr !important; /* 強制變成上下排列 (單欄) */
+    gap: 20px !important;                  /* 縮小卡片之間的間距 */
+    padding: 0 10px;                       /* 避免卡片太貼齊螢幕邊緣 */
+  }
+  .stats-header h2.headline-regular {
+    font-size: 28px !important;
   }
 }

@@ -34,6 +34,9 @@
   --color-shadow-light: rgba(74, 66, 61, 0.08);
   /* 帶有大地溫度的溫暖陰影 */
 
+  --color-brand-blue: #003153;
+  --color-brand-coffee: #c48c58;
+
   /* Typography */
   --font-family-base: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", "PingFang TC", "Microsoft JhengHei", sans-serif;
   --font-family-display: "SF Pro Display", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", "PingFang TC", "Microsoft JhengHei", sans-serif;
@@ -62,8 +65,7 @@
 
 body {
   font-family: var(--font-family-base);
-  background-color: var(--color-bg-light);
-  color: var(--color-text-light);
+  /* color: var(--color-text-light); */
   line-height: 1.47059;
   letter-spacing: -0.022em;
   -webkit-font-smoothing: antialiased;

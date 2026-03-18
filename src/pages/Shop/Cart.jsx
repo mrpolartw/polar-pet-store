@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { Package, Gift, Trash2 } from 'lucide-react'
-import { useCart } from '../../context/CartContext'
+import { useCart } from '../../context/useCart'
 
 const Cart = () => {
   const { cartItems, removeFromCart, updateQuantity, subtotal } = useCart()

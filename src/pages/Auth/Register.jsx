@@ -1,10 +1,12 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle, ChevronRight, ChevronLeft, Gift, Star, Package, Plus, Trash2 } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 import LogoImg from '../../png/LOGO.png'
 import './Auth.css'
+
+const motion = Motion
 
 const getPasswordStrength = (pwd) => {
   let score = 0

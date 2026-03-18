@@ -3,8 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate 
 import { Search, ShoppingBag, Menu, X, LogOut } from 'lucide-react';
 
 // --- Context ---
-import { useAuth } from './context/AuthContext';
-import { useCart } from './context/CartContext';
+import { useAuth } from './context/useAuth';
+import { useCart } from './context/useCart';
 
 // --- Styles & Assets ---
 import './App.css';
@@ -95,11 +95,15 @@ function AppContent() {
   }, [scrolled, location.pathname]);
 
   useEffect(() => {
-    setIsMenuOpen(false);
-    setActiveDropdown(null);
-    setIsCartOpen(false);
-    setIsUserMenuOpen(false);
-    setTimeout(() => setMobileMenuDepth('main'), 300);
+    const resetTimer = setTimeout(() => {
+      setIsMenuOpen(false);
+      setActiveDropdown(null);
+      setIsCartOpen(false);
+      setIsUserMenuOpen(false);
+      setTimeout(() => setMobileMenuDepth('main'), 300);
+    }, 0);
+
+    return () => clearTimeout(resetTimer);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -722,7 +726,7 @@ function AppContent() {
         {/* ── 核心頁面 ── */}
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
-        <Route path="order" element={<OrderQuery />} />
+        <Route path="/order" element={<OrderQuery />} />
 
         {/* ── 購物流程 ── */}
         <Route path="/cart" element={<Cart />} />
@@ -745,7 +749,6 @@ function AppContent() {
         <Route path="/support" element={<Category title="客戶服務" subtitle="我們隨時在您身邊" />} />
         <Route path="/contact" element={<Category title="聯絡我們" subtitle="有任何問題歡迎與我們聯繫" />} />
         <Route path="/blog" element={<Category title="最新消息" subtitle="毛孩知識與品牌故事" />} />
-        <Route path="/order" element={<Category title="訂單查詢" subtitle="查詢您的訂單狀態" />} />
         <Route path="/faq" element={<Category title="常見問題" subtitle="服務條款與隱私政策" />} />
 
         {/* ── 404 Fallback（放最後）── */}

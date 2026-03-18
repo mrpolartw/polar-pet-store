@@ -3,8 +3,9 @@ import {
     SlidersHorizontal, X, ShoppingCart, Star, Grid3X3, LayoutList,
     ChevronDown, Search, Check, ChevronLeft, ChevronRight,
 } from 'lucide-react';
-import { useCart } from '../../context/CartContext';
+import { useCart } from '../../context/useCart';
 import './Products.css'
+
 
 // ─────────────────────────────────────────────
 // 常數定義
@@ -17,11 +18,13 @@ const CATEGORIES = [
     { key: 'supplies', label: '生活用品' },
 ];
 
+
 const PET_TYPES = [
     { key: 'all', label: '全部' },
     { key: 'cat', label: '貓咪' },
     { key: 'dog', label: '狗狗' },
 ];
+
 
 const PRICE_RANGES = [
     { key: 'all', label: '全部價格', min: 0, max: Infinity },
@@ -31,6 +34,7 @@ const PRICE_RANGES = [
     { key: 'over2000', label: 'NT$2,000 以上', min: 2001, max: Infinity },
 ];
 
+
 const SORT_OPTIONS = [
     { key: 'default', label: '預設排序' },
     { key: 'newest', label: '最新上架' },
@@ -39,10 +43,22 @@ const SORT_OPTIONS = [
     { key: 'price-desc', label: '價格：高至低' },
 ];
 
-const PER_PAGE_OPTIONS = [8, 16, 24];
+
+// ── 新增：商品狀態篩選（取代每頁筆數選單）──
+const PRODUCT_FILTERS = [
+    { key: 'all',        label: '全部商品' },
+    { key: 'bestseller', label: '熱銷商品' },
+    { key: 'discount',   label: '優惠商品' },
+    { key: 'bundle',     label: '組合商品' },
+    { key: 'new',        label: '全新上市' },
+];
+
+// 每頁顯示筆數（固定值，不再提供 UI 選擇）
+const PER_PAGE = 12;
+
 
 // ─────────────────────────────────────────────
-// Mock 商品資料（維持原樣）
+// Mock 商品資料
 // ─────────────────────────────────────────────
 const IMGS = {
     cat1: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&q=80&w=400',
@@ -55,37 +71,40 @@ const IMGS = {
     sup2: 'https://images.unsplash.com/photo-1601758174114-e711c0cbaa69?auto=format&fit=crop&q=80&w=400',
 };
 
+
 const MOCK_PRODUCTS = [
-    { id: 1, name: 'Polar 頂級鮭魚主食糧', category: 'food', petType: 'cat', price: 890, originalPrice: null, specs: '成貓配方 / 1.5kg', rating: 4.9, reviewCount: 236, isBestseller: true, isNew: false, image: IMGS.cat1 },
-    { id: 2, name: 'Polar 凍乾雞肉主食糧', category: 'food', petType: 'cat', price: 1280, originalPrice: 1580, specs: '全齡貓配方 / 1.2kg', rating: 4.7, reviewCount: 118, isBestseller: false, isNew: true, image: IMGS.cat2 },
-    { id: 3, name: 'Polar 深海鮪魚主食糧', category: 'food', petType: 'cat', price: 750, originalPrice: null, specs: '幼貓配方 / 1.0kg', rating: 4.6, reviewCount: 89, isBestseller: false, isNew: false, image: IMGS.cat3 },
-    { id: 4, name: 'Polar 農場羊肉主食糧', category: 'food', petType: 'dog', price: 1050, originalPrice: null, specs: '成犬配方 / 2.0kg', rating: 4.8, reviewCount: 163, isBestseller: true, isNew: false, image: IMGS.dog1 },
-    { id: 5, name: 'Polar 草飼牛肉主食糧', category: 'food', petType: 'dog', price: 1380, originalPrice: 1680, specs: '大型犬配方 / 3.0kg', rating: 4.9, reviewCount: 201, isBestseller: true, isNew: false, image: IMGS.dog2 },
-    { id: 6, name: 'Polar 幼犬啟蒙主食糧', category: 'food', petType: 'dog', price: 920, originalPrice: null, specs: '幼犬配方 / 1.5kg', rating: 4.5, reviewCount: 72, isBestseller: false, isNew: true, image: IMGS.dog3 },
-    { id: 7, name: 'Polar 凍乾鮭魚零食', category: 'snacks', petType: 'cat', price: 360, originalPrice: null, specs: '貓咪專用 / 50g', rating: 4.9, reviewCount: 312, isBestseller: true, isNew: false, image: IMGS.cat3 },
-    { id: 8, name: 'Polar 雞肉潔牙骨', category: 'snacks', petType: 'dog', price: 480, originalPrice: 580, specs: '中小型犬 / 10入', rating: 4.7, reviewCount: 187, isBestseller: false, isNew: false, image: IMGS.dog1 },
-    { id: 9, name: 'Polar 貓咪肉泥條', category: 'snacks', petType: 'cat', price: 290, originalPrice: null, specs: '綜合口味 / 12入', rating: 4.8, reviewCount: 256, isBestseller: true, isNew: false, image: IMGS.cat1 },
-    { id: 10, name: 'Polar 犬用起司餅乾', category: 'snacks', petType: 'dog', price: 320, originalPrice: null, specs: '全齡犬 / 200g', rating: 4.6, reviewCount: 94, isBestseller: false, isNew: true, image: IMGS.dog2 },
-    { id: 11, name: 'Polar 貓咪鮪魚慕斯', category: 'snacks', petType: 'cat', price: 420, originalPrice: 520, specs: '成貓 / 80g × 6', rating: 4.7, reviewCount: 143, isBestseller: false, isNew: false, image: IMGS.cat2 },
-    { id: 12, name: 'Polar 犬用肉乾禮盒', category: 'snacks', petType: 'dog', price: 780, originalPrice: 980, specs: '全口味 / 禮盒裝', rating: 4.9, reviewCount: 67, isBestseller: false, isNew: true, image: IMGS.dog3 },
-    { id: 13, name: 'Polar Joint 關節保健', category: 'health', petType: 'dog', price: 1290, originalPrice: null, specs: '大型犬 / 60顆', rating: 4.9, reviewCount: 198, isBestseller: true, isNew: false, image: IMGS.sup1 },
-    { id: 14, name: 'Polar 深海魚油膠囊', category: 'health', petType: 'cat', price: 480, originalPrice: null, specs: '全齡貓 / 90顆', rating: 4.8, reviewCount: 142, isBestseller: false, isNew: false, image: IMGS.sup2 },
-    { id: 15, name: 'Polar 益生菌腸保健', category: 'health', petType: 'cat', price: 990, originalPrice: 1180, specs: '成貓配方 / 30包', rating: 4.7, reviewCount: 86, isBestseller: false, isNew: false, image: IMGS.cat3 },
-    { id: 16, name: 'Polar 毛髮光澤保健品', category: 'health', petType: 'dog', price: 860, originalPrice: null, specs: '成犬 / 60錠', rating: 4.6, reviewCount: 73, isBestseller: false, isNew: true, image: IMGS.dog1 },
-    { id: 17, name: 'Polar 犬用口腔保健', category: 'health', petType: 'dog', price: 650, originalPrice: null, specs: '全齡犬 / 噴劑 100ml', rating: 4.5, reviewCount: 55, isBestseller: false, isNew: false, image: IMGS.dog2 },
-    { id: 18, name: 'Polar 貓咪泌尿保健', category: 'health', petType: 'cat', price: 1150, originalPrice: 1380, specs: '成貓 / 粉末劑 90g', rating: 4.8, reviewCount: 112, isBestseller: true, isNew: false, image: IMGS.sup1 },
-    { id: 19, name: 'Polar 陶瓷自動飲水機', category: 'supplies', petType: 'cat', price: 1680, originalPrice: null, specs: '2.5L / 靜音設計', rating: 4.9, reviewCount: 224, isBestseller: true, isNew: false, image: IMGS.sup2 },
-    { id: 20, name: 'Polar 不鏽鋼慢食碗', category: 'supplies', petType: 'dog', price: 520, originalPrice: 680, specs: 'L 號 / 霧面黑', rating: 4.7, reviewCount: 98, isBestseller: false, isNew: false, image: IMGS.dog3 },
-    { id: 21, name: 'Polar 貓咪麻繩抓板', category: 'supplies', petType: 'cat', price: 890, originalPrice: null, specs: '麻繩材質 / 三件組', rating: 4.6, reviewCount: 77, isBestseller: false, isNew: true, image: IMGS.cat1 },
-    { id: 22, name: 'Polar 航空規格提籠', category: 'supplies', petType: 'cat', price: 2200, originalPrice: 2800, specs: '航空規格 / 酒紅色', rating: 4.8, reviewCount: 163, isBestseller: true, isNew: false, image: IMGS.sup1 },
-    { id: 23, name: 'Polar 皮革犬用牽繩', category: 'supplies', petType: 'dog', price: 740, originalPrice: null, specs: '皮革材質 / 深棕色', rating: 4.7, reviewCount: 89, isBestseller: false, isNew: false, image: IMGS.dog1 },
-    { id: 24, name: 'Polar 寵物清潔濕紙巾', category: 'supplies', petType: 'cat', price: 280, originalPrice: null, specs: '貓犬通用 / 80抽', rating: 4.5, reviewCount: 45, isBestseller: false, isNew: true, image: IMGS.cat2 },
+    { id: 1,  name: 'Polar 頂級鮭魚主食糧',   category: 'food',     petType: 'cat', price: 890,  originalPrice: null, specs: '成貓配方 / 1.5kg',        rating: 4.9, reviewCount: 236, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.cat1 },
+    { id: 2,  name: 'Polar 凍乾雞肉主食糧',   category: 'food',     petType: 'cat', price: 1280, originalPrice: 1580, specs: '全齡貓配方 / 1.2kg',       rating: 4.7, reviewCount: 118, isBestseller: false, isNew: true,  isBundle: false, image: IMGS.cat2 },
+    { id: 3,  name: 'Polar 深海鮪魚主食糧',   category: 'food',     petType: 'cat', price: 750,  originalPrice: null, specs: '幼貓配方 / 1.0kg',        rating: 4.6, reviewCount: 89,  isBestseller: false, isNew: false, isBundle: false, image: IMGS.cat3 },
+    { id: 4,  name: 'Polar 農場羊肉主食糧',   category: 'food',     petType: 'dog', price: 1050, originalPrice: null, specs: '成犬配方 / 2.0kg',        rating: 4.8, reviewCount: 163, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.dog1 },
+    { id: 5,  name: 'Polar 草飼牛肉主食糧',   category: 'food',     petType: 'dog', price: 1380, originalPrice: 1680, specs: '大型犬配方 / 3.0kg',      rating: 4.9, reviewCount: 201, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.dog2 },
+    { id: 6,  name: 'Polar 幼犬啟蒙主食糧',   category: 'food',     petType: 'dog', price: 920,  originalPrice: null, specs: '幼犬配方 / 1.5kg',        rating: 4.5, reviewCount: 72,  isBestseller: false, isNew: true,  isBundle: false, image: IMGS.dog3 },
+    { id: 7,  name: 'Polar 凍乾鮭魚零食',     category: 'snacks',   petType: 'cat', price: 360,  originalPrice: null, specs: '貓咪專用 / 50g',          rating: 4.9, reviewCount: 312, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.cat3 },
+    { id: 8,  name: 'Polar 雞肉潔牙骨',       category: 'snacks',   petType: 'dog', price: 480,  originalPrice: 580,  specs: '中小型犬 / 10入',         rating: 4.7, reviewCount: 187, isBestseller: false, isNew: false, isBundle: false, image: IMGS.dog1 },
+    { id: 9,  name: 'Polar 貓咪肉泥條',       category: 'snacks',   petType: 'cat', price: 290,  originalPrice: null, specs: '綜合口味 / 12入',         rating: 4.8, reviewCount: 256, isBestseller: true,  isNew: false, isBundle: true,  image: IMGS.cat1 },
+    { id: 10, name: 'Polar 犬用起司餅乾',     category: 'snacks',   petType: 'dog', price: 320,  originalPrice: null, specs: '全齡犬 / 200g',           rating: 4.6, reviewCount: 94,  isBestseller: false, isNew: true,  isBundle: false, image: IMGS.dog2 },
+    { id: 11, name: 'Polar 貓咪鮪魚慕斯',     category: 'snacks',   petType: 'cat', price: 420,  originalPrice: 520,  specs: '成貓 / 80g × 6',         rating: 4.7, reviewCount: 143, isBestseller: false, isNew: false, isBundle: true,  image: IMGS.cat2 },
+    { id: 12, name: 'Polar 犬用肉乾禮盒',     category: 'snacks',   petType: 'dog', price: 780,  originalPrice: 980,  specs: '全口味 / 禮盒裝',         rating: 4.9, reviewCount: 67,  isBestseller: false, isNew: true,  isBundle: true,  image: IMGS.dog3 },
+    { id: 13, name: 'Polar Joint 關節保健',   category: 'health',   petType: 'dog', price: 1290, originalPrice: null, specs: '大型犬 / 60顆',           rating: 4.9, reviewCount: 198, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.sup1 },
+    { id: 14, name: 'Polar 深海魚油膠囊',     category: 'health',   petType: 'cat', price: 480,  originalPrice: null, specs: '全齡貓 / 90顆',           rating: 4.8, reviewCount: 142, isBestseller: false, isNew: false, isBundle: false, image: IMGS.sup2 },
+    { id: 15, name: 'Polar 益生菌腸保健',     category: 'health',   petType: 'cat', price: 990,  originalPrice: 1180, specs: '成貓配方 / 30包',         rating: 4.7, reviewCount: 86,  isBestseller: false, isNew: false, isBundle: true,  image: IMGS.cat3 },
+    { id: 16, name: 'Polar 毛髮光澤保健品',   category: 'health',   petType: 'dog', price: 860,  originalPrice: null, specs: '成犬 / 60錠',             rating: 4.6, reviewCount: 73,  isBestseller: false, isNew: true,  isBundle: false, image: IMGS.dog1 },
+    { id: 17, name: 'Polar 犬用口腔保健',     category: 'health',   petType: 'dog', price: 650,  originalPrice: null, specs: '全齡犬 / 噴劑 100ml',     rating: 4.5, reviewCount: 55,  isBestseller: false, isNew: false, isBundle: false, image: IMGS.dog2 },
+    { id: 18, name: 'Polar 貓咪泌尿保健',     category: 'health',   petType: 'cat', price: 1150, originalPrice: 1380, specs: '成貓 / 粉末劑 90g',       rating: 4.8, reviewCount: 112, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.sup1 },
+    { id: 19, name: 'Polar 陶瓷自動飲水機',   category: 'supplies', petType: 'cat', price: 1680, originalPrice: null, specs: '2.5L / 靜音設計',         rating: 4.9, reviewCount: 224, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.sup2 },
+    { id: 20, name: 'Polar 不鏽鋼慢食碗',     category: 'supplies', petType: 'dog', price: 520,  originalPrice: 680,  specs: 'L 號 / 霧面黑',           rating: 4.7, reviewCount: 98,  isBestseller: false, isNew: false, isBundle: false, image: IMGS.dog3 },
+    { id: 21, name: 'Polar 貓咪麻繩抓板',     category: 'supplies', petType: 'cat', price: 890,  originalPrice: null, specs: '麻繩材質 / 三件組',       rating: 4.6, reviewCount: 77,  isBestseller: false, isNew: true,  isBundle: true,  image: IMGS.cat1 },
+    { id: 22, name: 'Polar 航空規格提籠',     category: 'supplies', petType: 'cat', price: 2200, originalPrice: 2800, specs: '航空規格 / 酒紅色',       rating: 4.8, reviewCount: 163, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.sup1 },
+    { id: 23, name: 'Polar 皮革犬用牽繩',     category: 'supplies', petType: 'dog', price: 740,  originalPrice: null, specs: '皮革材質 / 深棕色',       rating: 4.7, reviewCount: 89,  isBestseller: false, isNew: false, isBundle: false, image: IMGS.dog1 },
+    { id: 24, name: 'Polar 寵物清潔濕紙巾',   category: 'supplies', petType: 'cat', price: 280,  originalPrice: null, specs: '貓犬通用 / 80抽',         rating: 4.5, reviewCount: 45,  isBestseller: false, isNew: true,  isBundle: false, image: IMGS.cat2 },
 ];
+
 
 // ─────────────────────────────────────────────
 // 工具元件
 // ─────────────────────────────────────────────
 const formatPrice = (p) => `NT$${Number(p).toLocaleString()}`;
+
 
 function StarRating({ rating }) {
     return (
@@ -102,12 +121,11 @@ function StarRating({ rating }) {
     );
 }
 
-// ─────────────────────────────────────────────
-// ProductCard (獨立管理「已加入」狀態)
-// ─────────────────────────────────────────────
 
+// ─────────────────────────────────────────────
+// ProductCard
+// ─────────────────────────────────────────────
 function ProductCard({ product, viewMode, onAddToCart }) {
-    // 讓每張卡片自己管理狀態，避免互相干擾
     const [isAdded, setIsAdded] = useState(false);
 
     const handleAddClick = () => {
@@ -136,6 +154,7 @@ function ProductCard({ product, viewMode, onAddToCart }) {
                             <span className="prod-pet-badge">{petLabel?.label}</span>
                             {product.isBestseller && <span className="prod-badge bestseller">熱銷</span>}
                             {product.isNew && <span className="prod-badge new-item">新品</span>}
+                            {product.isBundle && <span className="prod-badge new-item">組合</span>}
                         </div>
                         <h3 className="prod-name">{product.name}</h3>
                         <p className="prod-specs">{product.specs}</p>
@@ -168,6 +187,7 @@ function ProductCard({ product, viewMode, onAddToCart }) {
                 <div className="prod-card-badges">
                     {product.isBestseller && <span className="prod-badge bestseller">熱銷</span>}
                     {product.isNew && <span className="prod-badge new-item">新品</span>}
+                    {product.isBundle && <span className="prod-badge new-item">組合</span>}
                     {discountPct && <span className="prod-badge discount">-{discountPct}%</span>}
                 </div>
                 <div className="prod-card-hover-overlay">
@@ -201,8 +221,9 @@ function ProductCard({ product, viewMode, onAddToCart }) {
     );
 }
 
+
 // ─────────────────────────────────────────────
-// FilterPanel (獨立出來的篩選區塊元件)
+// FilterPanel
 // ─────────────────────────────────────────────
 function FilterPanel({
     search, setSearch, category, setCategory, petType, setPetType,
@@ -288,6 +309,7 @@ function FilterPanel({
     );
 }
 
+
 // ─────────────────────────────────────────────
 // 主頁面 Products
 // ─────────────────────────────────────────────
@@ -295,15 +317,15 @@ export default function Products() {
     const { addToCart } = useCart();
 
     // ── Filter & Display State ──
-    const [category, setCategory] = useState('all');
-    const [petType, setPetType] = useState('all');
-    const [priceRange, setPriceRange] = useState('all');
-    const [sortBy, setSortBy] = useState('default');
-    const [perPage, setPerPage] = useState(16);
-    const [page, setPage] = useState(1);
-    const [viewMode, setViewMode] = useState('grid');
-    const [search, setSearch] = useState('');
-    const [filterOpen, setFilterOpen] = useState(false);
+    const [category, setCategory]           = useState('all');
+    const [petType, setPetType]             = useState('all');
+    const [priceRange, setPriceRange]       = useState('all');
+    const [sortBy, setSortBy]               = useState('default');
+    const [productFilter, setProductFilter] = useState('all'); // ← 新增
+    const [page, setPage]                   = useState(1);
+    const [viewMode, setViewMode]           = useState('grid');
+    const [search, setSearch]               = useState('');
+    const [filterOpen, setFilterOpen]       = useState(false);
 
     // ── Handle Add to Cart ──
     const handleAddToCart = useCallback((product) => {
@@ -330,36 +352,48 @@ export default function Products() {
                 const q = search.trim().toLowerCase();
                 if (!p.name.toLowerCase().includes(q) && !p.specs.toLowerCase().includes(q)) return false;
             }
+            // ── 新增：商品狀態篩選 ──
+            if (productFilter === 'bestseller' && !p.isBestseller) return false;
+            if (productFilter === 'discount'   && !p.originalPrice) return false;
+            if (productFilter === 'bundle'     && !p.isBundle)      return false;
+            if (productFilter === 'new'        && !p.isNew)         return false;
             return true;
         });
 
         switch (sortBy) {
-            case 'newest': list = list.filter((p) => p.isNew).concat(list.filter((p) => !p.isNew)); break;
-            case 'popular': list = [...list].sort((a, b) => b.reviewCount - a.reviewCount); break;
-            case 'price-asc': list = [...list].sort((a, b) => a.price - b.price); break;
+            case 'newest':     list = list.filter((p) => p.isNew).concat(list.filter((p) => !p.isNew)); break;
+            case 'popular':    list = [...list].sort((a, b) => b.reviewCount - a.reviewCount); break;
+            case 'price-asc':  list = [...list].sort((a, b) => a.price - b.price); break;
             case 'price-desc': list = [...list].sort((a, b) => b.price - a.price); break;
-            default: list = [...list].sort((a, b) => (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0)); break;
+            default:           list = [...list].sort((a, b) => (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0)); break;
         }
         return list;
-    }, [category, petType, priceRange, sortBy, search]);
+    }, [category, petType, priceRange, sortBy, search, productFilter]);
 
-    const totalPages = Math.ceil(filteredProducts.length / perPage);
-    const paginatedList = filteredProducts.slice((page - 1) * perPage, page * perPage);
+    const totalPages    = Math.ceil(filteredProducts.length / PER_PAGE);
+    const paginatedList = filteredProducts.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
     const resetPage = () => setPage(1);
 
     // ── Active Filters ──
     const activeFilters = useMemo(() => {
         const f = [];
-        if (category !== 'all') f.push({ key: 'category', label: CATEGORIES.find((c) => c.key === category)?.label, clear: () => { setCategory('all'); resetPage(); } });
-        if (petType !== 'all') f.push({ key: 'petType', label: PET_TYPES.find((p) => p.key === petType)?.label, clear: () => { setPetType('all'); resetPage(); } });
-        if (priceRange !== 'all') f.push({ key: 'priceRange', label: PRICE_RANGES.find((r) => r.key === priceRange)?.label, clear: () => { setPriceRange('all'); resetPage(); } });
-        if (search.trim()) f.push({ key: 'search', label: `"${search}"`, clear: () => { setSearch(''); resetPage(); } });
+        if (category !== 'all')
+            f.push({ key: 'category', label: CATEGORIES.find((c) => c.key === category)?.label, clear: () => { setCategory('all'); resetPage(); } });
+        if (petType !== 'all')
+            f.push({ key: 'petType', label: PET_TYPES.find((p) => p.key === petType)?.label, clear: () => { setPetType('all'); resetPage(); } });
+        if (priceRange !== 'all')
+            f.push({ key: 'priceRange', label: PRICE_RANGES.find((r) => r.key === priceRange)?.label, clear: () => { setPriceRange('all'); resetPage(); } });
+        if (productFilter !== 'all')                                                                          // ← 新增
+            f.push({ key: 'productFilter', label: PRODUCT_FILTERS.find((f) => f.key === productFilter)?.label, clear: () => { setProductFilter('all'); resetPage(); } });
+        if (search.trim())
+            f.push({ key: 'search', label: `"${search}"`, clear: () => { setSearch(''); resetPage(); } });
         return f;
-    }, [category, petType, priceRange, search]);
+    }, [category, petType, priceRange, productFilter, search]);
 
     const clearAllFilters = () => {
-        setCategory('all'); setPetType('all'); setPriceRange('all'); setSearch(''); resetPage();
+        setCategory('all'); setPetType('all'); setPriceRange('all');
+        setProductFilter('all'); setSearch(''); resetPage();          // ← 加入 productFilter reset
     };
 
     // ── Pagination helper ──
@@ -378,12 +412,21 @@ export default function Products() {
             <div className="products-layout">
                 {/* ── 桌面 Sidebar ── */}
 
-
                 {/* ── 主內容 ── */}
                 <div className="products-main">
                     {/* ── Toolbar ── */}
                     <div className="prod-toolbar">
                         <div className="prod-toolbar-left">
+                            <button
+                                className="prod-view-btn"
+                                type="button"
+                                onClick={() => setFilterOpen(true)}
+                                aria-label="Open filters"
+                                title="Open filters"
+                            >
+                                <SlidersHorizontal size={18} />
+                            </button>
+                            {/* 排序 */}
                             <div className="prod-select-wrap">
                                 <select className="prod-select" value={sortBy} onChange={(e) => { setSortBy(e.target.value); resetPage(); }}>
                                     {SORT_OPTIONS.map((o) => (
@@ -393,15 +436,21 @@ export default function Products() {
                                 <ChevronDown size={14} className="prod-select-arrow" />
                             </div>
 
+                            {/* 商品狀態篩選（取代每頁筆數） */}
                             <div className="prod-select-wrap">
-                                <select className="prod-select" value={perPage} onChange={(e) => { setPerPage(Number(e.target.value)); resetPage(); }}>
-                                    {PER_PAGE_OPTIONS.map((n) => (
-                                        <option key={n} value={n}>每頁 {n} 件</option>
+                                <select
+                                    className="prod-select"
+                                    value={productFilter}
+                                    onChange={(e) => { setProductFilter(e.target.value); resetPage(); }}
+                                >
+                                    {PRODUCT_FILTERS.map((f) => (
+                                        <option key={f.key} value={f.key}>{f.label}</option>
                                     ))}
                                 </select>
                                 <ChevronDown size={14} className="prod-select-arrow" />
                             </div>
 
+                            {/* 格狀 / 列表切換 */}
                             <div className="prod-view-toggle">
                                 <button className={`prod-view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')} title="格狀顯示">
                                     <Grid3X3 size={18} />

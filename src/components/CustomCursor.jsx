@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { motion, useSpring } from 'framer-motion'
+import { motion as Motion, useSpring } from 'framer-motion'
 import './CustomCursor.css'
+
+const motion = Motion
 
 const CustomCursor = () => {
   const [isHovering, setIsHovering] = useState(false)

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import './ExpandableCard.css';
+
+const motion = Motion;
 
 const ExpandableCard = ({ id, title, subtitle, content, image }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -70,8 +72,12 @@ const ExpandableCard = ({ id, title, subtitle, content, image }) => {
 
                                 {/* 關閉按鈕 */}
                                 <motion.button
+                                    type="button"
                                     className="close-btn"
-                                    onClick={() => setIsOpen(false)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsOpen(false);
+                                    }}
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}

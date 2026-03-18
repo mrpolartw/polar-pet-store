@@ -184,7 +184,13 @@
   overflow-x: auto;
   padding-bottom: 4px;
   gap: 0;
+  scrollbar-width: none;
 }
+
+.oq-timeline::-webkit-scrollbar {
+  display: none; 
+}
+
 .oq-step {
   display: flex;
   flex-direction: column;

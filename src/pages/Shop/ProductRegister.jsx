@@ -6,7 +6,7 @@ import {
   Camera, X, Shield, Leaf, Warehouse, MapPin,
   LogIn, UserPlus, RefreshCw, Eye, Clock
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '../../context/useAuth';
 import './ProductRegister.css';
 
 /* ─────────────────────────────────────────────
@@ -158,7 +158,13 @@ export default function ProductRegister() {
   const scanTimer   = useRef(null);
 
   // 離開頁面時關閉相機
-  useEffect(() => () => closeCamera(), []);
+  useEffect(() => () => {
+    clearTimeout(scanTimer.current);
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+    setCameraOpen(false);
+    setScanStatus('idle');
+  }, []);
 
   /* ── Camera ── */
   const openCamera = async () => {
@@ -191,13 +197,13 @@ export default function ProductRegister() {
     }
   };
 
-  const closeCamera = () => {
+  function closeCamera() {
     clearTimeout(scanTimer.current);
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
     setCameraOpen(false);
     setScanStatus('idle');
-  };
+  }
 
   /* ── Search ── */
   const doSearch = (inputSerial) => {

@@ -1,29 +1,40 @@
 import React, { useState } from 'react';
 
-const ImageWithFallback = ({ src, alt, className }) => {
-    const [imgSrc, setImgSrc] = useState(src);
-    const [isLoading, setIsLoading] = useState(true);
+const FALLBACK_IMAGE =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">' +
+        '<rect width="1200" height="800" fill="#f3efe6"/>' +
+        '<text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#8a7e71" font-family="Arial" font-size="48">Image unavailable</text>' +
+        '</svg>'
+    );
 
-    // 當圖片路徑失效時，自動替換為一張高品質的備用圖
-    const handleError = () => {
-        setImgSrc('https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&q=80&w=1200');
-        setIsLoading(false);
+const ImageWithFallback = ({ src, alt, className }) => {
+    const [loadedSrc, setLoadedSrc] = useState('');
+
+    const handleError = (event) => {
+        if (event.currentTarget.src !== FALLBACK_IMAGE) {
+            event.currentTarget.src = FALLBACK_IMAGE;
+        }
+        setLoadedSrc(src);
     };
 
     const handleLoad = () => {
-        setIsLoading(false);
+        setLoadedSrc(src);
     };
+
+    const isLoading = loadedSrc !== src;
 
     return (
         <div className={`img-wrapper ${isLoading ? 'loading' : 'loaded'} ${className}`}>
             <img
-                src={imgSrc}
+                key={src}
+                src={src}
                 alt={alt}
                 onError={handleError}
                 onLoad={handleLoad}
                 style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.5s ease-in-out' }}
             />
-            {/* 這裡可以搭配 CSS 製作灰色閃爍的 Loading 效果 */}
             {isLoading && <div className="skeleton-loader"></div>}
         </div>
     );

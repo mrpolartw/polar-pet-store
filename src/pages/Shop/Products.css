@@ -19,9 +19,8 @@
 /* ── Layout ── */
 .products-layout {
   max-width: 1300px;
-  margin: 0 auto;
+  margin: auto;
   padding: 40px 24px 80px;
-  display: grid;
   grid-template-columns: 260px 1fr;
   gap: 32px;
   align-items: start;
@@ -30,9 +29,16 @@
 /* ─────────────────────────────────────────────
    Sidebar
 ───────────────────────────────────────────── */
+/* 修改 Products.css 中的 .products-sidebar */
 .products-sidebar {
   position: sticky;
   top: 100px;
+  max-height: calc(100vh - 120px); /* 限制最大高度 */
+  overflow-y: auto;                /* 允許內部滾動 */
+  scrollbar-width: none;           /* Firefox 隱藏滾動條 */
+}
+.products-sidebar::-webkit-scrollbar {
+  display: none;                   /* Chrome/Safari 隱藏滾動條 */
 }
 
 .prod-sidebar-card {
@@ -901,6 +907,19 @@
   }
   .prod-view-toggle {
     display: none;
+  }
+}
+
+/* 補充在 Products.css 的 @media (max-width: 480px) 區塊內 */
+@media (max-width: 480px) {
+  .prod-quick-add {
+    font-size: 12px; /* 縮小字體 */
+    padding: 8px 10px;
+    letter-spacing: 0;
+  }
+  .prod-quick-add svg {
+    width: 14px;
+    height: 14px;
   }
 }
 

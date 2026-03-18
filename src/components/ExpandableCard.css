@@ -9,7 +9,7 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    box-shadow: 0 10px 30px var(--color-shadow-light);
+    box-shadow: 0 10px 30px var(--color-brand-coffee);
     cursor: pointer;
     position: relative;
     overflow: hidden;
@@ -36,7 +36,7 @@
     font-family: var(--font-family-display);
     font-size: 24px;
     font-weight: 600;
-    color: var(--color-text-light);
+    color: var(--color-accent);
     margin-bottom: 8px;
 }
 
@@ -119,6 +119,25 @@
     }
 }
 
+/* 在 ExpandableCard.css 底部加入手機版優化 */
+@media (max-width: 767px) {
+    .card-image-large-wrapper {
+        height: 220px; /* 縮小手機版圖片佔比 */
+    }
+    .card-content-large {
+        padding: 24px; /* 縮小留白，還給內文空間 */
+    }
+    .card-content-large h3 {
+        font-size: 26px; /* 縮小標題 */
+    }
+    .close-btn {
+        top: 12px;
+        right: 12px;
+        width: 36px;
+        height: 36px;
+    }
+}
+
 .card-image-large-wrapper img {
     width: 100%;
     height: 100%;
@@ -138,13 +157,13 @@
     font-family: var(--font-family-display);
     font-size: 36px;
     font-weight: 600;
-    color: var(--color-text-light);
+    color: var(--color-accent);
     margin-bottom: 12px;
 }
 
 .card-content-large p {
     font-size: 18px;
-    color: var(--color-accent);
+    color: var(--color-gray-dark);
     margin-bottom: 24px;
 }
 
@@ -163,7 +182,7 @@
     height: 40px;
     border-radius: 50%;
     background-color: var(--color-bg-white);
-    color: var(--color-text-light);
+    color: var(--color-accent);
     border: none;
     font-size: 18px;
     display: flex;
@@ -177,4 +196,42 @@
 .close-btn:hover {
     transform: scale(1.1);
     color: var(--color-accent-hover);
+}
+.expandable-card-large {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh; /* 👈 新增：最高不能超過視窗的 90% */
+    background-color: var(--color-bg-light);
+    border-radius: var(--pet-border-radius);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+    overflow-y: auto; /* 👈 新增：超出範圍時允許上下滾動 */
+    display: flex;
+    flex-direction: column;
+    z-index: 10001;
+}
+
+/* 隱藏大卡片的滾動條(保持美觀)，但保留滾動功能 */
+.expandable-card-large::-webkit-scrollbar {
+    display: none;
+}
+/* --- 手機版：縮小版卡片內容微調 --- */
+@media (max-width: 768px) {
+    .expandable-card-small {
+        padding: 20px !important; /* 將內邊距從 30px 縮小到 20px，釋放文字空間 */
+    }
+
+    .card-image-wrapper {
+        width: 90px !important;  /* 圖片縮小一點 */
+        height: 90px !important;
+        margin-bottom: 16px;
+    }
+
+    .card-content h3 {
+        font-size: 22px; /* 標題字體稍微縮小 */
+    }
+
+    .card-content p {
+        font-size: 14px; /* 內文字體稍微縮小 */
+    }
 }

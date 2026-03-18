@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Navigate, Link, useNavigate, useLocation } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion as Motion, AnimatePresence } from 'framer-motion'
 import {
   User, ShoppingBag, Heart, MapPin, ShieldCheck,
   LogOut, ChevronRight, Check, Plus, Edit2, Trash2,
   Package, Truck, CheckCircle, XCircle, PawPrint, CreditCard,
   Store, X, Lock,
 } from 'lucide-react'
-import { useAuth, getMemberTier } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
+import { getMemberTier } from '../../context/authUtils'
 import './Account.css'
+
+const motion = Motion
 
 
 // ─────────────────────────────────────────────
@@ -582,7 +585,7 @@ const Account = () => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [activeTab,     setActiveTab]     = useState('profile')
+  const [accountTab,    setAccountTab]    = useState('profile')
   const [toast,         setToast]         = useState('')
   const [favorites,     setFavorites]     = useState(MOCK_FAVORITES)
   const [profileForm,   setProfileForm]   = useState({
@@ -615,17 +618,16 @@ const Account = () => {
   const [editingPetId, setEditingPetId] = useState(null)
   const [petError,     setPetError]     = useState('')
 
-  useEffect(() => {
-    if      (location.pathname === '/orders')    setActiveTab('orders')
-    else if (location.pathname === '/favorites') setActiveTab('favorites')
-    else if (location.pathname === '/account') {
-      setActiveTab(prev =>
-        ['profile', 'addresses', 'cards', 'security'].includes(prev) ? prev : 'profile'
-      )
-    }
-  }, [location.pathname])
-
   if (!isLoggedIn) return <Navigate to="/login" state={{ from: '/account' }} replace />
+
+  const activeTab =
+    location.pathname === '/orders'
+      ? 'orders'
+      : location.pathname === '/favorites'
+        ? 'favorites'
+        : ['profile', 'addresses', 'cards', 'security'].includes(accountTab)
+          ? accountTab
+          : 'profile'
 
   const tier = getMemberTier(user?.points || 0)
   const nextTierPoints =
@@ -640,7 +642,7 @@ const Account = () => {
   const handleNavClick = (tab) => {
     if      (tab.key === 'orders')    navigate('/orders')
     else if (tab.key === 'favorites') navigate('/favorites')
-    else { navigate('/account'); setActiveTab(tab.key) }
+    else { navigate('/account'); setAccountTab(tab.key) }
   }
   const handleSaveProfile = () => { updateProfile(profileForm); showToast('個人資料已更新 ✓') }
   const handleLogout      = () => { logout(); navigate('/') }

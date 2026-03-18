@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { AlertCircle, Mail, ArrowLeft } from 'lucide-react'
 import LogoImg from '../../png/LOGO.png'
 import './Auth.css'

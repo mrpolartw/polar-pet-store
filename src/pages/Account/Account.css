@@ -222,6 +222,17 @@
     padding: 24px 16px;
     border-radius: 20px;
   }
+
+  .address-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px;
+    /* 加入底部安全區域的間距 */
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  
 }
 
 .account-section-title {

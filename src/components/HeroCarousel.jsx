@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import banner1 from '../png/banner 1.png';
 import banner2 from '../png/banner 2.png';
 import banner3 from '../png/banner 3.png';
 import banner4 from '../png/banner 4.png';
-import banner5 from '../png/banner 5.png';
 import './HeroCarousel.css';
+
+const motion = Motion;
 
 const slides = [
     {
@@ -37,13 +38,7 @@ const slides = [
         subtitle: '全方位的關節保養與防護。',
         desc: '科學精算的全方位營養，搭配玻尿酸與天然軟骨素，讓每一步都穩健輕盈。'
     },
-    {
-        id: 5,
-        image: banner5,
-        title: '保護牠明亮的雙眼',
-        subtitle: '護眼花青素與葉黃素萃取。',
-        desc: '高純度的護眼營養素，減緩晶體退化，為靈魂之窗點亮溫柔的光芒。'
-    }
+    
 ];
 
 const HeroCarousel = () => {

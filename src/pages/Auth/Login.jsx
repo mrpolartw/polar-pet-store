@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle, Package, Star, ShieldCheck } from 'lucide-react'
-import { useAuth } from '../../context/AuthContext'
+import { useAuth } from '../../context/useAuth'
 
 // 桌面版：LOGO.png（含淺色背景）
 import LogoDesktop from '../../png/LOGO.png'
