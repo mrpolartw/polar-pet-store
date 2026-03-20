@@ -7,6 +7,7 @@ import {
   LogIn, UserPlus, RefreshCw, Eye, Clock
 } from 'lucide-react';
 import { useAuth } from '../../context/useAuth';
+import { registerSerial } from '../../api/customer';
 import './ProductRegister.css';
 
 /* ─────────────────────────────────────────────
@@ -151,6 +152,7 @@ export default function ProductRegister() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraErr,  setCameraErr]  = useState('');
   const [scanStatus, setScanStatus] = useState('idle');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // 'idle' | 'scanning' | 'found'
 
   const videoRef    = useRef(null);
@@ -214,6 +216,24 @@ export default function ProductRegister() {
 
     setTimeout(() => {
       const found = MOCK_DB[s];
+      const updated = found
+        ? { ...found, queryCount: found.queryCount + 1 }
+        : {
+            id: s,
+            name: s,
+            specs: '',
+            batchNo: s,
+            image: '/placeholder.jpg',
+            channel: 'online',
+            queryCount: 1,
+            registeredBy: null,
+            registeredDate: null,
+            timeline: [],
+          };
+      setProduct(updated);
+      setStep(found?.registeredBy ? 'claimed' : 'result');
+      return;
+      /*
       if (!found) {
         setError(`找不到序號「${s}」的產品，請確認後再試`);
         setStep('input');
@@ -222,15 +242,34 @@ export default function ProductRegister() {
       const updated = { ...found, queryCount: found.queryCount + 1 };
       setProduct(updated);
       setStep(found.registeredBy ? 'claimed' : 'result');
+      */
     }, 1500);
   };
 
   /* ── Register ── */
-  const handleRegister = () => {
+  const handleRegister = async () => {
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await registerSerial(serial);
+      const masked = maskName(user?.name || '會員');
+      const now = todayStr();
+      setProduct(prev => ({ ...prev, registeredBy: masked, registeredDate: now }));
+      setStep('success');
+      return;
+    } catch (err) {
+      setError(err?.message || '序號登錄失敗，請確認序號是否正確');
+      return;
+    } finally {
+      setIsSubmitting(false);
+    }
+    /*
     const masked = maskName(user?.name || '使用者');
     const now    = todayStr();
     setProduct(prev => ({ ...prev, registeredBy: masked, registeredDate: now }));
     setStep('success');
+    */
   };
 
   /* ── Reset ── */
@@ -414,7 +453,7 @@ export default function ProductRegister() {
         {/* ── 操作按鈕 ── */}
         <div className="pr-actions">
           {step === 'result' && (
-            <button className="btn-blue pr-register-btn" onClick={handleRegister}>
+            <button className="btn-blue pr-register-btn" onClick={handleRegister} disabled={isSubmitting}>
               <UserCheck size={18} /> 立即登記此產品
             </button>
           )}

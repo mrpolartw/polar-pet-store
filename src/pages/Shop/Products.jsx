@@ -1,9 +1,12 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
     SlidersHorizontal, X, ShoppingCart, Star, Grid3X3, LayoutList,
     ChevronDown, Search, Check, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useCart } from '../../context/useCart';
+import { useAuth } from '../../context/useAuth';
+import { getProducts } from '../../api/products';
+import { addToWishlist, removeFromWishlist, checkWishlist } from '../../api/customer';
 import './Products.css'
 
 
@@ -103,7 +106,88 @@ const MOCK_PRODUCTS = [
 // ─────────────────────────────────────────────
 // 工具元件
 // ─────────────────────────────────────────────
-const formatPrice = (p) => `NT$${Number(p).toLocaleString()}`;
+const formatPrice = (amount) =>
+    "NT$" + Math.round(Number(amount) || 0).toLocaleString("zh-TW");
+
+const getPrimaryVariant = (product) => product?.variants?.[0] || null;
+
+const getProductPrice = (product) =>
+    Number(getPrimaryVariant(product)?.calculated_price?.calculated_amount || 0) / 100;
+
+const getOriginalPrice = (product) => {
+    const variant = getPrimaryVariant(product);
+    const originalAmount = Number(
+        variant?.calculated_price?.original_amount ||
+        variant?.calculated_price?.original_amount_with_tax ||
+        0
+    ) / 100;
+
+    return originalAmount > getProductPrice(product) ? originalAmount : null;
+};
+
+const getProductImage = (product) =>
+    product?.thumbnail ||
+    product?.images?.[0]?.url ||
+    '/placeholder.jpg';
+
+const inferCategory = (product) => {
+    const categorySource = [
+        ...(product?.categories || []).map((category) => category?.handle || category?.name || ''),
+        product?.collection?.handle || '',
+        product?.collection?.title || '',
+    ]
+        .join(' ')
+        .toLowerCase();
+
+    if (categorySource.includes('snack')) return 'snacks';
+    if (categorySource.includes('health') || categorySource.includes('supplement')) return 'health';
+    if (categorySource.includes('supply') || categorySource.includes('toy') || categorySource.includes('accessory')) return 'supplies';
+    if (categorySource.includes('food')) return 'food';
+
+    return 'food';
+};
+
+const inferPetType = (product) => {
+    const petSource = [
+        product?.title || '',
+        product?.description || '',
+        ...(product?.tags || []).map((tag) => tag?.value || tag?.name || ''),
+    ]
+        .join(' ')
+        .toLowerCase();
+
+    if (petSource.includes('cat') || petSource.includes('貓')) return 'cat';
+    if (petSource.includes('dog') || petSource.includes('狗')) return 'dog';
+
+    return 'all';
+};
+
+const normalizeProduct = (product) => {
+    const primaryVariant = getPrimaryVariant(product);  // ← 加這行！
+    const createdAt = product?.created_at ? new Date(product.created_at) : null;
+    const isRecent =
+        createdAt instanceof Date &&
+        !Number.isNaN(createdAt.getTime()) &&
+        Date.now() - createdAt.getTime() <= 1000 * 60 * 60 * 24 * 30;
+    const tags = (product?.tags || []).map((tag) => (tag?.value || tag?.name || '').toLowerCase());
+
+    return {
+        ...product,
+        variantId: primaryVariant?.id || null,  // ← 只保留這一個，刪掉下面重複的
+        name: product?.title || '',
+        specs: product?.description || '',
+        price: getProductPrice(product),
+        originalPrice: getOriginalPrice(product),
+        image: getProductImage(product),
+        category: inferCategory(product),
+        petType: inferPetType(product),
+        rating: 5,
+        reviewCount: 0,
+        isBestseller: tags.includes('bestseller'),
+        isNew: isRecent,
+        isBundle: tags.includes('bundle'),
+    };
+};
 
 
 function StarRating({ rating }) {
@@ -315,6 +399,11 @@ function FilterPanel({
 // ─────────────────────────────────────────────
 export default function Products() {
     const { addToCart } = useCart();
+    const { isLoggedIn } = useAuth();
+    const [products, setProducts]           = useState([]);
+    const [loading, setLoading]             = useState(true);
+    const [error, setError]                 = useState(null);
+    const [wishlistMap, setWishlistMap]     = useState({});
 
     // ── Filter & Display State ──
     const [category, setCategory]           = useState('all');
@@ -327,26 +416,114 @@ export default function Products() {
     const [search, setSearch]               = useState('');
     const [filterOpen, setFilterOpen]       = useState(false);
 
+    useEffect(() => {
+        let mounted = true;
+
+        const fetchProducts = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const { products: fetchedProducts } = await getProducts({ limit: 20 });
+
+                if (mounted) {
+                    setProducts(fetchedProducts || []);
+                }
+            } catch {
+                if (mounted) {
+                    setProducts([]);
+                    setError('商品載入失敗，請重新整理頁面');
+                }
+            } finally {
+                if (mounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchProducts();
+
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const syncWishlist = async () => {
+            if (!isLoggedIn || products.length === 0) {
+                if (mounted) {
+                    setWishlistMap({});
+                }
+                return;
+            }
+
+            const entries = await Promise.all(
+                products.map(async (product) => {
+                    try {
+                        const result = await checkWishlist(product.id);
+                        return [product.id, result];
+                    } catch {
+                        return [product.id, { is_in_wishlist: false, wishlist_item_id: null }];
+                    }
+                })
+            );
+
+            if (mounted) {
+                setWishlistMap(Object.fromEntries(entries));
+            }
+        };
+
+        syncWishlist();
+
+        return () => {
+            mounted = false;
+        };
+    }, [isLoggedIn, products]);
+
     // ── Handle Add to Cart ──
     const handleAddToCart = useCallback((product) => {
-        addToCart({
-            id: product.id,
-            name: product.name,
-            image: product.image,
-            specs: product.specs,
-            price: product.price,
-            quantity: 1,
+        if (!product?.variantId) {
+            return;
+        }
+        /*
             shippingMethods: ['宅配', '超商取貨'],
-        });
+        */
+
+        addToCart(product.variantId, 1);
     }, [addToCart]);
+
+    const handleWishlistToggle = useCallback(async (productId, variantId) => {
+        if (!isLoggedIn) return;
+
+        const current = wishlistMap[productId];
+
+        if (current?.is_in_wishlist && current?.wishlist_item_id) {
+            await removeFromWishlist(current.wishlist_item_id);
+            setWishlistMap((previous) => ({
+                ...previous,
+                [productId]: { is_in_wishlist: false, wishlist_item_id: null },
+            }));
+            return;
+        }
+
+        const result = await addToWishlist(productId, variantId);
+        setWishlistMap((previous) => ({
+            ...previous,
+            [productId]: {
+                is_in_wishlist: true,
+                wishlist_item_id: result?.id || null,
+            },
+        }));
+    }, [isLoggedIn, wishlistMap]);
 
     // ── Filtered & Sorted Products ──
     const filteredProducts = useMemo(() => {
         const pr = PRICE_RANGES.find((r) => r.key === priceRange);
 
-        let list = MOCK_PRODUCTS.filter((p) => {
+        let list = products.map(normalizeProduct).filter((p) => {
             if (category !== 'all' && p.category !== category) return false;
-            if (petType !== 'all' && p.petType !== petType) return false;
+            if (petType !== 'all' && p.petType !== 'all' && p.petType !== petType) return false;
             if (p.price < pr.min || p.price > pr.max) return false;
             if (search.trim()) {
                 const q = search.trim().toLowerCase();
@@ -361,14 +538,14 @@ export default function Products() {
         });
 
         switch (sortBy) {
-            case 'newest':     list = list.filter((p) => p.isNew).concat(list.filter((p) => !p.isNew)); break;
+            case 'newest':     list = [...list].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)); break;
             case 'popular':    list = [...list].sort((a, b) => b.reviewCount - a.reviewCount); break;
             case 'price-asc':  list = [...list].sort((a, b) => a.price - b.price); break;
             case 'price-desc': list = [...list].sort((a, b) => b.price - a.price); break;
-            default:           list = [...list].sort((a, b) => (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0)); break;
+            default:           list = [...list].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)); break;
         }
         return list;
-    }, [category, petType, priceRange, sortBy, search, productFilter]);
+    }, [category, petType, priceRange, sortBy, search, productFilter, products]);
 
     const totalPages    = Math.ceil(filteredProducts.length / PER_PAGE);
     const paginatedList = filteredProducts.slice((page - 1) * PER_PAGE, page * PER_PAGE);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Navigate, Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import {
@@ -7,8 +7,23 @@ import {
   Package, Truck, CheckCircle, XCircle, PawPrint, CreditCard,
   Store, X, Lock,
 } from 'lucide-react'
+import {
+  createAddress,
+  createPet,
+  deleteAddress,
+  deletePet,
+  getAddresses,
+  getPets,
+  getSerials,
+  getWishlist,
+  removeFromWishlist,
+  setDefaultAddress,
+  updateAddress,
+  updatePet,
+} from '../../api/customer'
+import { getCustomerOrders } from '../../api/orders'
 import { useAuth } from '../../context/useAuth'
-import { getMemberTier } from '../../context/authUtils'
+import { sdk } from '../../lib/medusa'
 import './Account.css'
 
 const motion = Motion
@@ -136,6 +151,135 @@ const StatusIcon = ({ status }) => ({
   shipping:   <Truck       size={12} />,
   cancelled:  <XCircle     size={12} />,
 }[status] || null)
+
+const formatPrice = (amount) =>
+  'NT$' + Math.round(Number(amount) || 0).toLocaleString('zh-TW')
+
+const getTierByPoints = (points) => {
+  if (points >= 10000) return { label: '白金會員', color: '#003153', bg: '#EBF2F8' }
+  if (points >= 5000) return { label: '金卡會員', color: '#8B5A2B', bg: '#FDF3E3' }
+  if (points >= 1000) return { label: '銀卡會員', color: '#6B7280', bg: '#F3F4F6' }
+
+  return { label: '一般會員', color: '#8A7E71', bg: '#F3EFE6' }
+}
+
+const getNextTierPoints = (points) => {
+  if (points >= 10000) return null
+  if (points >= 5000) return 10000
+  if (points >= 1000) return 5000
+
+  return 1000
+}
+
+const getStatusClass = (status) => {
+  const map = {
+    pending: 'processing',
+    processing: 'processing',
+    shipped: 'shipping',
+    delivered: 'delivered',
+    completed: 'delivered',
+    canceled: 'cancelled',
+    cancelled: 'cancelled',
+  }
+
+  return map[status] || 'processing'
+}
+
+const ORDER_STATUS_LABEL = {
+  processing: '處理中',
+  shipping: '配送中',
+  delivered: '已完成',
+  cancelled: '已取消',
+}
+
+const normalizeDateValue = (value) => {
+  if (!value) {
+    return ''
+  }
+
+  const parsedDate = new Date(value)
+
+  if (Number.isNaN(parsedDate.getTime())) {
+    return ''
+  }
+
+  return parsedDate.toISOString().slice(0, 10)
+}
+
+const normalizePet = (pet) => ({
+  id: pet.id,
+  petName: pet.name || '',
+  petGender: pet.gender || '',
+  petType: pet.type || '',
+  petBreed: pet.breed || '',
+  petAge: pet.age ?? '',
+  petWeight: pet.weight ?? '',
+  petBirthday: normalizeDateValue(pet.birthday),
+  notes: pet.notes || '',
+})
+
+const normalizeOrder = (order) => {
+  const status = getStatusClass(order?.status)
+
+  return {
+    id: `#${order?.display_id ?? order?.id ?? ''}`,
+    date: order?.created_at
+      ? new Date(order.created_at).toLocaleDateString('zh-TW')
+      : '',
+    status,
+    statusLabel: ORDER_STATUS_LABEL[status] || '處理中',
+    total: Number(order?.total || 0) / 100,
+    items: (order?.items || []).map((item) => ({
+      name: item?.title || item?.product_title || '商品',
+      img: item?.thumbnail || '/placeholder.jpg',
+    })),
+  }
+}
+
+const normalizeAddress = (address) => {
+  const shippingType = address?.metadata?.shipping_type
+
+  return {
+    id: address.id,
+    type: shippingType === 'home' ? 'home' : '711',
+    label:
+      address.address_name || (shippingType === 'home' ? '宅配' : '超商取貨'),
+    name: address.first_name || '',
+    phone: address.phone || '',
+    city: address.city || '',
+    district: address.province || '',
+    address: address.address_1 || '',
+    isDefault: Boolean(address.is_default_shipping),
+    storeName: address?.metadata?.store_name || '',
+    storeId: address?.metadata?.store_id || '',
+  }
+}
+
+const normalizeWishlistItem = (item, product = null) => {
+  const variant =
+    item?.product?.variants?.find((entry) => entry.id === item.variant_id) ||
+    product?.variants?.find((entry) => entry.id === item.variant_id) ||
+    item?.product?.variants?.[0] ||
+    product?.variants?.[0] ||
+    null
+
+  return {
+    id: item.id,
+    productId: item.product_id || '',
+    variantId: item.variant_id || '',
+    name:
+      item?.product_title ||
+      item?.product?.title ||
+      product?.title ||
+      `商品 ${item.product_id || ''}`.trim(),
+    img: item?.product?.thumbnail || product?.thumbnail || '/placeholder.jpg',
+    price: Number(variant?.calculated_price?.calculated_amount || 0) / 100,
+    variantTitle: item?.variant?.title || variant?.title || '標準規格',
+    createdAt: item?.created_at
+      ? new Date(item.created_at).toLocaleDateString('zh-TW')
+      : '',
+  }
+}
 
 const Toast = ({ message }) => (
   <motion.div className="account-toast"
@@ -584,21 +728,22 @@ const Account = () => {
   const { user, isLoading, logout, updateProfile, changePassword, isLoggedIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() || user?.name || ''
 
   const [accountTab,    setAccountTab]    = useState('profile')
   const [toast,         setToast]         = useState('')
-  const [favorites,     setFavorites]     = useState(MOCK_FAVORITES)
+  const [favorites,     setFavorites]     = useState([])
+  const [orders,        setOrders]        = useState([])
+  const [serials,       setSerials]       = useState([])
   const [profileForm,   setProfileForm]   = useState({
-    name: user?.name || '', phone: user?.phone || '',
+    name: fullName, phone: user?.phone || user?.meta?.phone || '',
     birthday: user?.birthday || '', gender: user?.gender || '',
   })
   const [passwordForm,  setPasswordForm]  = useState({ old: '', new: '', confirm: '' })
   const [passwordError, setPasswordError] = useState('')
 
   // 地址 state
-  const [addresses,        setAddresses]        = useState(user?.addresses || [
-    { id: 1, type: 'home', label: '住家', name: '王小明', phone: '0912-345-678', city: '台北市', district: '信義區', address: '信義路五段7號', isDefault: true },
-  ])
+  const [addresses,        setAddresses]        = useState([])
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [addressForm,      setAddressForm]      = useState(EMPTY_ADDRESS_FORM)
   const [editingAddressId, setEditingAddressId] = useState(null)
@@ -612,11 +757,168 @@ const Account = () => {
   const [cardError,     setCardError]     = useState('')
 
   // ✅ 毛孩 state
-  const [pets,         setPets]         = useState(user?.pets?.map((p, i) => ({ ...p, id: p.id || i + 1 })) || [])
+  const [pets,         setPets]         = useState([])
   const [showPetModal, setShowPetModal] = useState(false)
   const [petForm,      setPetForm]      = useState(EMPTY_PET_FORM)
   const [editingPetId, setEditingPetId] = useState(null)
   const [petError,     setPetError]     = useState('')
+
+
+  useEffect(() => {
+    setProfileForm({
+      name: [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim() || user?.name || '',
+      phone: user?.phone || user?.meta?.phone || '',
+      birthday: normalizeDateValue(user?.birthday),
+      gender: user?.gender || '',
+    })
+  }, [user])
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+
+    let mounted = true
+
+    const fetchPets = async () => {
+      try {
+        const data = await getPets()
+
+        if (mounted) {
+          setPets((data || []).map(normalizePet))
+        }
+      } catch (error) {
+        if (mounted) {
+          showToast(error?.message || '毛孩資料載入失敗')
+        }
+      }
+    }
+
+    void fetchPets()
+
+    return () => {
+      mounted = false
+    }
+  }, [isLoggedIn])
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+
+    let mounted = true
+
+    const fetchFavorites = async () => {
+      try {
+        const data = await getWishlist()
+        const enrichedItems = await Promise.all(
+          (data || []).map(async (item) => {
+            if (!item?.product_id) {
+              return normalizeWishlistItem(item)
+            }
+
+            try {
+              const { product } = await sdk.store.product.retrieve(item.product_id, {
+                fields: '*variants,+variants.calculated_price',
+              })
+
+              return normalizeWishlistItem(item, product)
+            } catch {
+              return normalizeWishlistItem(item)
+            }
+          })
+        )
+
+        if (mounted) {
+          setFavorites(enrichedItems)
+        }
+      } catch (error) {
+        if (mounted) {
+          showToast(error?.message || '收藏清單載入失敗')
+        }
+      }
+    }
+
+    void fetchFavorites()
+
+    return () => {
+      mounted = false
+    }
+  }, [isLoggedIn])
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+
+    let mounted = true
+
+    const fetchOrders = async () => {
+      try {
+        const { orders: orderData } = await getCustomerOrders({ limit: 20 })
+
+        if (mounted) {
+          setOrders((orderData || []).map(normalizeOrder))
+        }
+      } catch (error) {
+        if (mounted) {
+          showToast(error?.message || '訂單資料載入失敗')
+        }
+      }
+    }
+
+    void fetchOrders()
+
+    return () => {
+      mounted = false
+    }
+  }, [isLoggedIn])
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+
+    let mounted = true
+
+    const fetchAddresses = async () => {
+      try {
+        const data = await getAddresses()
+
+        if (mounted) {
+          setAddresses((data || []).map(normalizeAddress))
+        }
+      } catch (error) {
+        if (mounted) {
+          showToast(error?.message || '地址資料載入失敗')
+        }
+      }
+    }
+
+    void fetchAddresses()
+
+    return () => {
+      mounted = false
+    }
+  }, [isLoggedIn])
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+
+    let mounted = true
+
+    const fetchSerials = async () => {
+      try {
+        const data = await getSerials()
+
+        if (mounted) {
+          setSerials(data || [])
+        }
+      } catch (error) {
+        if (mounted) {
+          showToast(error?.message || '序號資料載入失敗')
+        }
+      }
+    }
+
+    void fetchSerials()
+
+    return () => {
+      mounted = false
+    }
+  }, [isLoggedIn])
 
   if (!isLoggedIn) return <Navigate to="/login" state={{ from: '/account' }} replace />
 
@@ -629,13 +931,11 @@ const Account = () => {
           ? accountTab
           : 'profile'
 
-  const tier = getMemberTier(user?.points || 0)
-  const nextTierPoints =
-    (user?.points >= 8000) ? null :
-    (user?.points >= 3000) ? 8000 :
-    (user?.points >= 1000) ? 3000 : 1000
+  const tier = getTierByPoints(user?.points || 0)
+  const nextTierPoints = getNextTierPoints(user?.points || 0)
   const progressPct = nextTierPoints
-    ? Math.min((user?.points / nextTierPoints) * 100, 100) : 100
+    ? Math.min(((user?.points || 0) / nextTierPoints) * 100, 100)
+    : 100
 
   const showToast      = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
   const getInitials    = (name) => name ? name.slice(0, 2).toUpperCase() : 'PL'
@@ -644,19 +944,60 @@ const Account = () => {
     else if (tab.key === 'favorites') navigate('/favorites')
     else { navigate('/account'); setAccountTab(tab.key) }
   }
-  const handleSaveProfile = () => { updateProfile(profileForm); showToast('個人資料已更新 ✓') }
+  const handleSaveProfile = async () => {
+    const trimmedName = profileForm.name.trim()
+    const [firstName = '', ...lastNameParts] = trimmedName ? trimmedName.split(/\s+/) : ['']
+
+    try {
+      const result = await updateProfile({
+        first_name: firstName,
+        last_name: lastNameParts.join(' '),
+        phone: profileForm.phone,
+        birthday: profileForm.birthday,
+        gender: profileForm.gender,
+      })
+
+      if (result) {
+        showToast('個人資料已更新')
+      }
+    } catch (error) {
+      showToast(error?.message || '個人資料更新失敗')
+    }
+  }
+
   const handleLogout      = () => { logout(); navigate('/') }
 
   const handleChangePassword = async () => {
-    if (!passwordForm.old || !passwordForm.new || !passwordForm.confirm) { setPasswordError('所有欄位都是必填的'); return }
-    if (passwordForm.new !== passwordForm.confirm) { setPasswordError('新密碼與確認密碼不一致'); return }
-    if (passwordForm.new.length < 8) { setPasswordError('新密碼至少 8 個字元'); return }
-    const result = await changePassword(passwordForm.old, passwordForm.new)
-    if (result.success) { setPasswordForm({ old: '', new: '', confirm: '' }); setPasswordError(''); showToast('密碼已更新 ✓') }
-    else setPasswordError(result.message)
+    if (!passwordForm.old || !passwordForm.new || !passwordForm.confirm) {
+      setPasswordError('請完整填寫目前密碼與新密碼')
+      return
+    }
+
+    if (passwordForm.new !== passwordForm.confirm) {
+      setPasswordError('兩次密碼不一致')
+      return
+    }
+
+    if (passwordForm.new.length < 8) {
+      setPasswordError('密碼至少需要 8 個字元')
+      return
+    }
+
+    try {
+      const result = await changePassword(passwordForm.old, passwordForm.new)
+
+      if (result.success) {
+        setPasswordForm({ old: '', new: '', confirm: '' })
+        setPasswordError('')
+        showToast('密碼已更新')
+      } else {
+        setPasswordError(result.message)
+      }
+    } catch (error) {
+      setPasswordError(error?.message || '密碼更新失敗')
+    }
   }
 
-  // ── 地址操作 ──
   const openAddAddressModal  = () => { setAddressForm(EMPTY_ADDRESS_FORM); setEditingAddressId(null); setAddressError(''); setShowAddressModal(true) }
   const openEditAddressModal = (addr) => { setAddressForm({ ...EMPTY_ADDRESS_FORM, ...addr }); setEditingAddressId(addr.id); setAddressError(''); setShowAddressModal(true) }
   const closeAddressModal    = () => { setShowAddressModal(false); setAddressError('') }
@@ -664,42 +1005,98 @@ const Account = () => {
   const validateAddressForm = () => {
     if (addressForm.type === '711') {
       if (!addressForm.storeName.trim()) return '請選擇超商門市'
-      if (!addressForm.name.trim())      return '請輸入收件人姓名'
-      if (!addressForm.phone.trim())     return '請輸入手機號碼'
+      if (!addressForm.name.trim()) return '請填寫收件人姓名'
+      if (!addressForm.phone.trim()) return '請填寫聯絡電話'
     } else {
-      if (!addressForm.name.trim())      return '請輸入收件人姓名'
-      if (!addressForm.phone.trim())     return '請輸入手機號碼'
-      if (!addressForm.city)             return '請選擇縣市'
-      if (!addressForm.district.trim())  return '請輸入行政區'
-      if (!addressForm.address.trim())   return '請輸入詳細地址'
+      if (!addressForm.name.trim()) return '請填寫收件人姓名'
+      if (!addressForm.phone.trim()) return '請填寫聯絡電話'
+      if (!addressForm.city) return '請選擇縣市'
+      if (!addressForm.district.trim()) return '請填寫行政區'
+      if (!addressForm.address.trim()) return '請填寫詳細地址'
     }
+
     return ''
   }
 
-  const handleSaveAddress = () => {
+  const handleSaveAddress = async () => {
     const err = validateAddressForm()
     if (err) { setAddressError(err); return }
-    if (editingAddressId) {
-      setAddresses(prev => prev.map(a => {
-        if (a.id !== editingAddressId) return addressForm.isDefault ? { ...a, isDefault: false } : a
-        return { ...a, ...addressForm }
-      }))
-      showToast('地址已更新 ✓')
-    } else {
-      const newAddr = { ...addressForm, id: Date.now(), label: addressForm.label || (addressForm.type === '711' ? '超商取貨' : '宅配地址') }
-      setAddresses(prev => {
-        const base = addressForm.isDefault ? prev.map(a => ({ ...a, isDefault: false })) : prev
-        return [...base, newAddr]
-      })
-      showToast('地址已新增 ✓')
+
+    const payload = {
+      first_name: addressForm.name,
+      phone: addressForm.phone,
+      city: addressForm.city,
+      province: addressForm.district,
+      address_1: addressForm.address,
+      shipping_type: addressForm.type === 'home' ? 'home' : 'convenience',
+      store_name: addressForm.storeName,
+      store_id: addressForm.storeId,
+      address_name: addressForm.label || (addressForm.type === '711' ? '超商取貨' : '宅配'),
+      is_default_shipping: addressForm.isDefault,
+      is_default_billing: addressForm.isDefault,
     }
-    closeAddressModal()
+
+    try {
+      if (editingAddressId) {
+        const updatedAddress = await updateAddress(editingAddressId, payload)
+
+        if (updatedAddress) {
+          setAddresses((prev) =>
+            prev.map((address) =>
+              address.id === editingAddressId
+                ? normalizeAddress(updatedAddress)
+                : addressForm.isDefault
+                  ? { ...address, isDefault: false }
+                  : address
+            )
+          )
+        }
+
+        showToast('地址已更新')
+      } else {
+        const newAddress = await createAddress(payload)
+
+        if (newAddress) {
+          setAddresses((prev) => {
+            const nextAddress = normalizeAddress(newAddress)
+            const base = addressForm.isDefault
+              ? prev.map((address) => ({ ...address, isDefault: false }))
+              : prev
+
+            return [...base, nextAddress]
+          })
+        }
+
+        showToast('地址已新增')
+      }
+
+      closeAddressModal()
+    } catch (error) {
+      setAddressError(error?.message || '地址儲存失敗')
+    }
   }
 
-  const handleDeleteAddress      = (id) => { setAddresses(prev => prev.filter(a => a.id !== id)); showToast('地址已刪除') }
-  const handleSetDefaultAddress  = (id) => { setAddresses(prev => prev.map(a => ({ ...a, isDefault: a.id === id }))); showToast('已設為預設地址 ✓') }
+  const handleDeleteAddress = async (id) => {
+    try {
+      await deleteAddress(id)
+      setAddresses((prev) => prev.filter((address) => address.id !== id))
+      showToast('地址已刪除')
+    } catch (error) {
+      showToast(error?.message || '地址刪除失敗')
+    }
+  }
 
-  // ── 信用卡操作 ──
+  const handleSetDefaultAddress = async (id) => {
+    try {
+      await setDefaultAddress(id)
+      const updatedAddresses = await getAddresses()
+      setAddresses((updatedAddresses || []).map(normalizeAddress))
+      showToast('已設為預設地址')
+    } catch (error) {
+      showToast(error?.message || '設定預設地址失敗')
+    }
+  }
+
   const openAddCardModal  = () => { setCardForm(EMPTY_CARD_FORM); setEditingCardId(null); setCardError(''); setShowCardModal(true) }
   const openEditCardModal = (card) => {
     setCardForm({ ...EMPTY_CARD_FORM, holderName: card.holderName, expiryRaw: parseExpiryRaw(card.expiry), last4: card.last4, isDefault: card.isDefault })
@@ -752,28 +1149,73 @@ const Account = () => {
   const closePetModal    = () => { setShowPetModal(false); setPetError('') }
 
   const validatePetForm = () => {
-    if (!petForm.petName.trim()) return '請輸入毛孩暱稱'
-    if (petForm.petWeight && isNaN(Number(petForm.petWeight))) return '體重請輸入數字（例如：3.5）'
+    if (!petForm.petName.trim()) return '請填寫毛孩名稱'
+    if (petForm.petWeight && Number.isNaN(Number(petForm.petWeight))) return '請填寫正確的體重數值'
     return ''
   }
 
-  const handleSavePet = () => {
+  const handleSavePet = async () => {
     const err = validatePetForm()
     if (err) { setPetError(err); return }
-    if (editingPetId) {
-      setPets(prev => prev.map(p => p.id === editingPetId ? { ...p, ...petForm } : p))
-      showToast('毛孩資料已更新 ✓')
-    } else {
-      setPets(prev => [...prev, { ...petForm, id: Date.now() }])
-      showToast('毛孩已新增 ✓')
+
+    const payload = {
+      name: petForm.petName,
+      type: petForm.petType,
+      gender: petForm.petGender,
+      breed: petForm.petBreed,
+      age: petForm.petAge === '' ? undefined : Number(petForm.petAge),
+      weight: petForm.petWeight === '' ? undefined : Number(petForm.petWeight),
+      birthday: petForm.petBirthday || undefined,
+      notes: petForm.notes || undefined,
     }
-    closePetModal()
+
+    try {
+      if (editingPetId) {
+        const updatedPet = await updatePet(editingPetId, payload)
+
+        if (updatedPet) {
+          setPets((prev) =>
+            prev.map((pet) => (pet.id === editingPetId ? normalizePet(updatedPet) : pet))
+          )
+        }
+
+        showToast('毛孩資料已更新')
+      } else {
+        const newPet = await createPet(payload)
+
+        if (newPet) {
+          setPets((prev) => [...prev, normalizePet(newPet)])
+        }
+
+        showToast('毛孩已新增')
+      }
+
+      closePetModal()
+    } catch (error) {
+      setPetError(error?.message || '毛孩資料儲存失敗')
+    }
   }
 
-  const handleDeletePet = (id) => {
-    if (!window.confirm('確定要刪除此毛孩資料？')) return
-    setPets(prev => prev.filter(p => p.id !== id))
-    showToast('毛孩資料已刪除')
+  const handleDeletePet = async (id) => {
+    if (!window.confirm('確定要刪除此毛孩資料嗎？')) return
+
+    try {
+      await deletePet(id)
+      setPets((prev) => prev.filter((pet) => pet.id !== id))
+      showToast('毛孩資料已刪除')
+    } catch (error) {
+      showToast(error?.message || '毛孩資料刪除失敗')
+    }
+  }
+
+  const handleRemoveFavorite = async (id) => {
+    try {
+      await removeFromWishlist(id)
+      setFavorites((prev) => prev.filter((item) => item.id !== id))
+      showToast('已移除收藏商品')
+    } catch (error) {
+      showToast(error?.message || '移除收藏失敗')
+    }
   }
 
   const fadeUp = {
@@ -939,7 +1381,7 @@ const Account = () => {
         <motion.div key="orders" {...fadeUp}>
           <h2 className="account-section-title"><ShoppingBag size={22} className="account-nav-icon" />我的訂單</h2>
           <div className="order-list">
-            {MOCK_ORDERS.map(order => (
+            {orders.map(order => (
               <div className="order-card" key={order.id}>
                 <div className="order-card-header">
                   <div>
@@ -955,7 +1397,7 @@ const Account = () => {
                     {order.items.map((item, i) => <img key={i} src={item.img} alt={item.name} className="order-item-img" />)}
                   </div>
                   <div className="order-info">
-                    <div className="order-total">NT${order.total.toLocaleString()}</div>
+                    <div className="order-total">{formatPrice(order.total)}</div>
                     <div className="order-item-count">{order.items.length} 件商品</div>
                   </div>
                   <div className="order-actions">
@@ -988,14 +1430,14 @@ const Account = () => {
                   onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
                   <div style={{ position: 'relative' }}>
                     <img src={item.img} alt={item.name} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover' }} />
-                    <button onClick={() => setFavorites(f => f.filter(i => i.id !== item.id))}
+                    <button onClick={() => handleRemoveFavorite(item.id)}
                       style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.9)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e74c3c' }}>
                       <Trash2 size={14} />
                     </button>
                   </div>
                   <div style={{ padding: '12px 14px' }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-dark)', marginBottom: 4, lineHeight: 1.3 }}>{item.name}</p>
-                    <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-brand-coffee)' }}>NT${item.price.toLocaleString()}</p>
+                    <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-brand-coffee)' }}>{formatPrice(item.price)}</p>
                   </div>
                 </div>
               ))}
@@ -1169,9 +1611,9 @@ const Account = () => {
         <div className="account-sidebar">
           <div className="account-profile-card">
             <div className="account-avatar">
-              {user?.avatar ? <img src={user.avatar} alt={user.name} /> : getInitials(user?.name)}
+              {user?.avatar ? <img src={user.avatar} alt={fullName || user?.name} /> : getInitials(fullName || user?.name)}
             </div>
-            <div className="account-user-name">{user?.name}</div>
+            <div className="account-user-name">{fullName || user?.name}</div>
             <div className="account-user-email">{user?.email}</div>
             <div className="account-tier-badge" style={{ color: tier.color, backgroundColor: tier.bg }}>⭐ {tier.label}</div>
             <div className="account-points-row">

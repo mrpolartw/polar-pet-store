@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { AlertCircle, Mail, ArrowLeft } from 'lucide-react'
+import { sdk } from '../../lib/medusa'
 import LogoImg from '../../png/LOGO.png'
 import './Auth.css'
 
@@ -15,9 +17,18 @@ const ForgotPassword = () => {
     if (!email.trim()) { setError('請填寫電子郵件'); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('電子郵件格式不正確'); return }
     setIsLoading(true)
-    await new Promise(r => setTimeout(r, 1000)) // Mock API
-    setIsLoading(false)
-    setIsSent(true)
+    setError('')
+
+    try {
+      await sdk.auth.resetPassword('customer', 'emailpass', {
+        identifier: email,
+      })
+      setIsSent(true)
+    } catch {
+      setError('發送失敗，請確認電子郵件是否正確')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

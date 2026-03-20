@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle, Package, Star, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
 
@@ -12,7 +13,6 @@ import './Auth.css'
 
 const Login = () => {
   const navigate = useNavigate()
-  const location = useLocation()
   const { login, isLoading, authError, setAuthError } = useAuth()
 
   const [email, setEmail] = useState('')
@@ -20,8 +20,6 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [errors, setErrors] = useState({})
-
-  const from = location.state?.from || '/account'
 
   const validate = () => {
     const e = {}
@@ -35,10 +33,11 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setAuthError('')
+    setErrors({})
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
     const result = await login(email, password)
-    if (result.success) navigate(from, { replace: true })
+    if (result.success) navigate('/account')
   }
 
   const fadeUp = {

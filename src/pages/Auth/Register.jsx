@@ -116,17 +116,22 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setAuthError('')
     const errs = validateStep2()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
+    const [first_name = '', ...lastNameParts] = form.name.trim().split(/\s+/)
+    const last_name = lastNameParts.join(' ')
     const result = await register({
-      name: form.name,
       email: form.email,
+      password: form.password,
+      first_name,
+      last_name,
       phone: form.phone,
       gender: form.gender,
       birthday: form.birthday,
       pets,
     })
-    if (result.success) setStep(3)
+    if (result.success) navigate('/account')
   }
 
   const slideVariants = {

@@ -5,4 +5,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: '/polar-pet-store/', // 設定 GitHub Pages 的 Repository 名稱
   plugins: [react()],
+  server: {
+    port: 5173,
+    strictPort: true,   // ← 加這行，永遠鎖定 5173
+  },
 })

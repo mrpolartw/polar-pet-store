@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Search, Package, Truck, CheckCircle2, Clock, Phone, Hash, ShoppingBag } from 'lucide-react';
+import { getCustomerOrders } from '../../api/orders';
+import { useAuth } from '../../context/useAuth';
+import { sdk } from '../../lib/medusa';
 import './OrderQuery.css';
 
 // ── Mock 訂單資料（替換為真實 API 呼叫）──
@@ -124,13 +127,78 @@ const PAYMENT_LABELS = {
     transfer: 'ATM 轉帳',
 };
 
-const formatPrice = (p) => `NT$${Number(p).toLocaleString()}`;
+const formatPrice = (amount) =>
+    "NT$" + Math.round(Number(amount) || 0).toLocaleString("zh-TW");
 const formatDate  = (s) => {
     const d = new Date(s);
     return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;
 };
 
 // 姓名遮罩：王小明 → 王*明 ／ 陳美 → 陳*
+const getStatusClass = (status) => {
+    const map = {
+        pending: 'processing',
+        processing: 'processing',
+        shipped: 'shipped',
+        delivered: 'delivered',
+        completed: 'delivered',
+        canceled: 'processing',
+        cancelled: 'processing',
+    };
+
+    return map[status] || 'processing';
+};
+
+const buildTimeline = (order) => {
+    const createdAt = order?.created_at
+        ? new Date(order.created_at).toLocaleString('zh-TW')
+        : '';
+    const updatedAt = order?.updated_at
+        ? new Date(order.updated_at).toLocaleString('zh-TW')
+        : '';
+    const statusClass = getStatusClass(order?.status);
+
+    return [
+        { label: '訂單建立', time: createdAt, done: true },
+        { label: '處理中', time: updatedAt, done: true },
+        { label: '配送中', time: statusClass === 'shipped' || statusClass === 'delivered' ? updatedAt : '', done: statusClass === 'shipped' || statusClass === 'delivered' },
+        { label: '已送達', time: statusClass === 'delivered' ? updatedAt : '', done: statusClass === 'delivered' },
+    ];
+};
+
+const normalizeOrder = (order) => {
+    const paymentProviderId =
+        order?.payment_collections?.[0]?.payment_sessions?.[0]?.provider_id || '';
+    const normalizedStatus = getStatusClass(order?.status);
+
+    return {
+        ...order,
+        id: `#${order?.display_id || order?.id || ''}`,
+        date: order?.created_at || '',
+        status: normalizedStatus === 'shipped' ? 'shipped' : normalizedStatus,
+        phone: order?.shipping_address?.phone || '',
+        recipient: {
+            name: order?.shipping_address?.first_name || '',
+        },
+        shippingMethod: order?.shipping_methods?.[0]?.name?.toLowerCase().includes('store') ? 'store' : 'home',
+        paymentMethod: paymentProviderId.includes('line') ? 'linepay' : paymentProviderId.includes('apple') ? 'applepay' : paymentProviderId.includes('transfer') ? 'transfer' : 'credit',
+        items: (order?.items || []).map((item) => ({
+            id: item?.id,
+            name: item?.title || item?.product_title || '',
+            specs: item?.variant_title || '',
+            quantity: Number(item?.quantity || 0),
+            price: Number(item?.unit_price || 0) / 100,
+            image: item?.thumbnail || '/placeholder.jpg',
+        })),
+        subtotal: Number(order?.subtotal || 0) / 100,
+        shippingFee: Number(order?.shipping_total || 0) / 100,
+        discount: Number(order?.discount_total || 0) / 100,
+        promoCode: order?.promotions?.[0]?.code || '',
+        total: Number(order?.total || 0) / 100,
+        timeline: buildTimeline(order),
+    };
+};
+
 const maskName = (name) => {
     if (!name) return '';
     if (name.length === 1) return name;
@@ -140,7 +208,7 @@ const maskName = (name) => {
 
 // ── 單筆訂單結果元件 ──
 function OrderResult({ order, searchMode }) {
-    const currentStatus = STATUS_MAP[order.status];
+    const currentStatus = STATUS_MAP[getStatusClass(order.status)] || STATUS_MAP.processing;
 
     return (
         <div className="oq-order-block">
@@ -289,18 +357,89 @@ function OrderResult({ order, searchMode }) {
 
 // ── 主頁面元件 ──
 export default function OrderQuery() {
+    const { isLoggedIn } = useAuth();
+    const [orders, setOrders] = useState([]);
     const [orderId,    setOrderId]    = useState('');
     const [phone,      setPhone]      = useState('');
     const [isLoading,  setIsLoading]  = useState(false);
+    const [queryEmail, setQueryEmail] = useState('');
+    const [queryResult, setQueryResult] = useState(null);
     const [searchMode, setSearchMode] = useState(null); // 'orderId' | 'phone'
     const [orderData,  setOrderData]  = useState(null); // 單筆結果
     const [orderList,  setOrderList]  = useState([]);   // 多筆結果（電話查詢）
     const [error,      setError]      = useState('');
     const [searched,   setSearched]   = useState(false);
 
+    useEffect(() => {
+        if (!isLoggedIn) {
+            setOrders([]);
+            return;
+        }
+
+        const fetchOrders = async () => {
+            setIsLoading(true);
+
+            try {
+                void sdk;
+                const { orders: fetchedOrders } = await getCustomerOrders({ limit: 20 });
+                const normalizedOrders = fetchedOrders.map(normalizeOrder);
+                setOrders(normalizedOrders);
+                setOrderList(normalizedOrders);
+                setOrderData(null);
+                setQueryResult(normalizedOrders);
+                setSearchMode('phone');
+            } catch {
+                setError('訂單載入失敗，請稍後再試');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchOrders();
+    }, [isLoggedIn]);
+
     const handleSearch = (e) => {
         e.preventDefault();
         setError('');
+
+        const trimmedId = orderId.trim().toUpperCase();
+        const trimmedPhone = phone.trim();
+
+        if (!isLoggedIn) {
+            setError('請先登入會員後查詢訂單');
+            return;
+        }
+
+        if (!trimmedId && !trimmedPhone) {
+            setError('請輸入訂單編號或手機號碼');
+            return;
+        }
+
+        if (trimmedPhone && !/^09\d{8}$/.test(trimmedPhone)) {
+            setError('手機號碼格式不正確，請輸入 09 開頭 10 碼');
+            return;
+        }
+
+        const mode = trimmedId ? 'orderId' : 'phone';
+        const matchedOrders = orders.filter((order) =>
+            mode === 'orderId'
+                ? String(order.id).replace('#', '') === trimmedId.replace('#', '')
+                : order.phone === trimmedPhone
+        );
+
+        setSearchMode(mode);
+        setSearched(true);
+        setOrderData(mode === 'orderId' ? matchedOrders[0] || null : null);
+        setOrderList(mode === 'phone' ? matchedOrders : []);
+        setQueryEmail(trimmedPhone);
+        setQueryResult(matchedOrders);
+
+        if (matchedOrders.length === 0) {
+            setError(mode === 'orderId' ? '找不到此訂單資料' : '查無符合的訂單資料');
+        }
+
+        return;
+        /*
 
         const trimmedId    = orderId.trim().toUpperCase();
         const trimmedPhone = phone.trim();
@@ -343,6 +482,7 @@ export default function OrderQuery() {
             }
             setIsLoading(false);
         }, 900);
+        */
     };
 
     const hasResults = orderData !== null || orderList.length > 0;

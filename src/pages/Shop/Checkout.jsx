@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Truck, Store, CreditCard, Smartphone, CheckCircle2, Ticket, Receipt, Building2, HeartHandshake, ShieldCheck } from 'lucide-react';
+import { useCart } from '../../context/useCart';
+import { useAuth } from '../../context/useAuth';
+import { getAddresses, createAddress } from '../../api/customer';
+import { addShippingMethod, completeCart, updateCartAddress } from '../../api/cart';
+import { sdk } from '../../lib/medusa';
+
+const formatPrice = (amount) =>
+    "NT$" + Math.round(Number(amount) || 0).toLocaleString("zh-TW");
 
 const Checkout = () => {
+    /*
     // --- 核心狀態管理 ---
     const [shippingMethod, setShippingMethod] = useState('store'); // 'store' 或 'home'
     const [paymentMethod, setPaymentMethod] = useState('credit'); // 'credit', 'linepay', 'applepay', 'transfer'
@@ -40,6 +50,418 @@ const Checkout = () => {
         // 這裡未來將串接後端 API 送出訂單
         console.log('送出訂單，準備進行 PayUni API 授權扣款...');
     };
+    */
+
+    const { cart, clearCart, applyPromoCode } = useCart();
+    const { user, isLoggedIn, isLoading: isAuthLoading } = useAuth();
+    const navigate = useNavigate();
+    const [checkoutCart, setCheckoutCart] = useState(cart);
+    const [addresses, setAddresses] = useState([]);
+    const [selectedAddressId, setSelectedAddressId] = useState(null);
+    const [shippingOptions, setShippingOptions] = useState([]);
+    const [selectedShippingOptionId, setSelectedShippingOptionId] = useState(null);
+    const [step, setStep] = useState(1);
+    const [shippingMethod, setShippingMethod] = useState('home');
+    const [paymentMethod, setPaymentMethod] = useState('credit');
+    const [sameAsBuyer, setSameAsBuyer] = useState(true);
+    const [invoiceType, setInvoiceType] = useState('member');
+    const [invoiceMobile, setInvoiceMobile] = useState('');
+    const [invoiceTaxId, setInvoiceTaxId] = useState('');
+    const [invoiceCompany, setInvoiceCompany] = useState('');
+    const [invoiceDonateCode, setInvoiceDonateCode] = useState('');
+    const [promoCode, setPromoCode] = useState('');
+    const [isPromoApplied, setIsPromoApplied] = useState(false);
+    const [formData, setFormData] = useState({
+        first_name: user?.first_name || '',
+        last_name: user?.last_name || '',
+        phone: user?.phone || '',
+        email: user?.email || '',
+        shipping_type: 'home',
+        city: '',
+        province: '',
+        address_1: '',
+        address_2: '',
+        store_id: '',
+        store_name: '',
+        recipient_name: '',
+        recipient_phone: '',
+        delivery_time: 'any',
+        notes: '',
+    });
+    const [checkoutError, setCheckoutError] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const activeCart = checkoutCart || cart;
+    const subtotal = (activeCart?.subtotal || 0) / 100;
+    const shippingFee = (activeCart?.shipping_total || 0) / 100;
+    const discount = (activeCart?.discount_total || 0) / 100;
+    const total = (activeCart?.total || 0) / 100 || subtotal;
+    const previewItems = activeCart?.items || [];
+    const previewItemOne = previewItems[0];
+    const previewItemTwo = previewItems[1];
+    const cityOptions = useMemo(
+        () => Array.from(new Set(['台北市', '新北市', ...addresses.map((address) => address.city).filter(Boolean), formData.city].filter(Boolean))),
+        [addresses, formData.city]
+    );
+    const provinceOptions = useMemo(
+        () => Array.from(new Set(['大安區', ...addresses.map((address) => address.province).filter(Boolean), formData.province].filter(Boolean))),
+        [addresses, formData.province]
+    );
+
+    const showError = (message) => {
+        const nextMessage = message || '結帳失敗，請確認資料後再試';
+        setCheckoutError(nextMessage);
+
+        if (typeof window !== 'undefined') {
+            window.alert(nextMessage);
+        }
+    };
+
+    const syncFormFromAddress = (address) => {
+        if (!address) return;
+
+        setFormData((previous) => ({
+            ...previous,
+            city: address.city || previous.city,
+            province: address.province || previous.province,
+            address_1: address.address_1 || previous.address_1,
+            address_2: address.address_2 || '',
+            store_id: address.metadata?.store_id || '',
+            store_name: address.metadata?.store_name || '',
+            recipient_name: address.first_name || previous.recipient_name,
+            recipient_phone: address.phone || previous.recipient_phone,
+        }));
+
+        if (address.metadata?.shipping_type === 'convenience') {
+            setShippingMethod('store');
+        }
+    };
+
+    const buildAddressPayloadFromForm = () => ({
+        first_name: sameAsBuyer
+            ? formData.first_name
+            : (formData.recipient_name || formData.first_name),
+        phone: sameAsBuyer
+            ? formData.phone
+            : (formData.recipient_phone || formData.phone),
+        city: formData.city || '台北市',
+        province: formData.province || '大安區',
+        address_1: shippingMethod === 'store'
+            ? (formData.store_name || formData.address_1 || '超商門市待確認')
+            : formData.address_1,
+        address_2: formData.address_2 || '',
+        shipping_type: shippingMethod === 'store' ? 'convenience' : 'home',
+        store_name: formData.store_name || undefined,
+        store_id: formData.store_id || undefined,
+    });
+
+    const buildShippingAddress = (address) => ({
+        first_name: sameAsBuyer
+            ? formData.first_name
+            : (formData.recipient_name || address?.first_name || formData.first_name),
+        last_name: formData.last_name || '',
+        phone: sameAsBuyer
+            ? formData.phone
+            : (formData.recipient_phone || address?.phone || formData.phone),
+        address_1: address?.address_1 || (
+            shippingMethod === 'store'
+                ? (formData.store_name || formData.address_1 || '超商門市待確認')
+                : formData.address_1
+        ),
+        address_2: address?.address_2 || formData.address_2 || '',
+        city: address?.city || formData.city || '台北市',
+        province: address?.province || formData.province || '大安區',
+        country_code: address?.country_code || 'tw',
+        postal_code: address?.postal_code || '',
+    });
+
+    const getSelectedAddress = () =>
+        addresses.find((address) => address.id === selectedAddressId) || null;
+
+    const resolveShippingOptionId = (options, method) => {
+        if (!Array.isArray(options) || options.length === 0) {
+            return null;
+        }
+
+        const preferredKeywords = method === 'store'
+            ? ['store', 'pickup', 'pick up', '超商', '門市']
+            : ['delivery', 'home', '宅配'];
+
+        const matchedOption = options.find((option) => {
+            const searchableText = [
+                option.name,
+                option.service_zone?.name,
+                option.data?.name,
+            ]
+                .filter(Boolean)
+                .join(' ')
+                .toLowerCase();
+
+            return preferredKeywords.some((keyword) =>
+                searchableText.includes(String(keyword).toLowerCase())
+            );
+        });
+
+        return matchedOption?.id || options[0]?.id || null;
+    };
+
+    const handleFormChange = (field) => (event) => {
+        setFormData((previous) => ({
+            ...previous,
+            [field]: event.target.value,
+        }));
+    };
+
+    const handleBuyerNameChange = (event) => {
+        const value = event.target.value;
+        const [firstName = '', ...restNames] = value.trim().split(/\s+/);
+
+        setFormData((previous) => ({
+            ...previous,
+            first_name: firstName || value,
+            last_name: restNames.join(' '),
+        }));
+    };
+
+    const handleCitySelection = (event) => {
+        const value = event.target.value;
+
+        if (value.startsWith('address:')) {
+            const addressId = value.replace('address:', '');
+            const selectedAddress = addresses.find((address) => address.id === addressId);
+
+            setSelectedAddressId(addressId);
+            syncFormFromAddress(selectedAddress);
+            return;
+        }
+
+        setSelectedAddressId(null);
+        setFormData((previous) => ({
+            ...previous,
+            city: value,
+        }));
+    };
+
+    const handleSetShippingAddress = async (address) => {
+        if (!activeCart?.id) {
+            throw new Error('購物車資料異常，請重新整理頁面');
+        }
+
+        const shippingAddress = buildShippingAddress(address);
+
+        await sdk.store.cart.update(activeCart.id, {
+            email: formData.email,
+        });
+
+        const updatedCart = await updateCartAddress(shippingAddress);
+
+        setCheckoutCart(updatedCart);
+        setStep(2);
+
+        return updatedCart;
+    };
+
+    const handleSelectShipping = async (optionId) => {
+        if (!optionId) {
+            throw new Error('目前沒有可用的配送方式');
+        }
+
+        const updatedCart = await addShippingMethod(optionId);
+
+        setCheckoutCart(updatedCart);
+        setSelectedShippingOptionId(optionId);
+        setStep(3);
+
+        return updatedCart;
+    };
+
+    const handlePayment = async (workingCart) => {
+        const cartForPayment = workingCart || activeCart;
+
+        if (!cartForPayment?.id) {
+            throw new Error('購物車資料異常，請重新整理頁面');
+        }
+
+        await sdk.store.payment.initiatePaymentSession(cartForPayment, {
+            provider_id: 'pp_system_default',
+        });
+
+        const result = await completeCart();
+
+        if (result?.type !== 'order' || !result.order) {
+            throw new Error(result?.error?.message || '訂單建立失敗，請稍後再試');
+        }
+
+        setStep(4);
+        clearCart();
+        navigate(`/order-confirmation/${result.order.id}`);
+
+        return result.order;
+    };
+
+    const handleStoreSelection = async () => {
+        try {
+            const address = getSelectedAddress() || addresses.find((item) => item.is_default_shipping) || addresses[0] || null;
+            const cartWithAddress = await handleSetShippingAddress(address);
+            const optionsResponse = await sdk.store.fulfillment.listCartOptions({
+                cart_id: cartWithAddress.id,
+            });
+            const nextOptions = optionsResponse?.shipping_options || [];
+
+            setShippingOptions(nextOptions);
+
+            const optionId = resolveShippingOptionId(nextOptions, 'store');
+
+            if (optionId) {
+                await handleSelectShipping(optionId);
+            }
+        } catch (error) {
+            showError(error?.message);
+        }
+    };
+
+    const handleApplyPromo = async (e) => {
+        e.preventDefault();
+
+        if (!promoCode.trim()) return;
+
+        const result = await applyPromoCode(promoCode.trim());
+
+        setIsPromoApplied(result.success);
+        setCheckoutError(result.success ? '' : (result.message || '優惠碼套用失敗，請稍後再試'));
+    };
+
+    const handleSubmitOrder = async (e) => {
+        e?.preventDefault();
+
+        if (!activeCart?.id) {
+            showError('購物車資料異常，請重新整理頁面');
+            return;
+        }
+
+        setIsSubmitting(true);
+        setCheckoutError('');
+
+        try {
+            let address = getSelectedAddress();
+
+            if (!address && shippingMethod === 'home' && !formData.address_1) {
+                throw new Error('請填寫完整配送地址');
+            }
+
+            if (!address && formData.address_1) {
+                const createdAddress = await createAddress(buildAddressPayloadFromForm());
+
+                if (createdAddress) {
+                    setAddresses((previous) => [...previous, createdAddress]);
+                    setSelectedAddressId(createdAddress.id);
+                    address = createdAddress;
+                }
+            }
+
+            const cartWithAddress = await handleSetShippingAddress(address);
+            const optionsResponse = await sdk.store.fulfillment.listCartOptions({
+                cart_id: cartWithAddress.id,
+            });
+            const nextOptions = optionsResponse?.shipping_options || [];
+
+            setShippingOptions(nextOptions);
+
+            const optionId = selectedShippingOptionId || resolveShippingOptionId(nextOptions, shippingMethod);
+            const cartWithShipping = await handleSelectShipping(optionId);
+
+            await handlePayment(cartWithShipping);
+        } catch (error) {
+            showError(error?.message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    useEffect(() => {
+        setCheckoutCart(cart);
+    }, [cart]);
+
+    useEffect(() => {
+        if (!isAuthLoading && !isLoggedIn) {
+            navigate('/login?redirect=/checkout');
+        }
+    }, [isAuthLoading, isLoggedIn, navigate]);
+
+    useEffect(() => {
+        setFormData((previous) => ({
+            ...previous,
+            first_name: user?.first_name || '',
+            last_name: user?.last_name || '',
+            phone: user?.phone || '',
+            email: user?.email || '',
+        }));
+    }, [user]);
+
+    useEffect(() => {
+        setFormData((previous) => ({
+            ...previous,
+            shipping_type: shippingMethod === 'store' ? 'convenience' : 'home',
+        }));
+    }, [shippingMethod]);
+
+    useEffect(() => {
+        if (!isLoggedIn) return;
+
+        let mounted = true;
+
+        const loadAddresses = async () => {
+            try {
+                const data = await getAddresses();
+
+                if (!mounted) return;
+
+                setAddresses(data || []);
+
+                const defaultAddress = data?.find((address) => address.is_default_shipping) || data?.[0];
+
+                if (defaultAddress) {
+                    setSelectedAddressId(defaultAddress.id);
+                    syncFormFromAddress(defaultAddress);
+                }
+            } catch (error) {
+                if (mounted) {
+                    setAddresses([]);
+                    setCheckoutError(error?.message || '地址載入失敗，請稍後再試');
+                }
+            }
+        };
+
+        void loadAddresses();
+
+        return () => {
+            mounted = false;
+        };
+    }, [isLoggedIn]);
+
+    useEffect(() => {
+        if (!activeCart?.id) {
+            setShippingOptions([]);
+            return;
+        }
+
+        let mounted = true;
+
+        sdk.store.fulfillment.listCartOptions({ cart_id: activeCart.id })
+            .then(({ shipping_options }) => {
+                if (mounted) {
+                    setShippingOptions(shipping_options || []);
+                }
+            })
+            .catch(() => {
+                if (mounted) {
+                    setShippingOptions([]);
+                }
+            });
+
+        return () => {
+            mounted = false;
+        };
+    }, [activeCart?.id, shippingMethod, step]);
 
     return (
         <div className="checkout-page">
@@ -57,7 +479,10 @@ const Checkout = () => {
                         <div className="option-grid">
                             <div 
                                 className={`option-card ${shippingMethod === 'store' ? 'active' : ''}`}
-                                onClick={() => setShippingMethod('store')}
+                                onClick={() => {
+                                    setShippingMethod('store');
+                                    setSelectedShippingOptionId(null);
+                                }}
                             >
                                 <Store size={32} strokeWidth={1.5} className="option-icon" />
                                 <h3 className="option-title">超商取貨</h3>
@@ -66,7 +491,10 @@ const Checkout = () => {
                             </div>
                             <div 
                                 className={`option-card ${shippingMethod === 'home' ? 'active' : ''}`}
-                                onClick={() => setShippingMethod('home')}
+                                onClick={() => {
+                                    setShippingMethod('home');
+                                    setSelectedShippingOptionId(null);
+                                }}
                             >
                                 <Truck size={32} strokeWidth={1.5} className="option-icon" />
                                 <h3 className="option-title">黑貓宅急便</h3>
@@ -83,11 +511,11 @@ const Checkout = () => {
                         <div className="form-group">
                             <h3 className="form-subtitle">購買人資訊</h3>
                             <div className="form-row">
-                                <input type="text" className="apple-input" placeholder="購買人真實姓名" />
+                                <input type="text" className="apple-input" placeholder="購買人真實姓名" value={`${formData.first_name}${formData.last_name ? ` ${formData.last_name}` : ''}`.trim()} onChange={handleBuyerNameChange} />
                             </div>
                             <div className="form-row half-half">
-                                <input type="email" className="apple-input" placeholder="電子郵件地址" />
-                                <input type="tel" className="apple-input" placeholder="手機號碼 (例：0912345678)" maxLength={10} />
+                                <input type="email" className="apple-input" placeholder="電子郵件地址" value={formData.email} onChange={handleFormChange('email')} />
+                                <input type="tel" className="apple-input" placeholder="手機號碼 (例：0912345678)" maxLength={10} value={formData.phone} onChange={handleFormChange('phone')} />
                             </div>
                         </div>
 
@@ -105,8 +533,8 @@ const Checkout = () => {
                             <div className="form-group slide-down">
                                 <h3 className="form-subtitle">收件人資訊</h3>
                                 <div className="form-row half-half">
-                                    <input type="text" className="apple-input" placeholder="收件人真實姓名 (取貨核對用)" />
-                                    <input type="tel" className="apple-input" placeholder="收件人手機號碼" maxLength={10} />
+                                    <input type="text" className="apple-input" placeholder="收件人真實姓名 (取貨核對用)" value={formData.recipient_name} onChange={handleFormChange('recipient_name')} />
+                                    <input type="tel" className="apple-input" placeholder="收件人手機號碼" maxLength={10} value={formData.recipient_phone} onChange={handleFormChange('recipient_phone')} />
                                 </div>
                             </div>
                         )}
@@ -115,27 +543,35 @@ const Checkout = () => {
                             <h3 className="form-subtitle">配送細節</h3>
                             {shippingMethod === 'store' ? (
                                 <div className="store-select-box">
-                                    <p>請選擇您要取件的 7-ELEVEN 門市，貨件送達將以簡訊通知。</p>
-                                    <button className="btn-blue btn-select-store">開啟電子地圖選擇門市</button>
+                                    <p>{selectedAddressId ? '已套用預設地址與超商配送方式。' : '請先建立地址或套用預設地址，再選擇超商配送。'}</p>
+                                    <button className="btn-blue btn-select-store" onClick={handleStoreSelection} type="button">開啟電子地圖選擇門市</button>
                                 </div>
                             ) : (
                                 <div className="slide-down">
                                     <div className="form-row half-half">
-                                        <select className="apple-input select-input">
+                                        <select className="apple-input select-input" value={selectedAddressId ? `address:${selectedAddressId}` : formData.city} onChange={handleCitySelection}>
                                             <option value="">選擇縣市</option>
-                                            <option value="taipei">台北市</option>
-                                            <option value="newtaipei">新北市</option>
+                                            {addresses.map((address) => (
+                                                <option key={address.id} value={`address:${address.id}`}>
+                                                    {address.city} {address.address_1}
+                                                </option>
+                                            ))}
+                                            {cityOptions.map((city) => (
+                                                <option key={city} value={city}>{city}</option>
+                                            ))}
                                         </select>
-                                        <select className="apple-input select-input">
+                                        <select className="apple-input select-input" value={formData.province} onChange={handleFormChange('province')}>
                                             <option value="">選擇鄉鎮市區</option>
-                                            <option value="daan">大安區</option>
+                                            {provinceOptions.map((province) => (
+                                                <option key={province} value={province}>{province}</option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div className="form-row">
-                                        <input type="text" className="apple-input" placeholder="完整街道與門牌號碼" />
+                                        <input type="text" className="apple-input" placeholder="完整街道與門牌號碼" value={formData.address_1} onChange={handleFormChange('address_1')} />
                                     </div>
                                     <div className="form-row">
-                                        <select className="apple-input select-input">
+                                        <select className="apple-input select-input" value={formData.delivery_time} onChange={handleFormChange('delivery_time')}>
                                             <option value="any">配送時段：不限</option>
                                             <option value="morning">配送時段：13:00 前</option>
                                             <option value="afternoon">配送時段：14:00 - 18:00</option>
@@ -286,7 +722,7 @@ const Checkout = () => {
 
                         <div className="form-group" style={{ marginTop: '24px' }}>
                             <h3 className="form-subtitle">訂單備註 (選填)</h3>
-                            <textarea className="apple-input textarea-input" placeholder="有什麼特別需求想告訴我們的嗎？例如：請大樓管理員代收、希望的出貨包裝細節等。"></textarea>
+                            <textarea className="apple-input textarea-input" placeholder="有什麼特別需求想告訴我們的嗎？例如：請大樓管理員代收、希望的出貨包裝細節等。" value={formData.notes} onChange={handleFormChange('notes')}></textarea>
                         </div>
                     </section>
 
@@ -299,20 +735,20 @@ const Checkout = () => {
                         
                         <div className="summary-items-preview">
                             <div className="preview-item">
-                                <img src="https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=150" alt="商品" />
+                                <img src={previewItemOne?.thumbnail || '/placeholder.jpg'} alt={previewItemOne?.title || '商品'} />
                                 <div className="preview-info">
-                                    <h4>Polar 鮮糧 - 經典放山雞</h4>
-                                    <p>數量: 2</p>
+                                    <h4>{previewItemOne?.title || '尚未加入商品'}</h4>
+                                    <p>數量: {previewItemOne?.quantity || 0}</p>
                                 </div>
-                                <span>NT$2,560</span>
+                                <span>{formatPrice((previewItemOne?.subtotal || 0) / 100)}</span>
                             </div>
                             <div className="preview-item">
-                                <img src="https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&q=80&w=150" alt="商品" />
+                                <img src={previewItemTwo?.thumbnail || '/placeholder.jpg'} alt={previewItemTwo?.title || '商品'} />
                                 <div className="preview-info">
-                                    <h4>特級超級視力寶</h4>
-                                    <p>數量: 1</p>
+                                    <h4>{previewItemTwo?.title || '尚未加入商品'}</h4>
+                                    <p>數量: {previewItemTwo?.quantity || 0}</p>
                                 </div>
-                                <span>NT$850</span>
+                                <span>{formatPrice((previewItemTwo?.subtotal || 0) / 100)}</span>
                             </div>
                         </div>
 
@@ -335,7 +771,7 @@ const Checkout = () => {
                         <div className="summary-calc">
                             <div className="calc-row">
                                 <span>小計</span>
-                                <span>NT${subtotal.toLocaleString()}</span>
+                                <span>{formatPrice(subtotal)}</span>
                             </div>
                             <div className="calc-row">
                                 <span>運費 ({shippingMethod === 'store' ? '超商' : '宅配'})</span>
@@ -344,12 +780,12 @@ const Checkout = () => {
                             {isPromoApplied && (
                                 <div className="calc-row discount">
                                     <span>優惠折扣 (POLAR2026)</span>
-                                    <span>-NT$200</span>
+                                    <span>- {formatPrice(discount)}</span>
                                 </div>
                             )}
                             <div className="calc-row total">
                                 <span>總計</span>
-                                <span>NT${total.toLocaleString()}</span>
+                                <span>{formatPrice(total)}</span>
                             </div>
                         </div>
 
@@ -358,7 +794,7 @@ const Checkout = () => {
                             <label htmlFor="agree">我已確認訂單無誤，並同意<a href="/">服務條款</a>與<a href="/">退換貨政策</a>。</label>
                         </div>
 
-                        <button className="btn-blue btn-submit-order" onClick={handleSubmitOrder}>
+                        <button className="btn-blue btn-submit-order" onClick={handleSubmitOrder} disabled={isSubmitting}>
                             {paymentMethod === 'credit' ? '確認付款並送出' : '送出訂單'}
                         </button>
                     </div>
