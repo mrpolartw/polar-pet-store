@@ -1,9 +1,10 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
     SlidersHorizontal, X, ShoppingCart, Star, Grid3X3, LayoutList,
     ChevronDown, Search, Check, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { useCart } from '../../context/useCart';
+import { sdk } from '../../lib/medusa';
 import './Products.css'
 
 
@@ -327,6 +328,49 @@ export default function Products() {
     const [search, setSearch]               = useState('');
     const [filterOpen, setFilterOpen]       = useState(false);
 
+    // ── Medusa API State ──
+    const [medusaProducts, setMedusaProducts] = useState([]);
+    const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                // 呼叫我們剛剛部署在 GCP 的 Medusa API
+                const { products } = await sdk.store.product.list({ limit: 100 });
+                if (products && products.length > 0) {
+                    // 將 Medusa 的資料格式 Map 成前台預期的格式
+                    const mapped = products.map(p => {
+                        const variant = p.variants?.[0];
+                        const price = variant?.calculated_price?.calculated_amount || variant?.prices?.[0]?.amount || 0;
+                        const originalPrice = variant?.calculated_price?.original_amount || null;
+                        
+                        return {
+                            id: p.id,
+                            name: p.title,
+                            category: p.categories?.[0]?.handle || 'all',
+                            petType: 'all', // 這裡可以根據 Medusa 的 tags 來分類
+                            price: price,
+                            originalPrice: originalPrice,
+                            specs: variant?.title || p.description?.substring(0, 20) || '',
+                            rating: 5, // Medusa 預設沒有評價系統，這裡預設填寫 5 星
+                            reviewCount: 0,
+                            isBestseller: false,
+                            isNew: true,
+                            isBundle: false,
+                            image: p.thumbnail || IMGS.cat1
+                        };
+                    });
+                    setMedusaProducts(mapped);
+                }
+            } catch (err) {
+                console.error("Failed to fetch products from Medusa Cloud Run:", err);
+            } finally {
+                setIsLoadingProducts(false);
+            }
+        };
+        fetchProducts();
+    }, []);
+
     // ── Handle Add to Cart ──
     const handleAddToCart = useCallback((product) => {
         addToCart({
@@ -343,8 +387,11 @@ export default function Products() {
     // ── Filtered & Sorted Products ──
     const filteredProducts = useMemo(() => {
         const pr = PRICE_RANGES.find((r) => r.key === priceRange);
+        
+        // 如果 API 有抓到商品就用 API 的，否則回退到假資料展示
+        const baseDataset = medusaProducts.length > 0 ? medusaProducts : MOCK_PRODUCTS;
 
-        let list = MOCK_PRODUCTS.filter((p) => {
+        let list = baseDataset.filter((p) => {
             if (category !== 'all' && p.category !== category) return false;
             if (petType !== 'all' && p.petType !== petType) return false;
             if (p.price < pr.min || p.price > pr.max) return false;
@@ -368,7 +415,7 @@ export default function Products() {
             default:           list = [...list].sort((a, b) => (b.isBestseller ? 1 : 0) - (a.isBestseller ? 1 : 0)); break;
         }
         return list;
-    }, [category, petType, priceRange, sortBy, search, productFilter]);
+    }, [category, petType, priceRange, sortBy, search, productFilter, medusaProducts]);
 
     const totalPages    = Math.ceil(filteredProducts.length / PER_PAGE);
     const paginatedList = filteredProducts.slice((page - 1) * PER_PAGE, page * PER_PAGE);

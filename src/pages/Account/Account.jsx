@@ -596,16 +596,14 @@ const Account = () => {
   const [passwordError, setPasswordError] = useState('')
 
   // 地址 state
-  const [addresses,        setAddresses]        = useState(user?.addresses || [
-    { id: 1, type: 'home', label: '住家', name: '王小明', phone: '0912-345-678', city: '台北市', district: '信義區', address: '信義路五段7號', isDefault: true },
-  ])
+  const [addresses,        setAddresses]        = useState(user?.addresses || [])
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [addressForm,      setAddressForm]      = useState(EMPTY_ADDRESS_FORM)
   const [editingAddressId, setEditingAddressId] = useState(null)
   const [addressError,     setAddressError]     = useState('')
 
   // 信用卡 state
-  const [cards,         setCards]         = useState(MOCK_CARDS)
+  const [cards,         setCards]         = useState([])
   const [showCardModal, setShowCardModal] = useState(false)
   const [cardForm,      setCardForm]      = useState(EMPTY_CARD_FORM)
   const [editingCardId, setEditingCardId] = useState(null)
@@ -938,33 +936,11 @@ const Account = () => {
       case 'orders': return (
         <motion.div key="orders" {...fadeUp}>
           <h2 className="account-section-title"><ShoppingBag size={22} className="account-nav-icon" />我的訂單</h2>
-          <div className="order-list">
-            {MOCK_ORDERS.map(order => (
-              <div className="order-card" key={order.id}>
-                <div className="order-card-header">
-                  <div>
-                    <div className="order-id">訂單 {order.id}</div>
-                    <div className="order-date">{order.date}</div>
-                  </div>
-                  <span className={`order-status-badge ${order.status}`}>
-                    <StatusIcon status={order.status} />{order.statusLabel}
-                  </span>
-                </div>
-                <div className="order-card-body">
-                  <div className="order-items-preview">
-                    {order.items.map((item, i) => <img key={i} src={item.img} alt={item.name} className="order-item-img" />)}
-                  </div>
-                  <div className="order-info">
-                    <div className="order-total">NT${order.total.toLocaleString()}</div>
-                    <div className="order-item-count">{order.items.length} 件商品</div>
-                  </div>
-                  <div className="order-actions">
-                    <button className="btn-order-action">查看明細</button>
-                    {order.status === 'delivered' && <button className="btn-order-action primary">再次購買</button>}
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="account-empty-state">
+            <div className="account-empty-icon">📦</div>
+            <h3>尚未有任何訂單</h3>
+            <p>您目前還沒有任何購買記錄，快去選購您毛孩喜歡的商品吧！</p>
+            <Link to="/products" className="btn-blue" style={{ display: 'inline-block', padding: '12px 24px', borderRadius: 980, textDecoration: 'none', fontSize: 15 }}>探索商品</Link>
           </div>
         </motion.div>
       )
