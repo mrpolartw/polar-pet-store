@@ -46,7 +46,9 @@ export const AuthProvider = ({ children }) => {
     phone: c.phone || '',
     avatar: null,
     memberSince: c.created_at?.split('T')[0] || '',
-    points: 0,
+    points: c.metadata?.points || 0,
+    pets: c.metadata?.pets || [],
+    metadata: c.metadata || {},
     addresses: (c.addresses || []).map(a => ({
       id: a.id,
       label: a.metadata?.label || '地址',
@@ -187,6 +189,29 @@ export const AuthProvider = ({ children }) => {
   }
 
   // ──────────────────────────────────────────────
+  // 更新毛孩資料 (使用 Metadata)
+  // ──────────────────────────────────────────────
+  const updatePets = async (newPets) => {
+    setIsLoading(true)
+    try {
+      const payload = {
+        metadata: {
+          ...(user.metadata || {}),
+          pets: newPets
+        }
+      }
+      const { customer } = await sdk.store.customer.update(payload)
+      setUser(mapMedusaCustomer(customer))
+      return { success: true }
+    } catch (err) {
+      console.error('Update pets error:', err)
+      return { success: false, message: '儲存毛孩資料失敗' }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // ──────────────────────────────────────────────
   // 變更密碼（Medusa 需要先驗舊密碼）
   // ──────────────────────────────────────────────
   const changePassword = async (oldPassword, newPassword) => {
@@ -217,6 +242,7 @@ export const AuthProvider = ({ children }) => {
         register,
         logout,
         updateProfile,
+        updatePets,
         changePassword,
         isLoggedIn: !!user,
       }}

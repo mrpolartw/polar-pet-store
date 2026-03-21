@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
 import { getMemberTier } from '../../context/authUtils'
+import { sdk } from '../../lib/medusa'
 import './Account.css'
 
 const motion = Motion
@@ -581,7 +582,7 @@ const PetModal = ({ show, onClose, petForm, setPetForm, editingPetId, onSave, pe
 // 主元件
 // ─────────────────────────────────────────────
 const Account = () => {
-  const { user, isLoading, logout, updateProfile, changePassword, isLoggedIn } = useAuth()
+  const { user, isLoading, logout, updateProfile, updatePets, changePassword, isLoggedIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -615,6 +616,20 @@ const Account = () => {
   const [petForm,      setPetForm]      = useState(EMPTY_PET_FORM)
   const [editingPetId, setEditingPetId] = useState(null)
   const [petError,     setPetError]     = useState('')
+
+  // 📝 訂單 state
+  const [orders, setOrders] = useState([])
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false)
+
+  React.useEffect(() => {
+    if (isLoggedIn) {
+      setIsLoadingOrders(true)
+      sdk.store.order.list({ fields: "*items,*items.variant,*items.variant.product" })
+        .then(({ orders }) => setOrders(orders || []))
+        .catch(err => console.error("Failed to fetch orders:", err))
+        .finally(() => setIsLoadingOrders(false))
+    }
+  }, [isLoggedIn])
 
   if (!isLoggedIn) return <Navigate to="/login" state={{ from: '/account' }} replace />
 
@@ -755,23 +770,36 @@ const Account = () => {
     return ''
   }
 
-  const handleSavePet = () => {
+  const handleSavePet = async () => {
     const err = validatePetForm()
     if (err) { setPetError(err); return }
-    if (editingPetId) {
-      setPets(prev => prev.map(p => p.id === editingPetId ? { ...p, ...petForm } : p))
-      showToast('毛孩資料已更新 ✓')
-    } else {
-      setPets(prev => [...prev, { ...petForm, id: Date.now() }])
-      showToast('毛孩已新增 ✓')
-    }
+    
+    const newPets = editingPetId 
+      ? pets.map(p => p.id === editingPetId ? { ...p, ...petForm } : p)
+      : [...pets, { ...petForm, id: Date.now() }]
+      
+    setPets(newPets)
     closePetModal()
+
+    const res = await updatePets(newPets)
+    if (res.success) {
+      showToast(editingPetId ? '毛孩資料已更新 ✓' : '毛孩已新增 ✓')
+    } else {
+      showToast('⚠️ 儲存失敗')
+    }
   }
 
-  const handleDeletePet = (id) => {
+  const handleDeletePet = async (id) => {
     if (!window.confirm('確定要刪除此毛孩資料？')) return
-    setPets(prev => prev.filter(p => p.id !== id))
-    showToast('毛孩資料已刪除')
+    const newPets = pets.filter(p => p.id !== id)
+    setPets(newPets)
+    
+    const res = await updatePets(newPets)
+    if (res.success) {
+      showToast('毛孩資料已刪除')
+    } else {
+      showToast('⚠️ 刪除失敗')
+    }
   }
 
   const fadeUp = {
@@ -936,12 +964,56 @@ const Account = () => {
       case 'orders': return (
         <motion.div key="orders" {...fadeUp}>
           <h2 className="account-section-title"><ShoppingBag size={22} className="account-nav-icon" />我的訂單</h2>
-          <div className="account-empty-state">
-            <div className="account-empty-icon">📦</div>
-            <h3>尚未有任何訂單</h3>
-            <p>您目前還沒有任何購買記錄，快去選購您毛孩喜歡的商品吧！</p>
-            <Link to="/products" className="btn-blue" style={{ display: 'inline-block', padding: '12px 24px', borderRadius: 980, textDecoration: 'none', fontSize: 15 }}>探索商品</Link>
-          </div>
+          
+          {isLoadingOrders ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>載入訂單中...</div>
+          ) : orders.length === 0 ? (
+            <div className="account-empty-state">
+              <div className="account-empty-icon">📦</div>
+              <h3>尚未有任何訂單</h3>
+              <p>您目前還沒有任何購買記錄，快去選購您毛孩喜歡的商品吧！</p>
+              <Link to="/products" className="btn-blue" style={{ display: 'inline-block', padding: '12px 24px', borderRadius: 980, textDecoration: 'none', fontSize: 15 }}>探索商品</Link>
+            </div>
+          ) : (
+            <div className="account-list">
+              {orders.map(order => (
+                <div key={order.id} className="account-list-item">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                    <div>
+                      <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 4px', color: 'var(--color-text-dark)' }}>訂單編號 #{order.display_id}</h3>
+                      <p style={{ fontSize: 13, color: 'var(--color-gray-dark)', margin: 0 }}>
+                        {new Date(order.created_at).toLocaleDateString('zh-TW')}
+                      </p>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: 13, padding: '4px 10px', borderRadius: 999, fontWeight: 600, 
+                        background: order.payment_status === 'captured' ? '#e2f5ec' : '#fef4dc',
+                        color: order.payment_status === 'captured' ? '#1b5e20' : '#b28900' }}>
+                        付款狀態: {order.payment_status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+                    {order.items?.map((item, idx) => (
+                      <div key={idx} style={{ flexShrink: 0, position: 'relative' }}>
+                        <img 
+                          src={item.thumbnail || item.variant?.product?.thumbnail || 'https://via.placeholder.com/80'} 
+                          alt={item.title} 
+                          style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--color-gray-light)' }} 
+                        />
+                        <span style={{ position: 'absolute', bottom: -6, right: -6, background: 'var(--color-text-dark)', color: 'white', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 10 }}>x{item.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-gray-light)' }}>
+                    <span style={{ fontSize: 14, color: 'var(--color-text-dark)', fontWeight: 600 }}>總計：NT${order.total?.toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </motion.div>
       )
 

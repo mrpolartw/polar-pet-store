@@ -73,9 +73,7 @@ function AppContent() {
     location.pathname === '/forgot-password';
 
   const isHomePage =
-    location.pathname === '/' ||
-    location.pathname === '/polar-pet-store/' ||
-    location.pathname === '/polar-pet-store';
+    location.pathname === '/';
 
   const navbarClass = `navbar-apple ${(!isHomePage || scrolled) ? 'scrolled' : ''}`;
 
@@ -808,7 +806,7 @@ function AppContent() {
 // ==========================================
 function App() {
   return (
-    <Router basename="/polar-pet-store">
+    <Router basename="/">
       <AppContent />
     </Router>
   );

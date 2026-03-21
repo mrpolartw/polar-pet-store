@@ -3,6 +3,6 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/polar-pet-store/', // 設定 GitHub Pages 的 Repository 名稱
+  base: '/', // 改為根目錄，因為部署在 Cloud Run 根路徑
   plugins: [react()],
 })
