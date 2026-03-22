@@ -13,6 +13,7 @@ import LogoImg from './png/LOGO去背景.png';
 // --- Shop Pages ---
 import Cart from './pages/Shop/Cart';
 import Checkout from './pages/Shop/Checkout';
+import ProductDetail from './pages/Shop/ProductDetail';
 // 訂單查詢頁面
 import OrderQuery from './pages/Shop/OrderQuery';
 import ProductRegister from './pages/Shop/ProductRegister';
@@ -741,6 +742,7 @@ function AppContent() {
 
         {/* ── 商品分類 ── */}
         <Route path="/products" element={<Products title="所有商品" subtitle="探索 Polar 完整產品系列" />} />
+        <Route path="/products/:slug" element={<ProductDetail />} />
         <Route path="/main-food" element={<Category title="主食系列" subtitle="滿足獵食天性的極致營養" />} />
         <Route path="/snacks" element={<Category title="原肉手工點心" subtitle="純粹無添加的週末幸福獎勵" />} />
         <Route path="/health" element={<Category title="極致保健" subtitle="保護牠清澈無瑕的雙眼與活力" />} />

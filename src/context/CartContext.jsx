@@ -29,12 +29,14 @@ export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState(INITIAL_ITEMS)
 
   const addToCart = (item) => {
+    const quantityToAdd = Number(item.quantity) > 0 ? Number(item.quantity) : 1
+
     setCartItems(prev => {
       const exists = prev.find(i => i.id === item.id)
       if (exists) {
-        return prev.map(i => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i))
+        return prev.map(i => (i.id === item.id ? { ...i, quantity: i.quantity + quantityToAdd } : i))
       }
-      return [...prev, { ...item, quantity: 1 }]
+      return [...prev, { ...item, quantity: quantityToAdd }]
     })
   }
 
