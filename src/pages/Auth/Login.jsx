@@ -9,8 +9,9 @@ import LogoDesktop from '../../png/LOGO.png'
 import LogoMobile from '../../png/LOGO去背景.png'
 
 import './Auth.css'
-
+import { motion as Motion, AnimatePresence } from "framer-motion"
 const Login = () => {
+  const motion = Motion
   const navigate = useNavigate()
   const location = useLocation()
   const { login, isLoading, authError, setAuthError } = useAuth()

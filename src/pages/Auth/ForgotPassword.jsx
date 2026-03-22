@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { AlertCircle, Mail, ArrowLeft } from 'lucide-react'
 import LogoImg from '../../png/LOGO.png'
 import './Auth.css'
@@ -23,7 +24,11 @@ const ForgotPassword = () => {
   return (
     <div className="auth-page">
       <div className="auth-brand-panel">
-        <div className="auth-brand-logo"><img src={LogoImg} alt="Mr. Polar" /></div>
+        <div className="auth-brand-logo">
+          <Link to="/">
+            <img src={LogoImg} alt="Mr. Polar" style={{ height: 'auto', width: 293, maxWidth: '100%', display: 'block', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.25)' }} />
+          </Link>
+        </div>
         <div className="auth-brand-content">
           <h2>重設您的<br />帳號密碼</h2>
           <p>輸入您的電子郵件，我們將在幾分鐘內寄送密碼重設連結。</p>
@@ -40,7 +45,9 @@ const ForgotPassword = () => {
         <motion.div className="auth-form-container" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: [0.25, 1, 0.5, 1] }}>
 
           <div className="auth-mobile-logo">
-            <Link to="/"><img src={LogoImg} alt="Polar" /></Link>
+            <Link to="/">
+              <img src={LogoImg} alt="Mr. Polar" style={{ height: 'auto', width: 293, maxWidth: '100%', display: 'block' }} />
+            </Link>
           </div>
 
           {!isSent ? (

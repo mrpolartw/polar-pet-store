@@ -16,7 +16,12 @@ export const AuthProvider = ({ children }) => {
 
   const _saveUser = (u) => {
     setUser(u)
-    localStorage.setItem('polar_user', JSON.stringify(u))
+    try {
+      localStorage.setItem('polar_user', JSON.stringify(u))
+      return { success: true }
+    } catch {
+      return { success: false, message: '無法寫入瀏覽器儲存空間' }
+    }
   }
 
   const login = async (email, password) => {
@@ -35,6 +40,9 @@ export const AuthProvider = ({ children }) => {
         phone: '0912-345-678',
         birthday: '1995-06-15',
         avatar: null,
+        lineLinked: false,
+        lineDisplayName: '',
+        lineBoundAt: '',
         memberSince: '2024-01-15',
         points: 3280,
         addresses: [
@@ -66,6 +74,9 @@ export const AuthProvider = ({ children }) => {
         id: Date.now(),
         ...userData,
         avatar: null,
+        lineLinked: false,
+        lineDisplayName: '',
+        lineBoundAt: '',
         memberSince: new Date().toISOString().split('T')[0],
         points: 100,
         addresses: [],
@@ -84,7 +95,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = (updates) => {
     const updated = { ...user, ...updates }
-    _saveUser(updated)
+    return _saveUser(updated)
   }
 
   const changePassword = async (oldPassword) => {

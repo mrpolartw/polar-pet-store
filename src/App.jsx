@@ -29,6 +29,7 @@ import Account from './pages/Account/Account';
 import Home from './pages/Home';
 import About from './pages/About';
 import Category from './pages/Category';
+import Contact from './pages/Contact';
 import CustomCursor from './components/CustomCursor';
 import Products from './pages/Shop/Products';
 
@@ -747,7 +748,7 @@ function AppContent() {
 
         {/* ── 服務支援 ── */}
         <Route path="/support" element={<Category title="客戶服務" subtitle="我們隨時在您身邊" />} />
-        <Route path="/contact" element={<Category title="聯絡我們" subtitle="有任何問題歡迎與我們聯繫" />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="/blog" element={<Category title="最新消息" subtitle="毛孩知識與品牌故事" />} />
         <Route path="/faq" element={<Category title="常見問題" subtitle="服務條款與隱私政策" />} />
 

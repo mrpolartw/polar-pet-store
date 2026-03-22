@@ -141,7 +141,9 @@ const Register = () => {
       {/* ── 左側品牌面板 ── */}
       <div className="auth-brand-panel">
         <div className="auth-brand-logo">
-          <img src={LogoImg} alt="Mr. Polar" style={{ width: 200, height: 'auto', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.25)' }} />
+          <Link to="/">
+            <img src={LogoImg} alt="Mr. Polar" style={{ height: 'auto', width: 293, maxWidth: '100%', display: 'block', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.25)' }} />
+          </Link>
         </div>
         <div className="auth-brand-content">
           <h2>加入 Polar<br />毛孩的最佳選擇</h2>
@@ -168,7 +170,9 @@ const Register = () => {
         <div className="auth-form-container">
 
           <div className="auth-mobile-logo">
-            <Link to="/"><img src={LogoImg} alt="Polar" /></Link>
+            <Link to="/">
+              <img src={LogoImg} alt="Mr. Polar" style={{ height: 'auto', width: 293, maxWidth: '100%', display: 'block' }} />
+            </Link>
           </div>
 
           {/* 步驟指示器 */}

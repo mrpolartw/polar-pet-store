@@ -1,14 +1,13 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { Navigate, Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import {
   User, ShoppingBag, Heart, MapPin, ShieldCheck,
   LogOut, ChevronRight, Check, Plus, Edit2, Trash2,
   Package, Truck, CheckCircle, XCircle, PawPrint, CreditCard,
-  Store, X, Lock,
+  Store, X, Lock, Camera, MessageCircle,
 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
-import { getMemberTier } from '../../context/authUtils'
 import './Account.css'
 
 const motion = Motion
@@ -46,9 +45,85 @@ const MOCK_FAVORITES = [
   { id: 3, name: 'Polar 凍乾零食 - 雞肉', price: 460,  img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=300' },
 ]
 
-const MOCK_CARDS = [
-  { id: 1, brand: 'Visa',       last4: '4242', expiry: '12/27', holderName: 'WANG XIAOMING', isDefault: true },
-  { id: 2, brand: 'Mastercard', last4: '8888', expiry: '08/26', holderName: 'WANG XIAOMING', isDefault: false },
+const MOCK_SUBSCRIPTIONS = [
+  {
+    id: 'sub_001',
+    subscriptionNumber: 'SUB-202604-0001',
+    name: 'Polar 高蛋白狗糧月訂',
+    productName: 'Polar 高蛋白狗糧 85g x 24 包',
+    billingCycle: 'monthly',
+    variant: '85g x 24',
+    quantity: 2,
+    quantityUnit: '包',
+    price: 2560,
+    nextBillingDate: '2026/03/15',
+    originalNextBillingDate: '2026/03/15',
+    hasDeferred: false,
+    deferredAt: '',
+    isCanceled: false,
+    canceledAt: '',
+  },
+  {
+    id: 'sub_002',
+    name: 'Polar 貓糧零食月訂',
+    subscriptionNumber: 'SUB-202603-0002',
+    productName: 'Polar 貓糧零食 60g x 8 包',
+    billingCycle: 'monthly',
+    variant: '60g',
+    quantity: 1,
+    quantityUnit: '包',
+    price: 850,
+    nextBillingDate: '2026/04/20',
+    originalNextBillingDate: '2026/03/20',
+    hasDeferred: true,
+    deferredAt: '2026/02/21',
+    isCanceled: false,
+    canceledAt: '',
+  },
+  {
+    id: 'sub_003',
+    subscriptionNumber: 'SUB-202603-0003',
+    name: 'Polar 腸胃保健月訂',
+    productName: 'Polar 腸胃保健鮮食 70g x 12 入',
+    billingCycle: 'weekly',
+    variant: '70g x 12',
+    quantity: 1,
+    quantityUnit: '盒',
+    price: 1320,
+    nextBillingDate: '2026/03/28',
+    originalNextBillingDate: '2026/03/28',
+    hasDeferred: false,
+    deferredAt: '',
+    isCanceled: true,
+    canceledAt: '2026/02/18',
+  },
+]
+
+const mockAnnualSpend = 1100
+const nextTierAmount = 10000
+const MAX_AVATAR_FILE_SIZE = 5 * 1024 * 1024
+const SUPPORTED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+
+const BILLING_CYCLE_LABELS = {
+  monthly: '每月',
+  biweekly: '每兩週',
+  weekly: '每週',
+}
+
+const DELETE_ACCOUNT_REMOVAL_ITEMS = [
+  '帳號基本資料',
+  '登入憑證',
+  '收藏清單',
+  '收件地址',
+  '訂閱設定',
+  '點數與等級',
+]
+
+const DELETE_ACCOUNT_RETENTION_ITEMS = [
+  '交易訂單紀錄',
+  '客服對話紀錄',
+  '退換貨紀錄',
+  '發票稅務資料',
 ]
 
 const TW_CITIES = [
@@ -64,6 +139,7 @@ const EMPTY_ADDRESS_FORM = {
   isDefault: false, storeName: '', storeId: '',
 }
 
+// 信用卡表單預設值
 const EMPTY_CARD_FORM = {
   cardNumberRaw: '', holderName: '', expiryRaw: '', cvv: '', isDefault: false,
 }
@@ -79,9 +155,84 @@ const TABS = [
   { key: 'orders',    label: '我的訂單',   icon: ShoppingBag, path: '/orders' },
   { key: 'favorites', label: '收藏清單',   icon: Heart,       path: '/favorites' },
   { key: 'addresses', label: '地址管理',   icon: MapPin,      path: '/account' },
-  { key: 'cards',     label: '信用卡管理', icon: CreditCard,  path: '/account' },
+  { key: 'cards',     label: '訂閱專區',   icon: CreditCard,  path: '/account' },
   { key: 'security',  label: '帳號安全',   icon: ShieldCheck, path: '/account' },
 ]
+
+const getAnnualSpendTier = (annualSpend) => {
+  if (annualSpend >= 100000) return { label: 'Polar Diamond', color: '#003153', bg: '#EBF2F8' }
+  if (annualSpend >= 50000) return { label: 'Polar Gold', color: '#8B5A2B', bg: '#FDF3E3' }
+  if (annualSpend >= 10000) return { label: 'Polar Silver', color: '#6B7280', bg: '#F3F4F6' }
+  return { label: 'Polar Member', color: '#8A7E71', bg: '#F3EFE6' }
+}
+
+const formatDate = (value) => {
+  if (!value) return ''
+
+  const [year, month, day] = value.split(/[/-]/).map(Number)
+
+  return `${year}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')}`
+}
+
+const formatShortDate = (value) => {
+  if (!value) return ''
+
+  const [, month, day] = value.split(/[/-]/).map(Number)
+
+  return `${month}/${day}`
+}
+
+const getTodayDateString = () => {
+  const today = new Date()
+
+  return `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}`
+}
+
+const addBillingDays = (value, days) => {
+  const [year, month, day] = value.split(/[/-]/).map(Number)
+  const nextDate = new Date(year, month - 1, day)
+
+  nextDate.setDate(nextDate.getDate() + days)
+
+  return formatDate([
+    nextDate.getFullYear(),
+    String(nextDate.getMonth() + 1).padStart(2, '0'),
+    String(nextDate.getDate()).padStart(2, '0'),
+  ].join('/'))
+}
+
+const addOneBillingMonth = (value) => {
+  const [year, month, day] = value.split(/[/-]/).map(Number)
+  const nextMonth = month === 12 ? 1 : month + 1
+  const nextYear = month === 12 ? year + 1 : year
+  const lastDayOfNextMonth = new Date(nextYear, nextMonth, 0).getDate()
+  const targetDay = Math.min(day, lastDayOfNextMonth)
+
+  return `${nextYear}/${String(nextMonth).padStart(2, '0')}/${String(targetDay).padStart(2, '0')}`
+}
+
+const getBillingCycleLabel = (billingCycle = 'monthly') => BILLING_CYCLE_LABELS[billingCycle] || BILLING_CYCLE_LABELS.monthly
+
+const getDeferredBillingDate = (subscription) => {
+  if (!subscription?.nextBillingDate) return ''
+
+  if (subscription.billingCycle === 'weekly') return addBillingDays(subscription.nextBillingDate, 7)
+  if (subscription.billingCycle === 'biweekly') return addBillingDays(subscription.nextBillingDate, 14)
+
+  return addOneBillingMonth(subscription.nextBillingDate)
+}
+
+const getSubscriptionStatusMeta = (subscription) => {
+  if (subscription.isCanceled) {
+    return { label: '已取消', bg: '#F3F4F6', color: '#6B7280', border: '1px solid #D1D5DB' }
+  }
+
+  if (subscription.hasDeferred) {
+    return { label: '已延期', bg: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE' }
+  }
+
+  return { label: '訂閱中', bg: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0' }
+}
 
 // ── 毛孩類型對應 Emoji ──
 const PET_EMOJI = { cat: '🐱', dog: '🐶',other: '🐾' }
@@ -90,40 +241,39 @@ const PET_GENDER_LABEL = { male: '男生', female: '女生' }
 
 
 // ─────────────────────────────────────────────
-// 工具函式（信用卡）
+// 小型子元件
 // ─────────────────────────────────────────────
 const detectCardBrand = (num) => {
   const n = num.replace(/\s/g, '')
-  if (/^4/.test(n))        return 'Visa'
-  if (/^5[1-5]/.test(n))   return 'Mastercard'
-  if (/^3[47]/.test(n))    return 'Amex'
-  if (/^35/.test(n))       return 'JCB'
+  if (/^4/.test(n)) return 'Visa'
+  if (/^5[1-5]/.test(n)) return 'Mastercard'
+  if (/^3[47]/.test(n)) return 'Amex'
+  if (/^35/.test(n)) return 'JCB'
   return ''
 }
+
 const displayCardNumber = (raw) => raw.replace(/(.{4})/g, '$1 ').trim()
-const displayExpiry     = (raw) => raw.length > 2 ? `${raw.slice(0, 2)}/${raw.slice(2)}` : raw
-const parseExpiryRaw    = (fmt = '') => fmt.replace(/\D/g, '')
-
-
-// ─────────────────────────────────────────────
-// 小型子元件
-// ─────────────────────────────────────────────
+const displayExpiry = (raw) => raw.length > 2 ? `${raw.slice(0, 2)}/${raw.slice(2)}` : raw
 const BRAND_STYLES = {
-  Visa:       { bg: '#1a1f71', color: '#fff', text: 'VISA' },
+  Visa: { bg: '#1a1f71', color: '#fff', text: 'VISA' },
   Mastercard: { bg: 'linear-gradient(135deg,#eb001b,#f79e1b)', color: '#fff', text: 'MC' },
-  Amex:       { bg: '#007bc1', color: '#fff', text: 'AMEX' },
-  JCB:        { bg: '#003087', color: '#fff', text: 'JCB' },
+  Amex: { bg: '#007bc1', color: '#fff', text: 'AMEX' },
+  JCB: { bg: '#003087', color: '#fff', text: 'JCB' },
 }
 
 const CardBrandBadge = ({ brand, size = 'sm' }) => {
   const s = BRAND_STYLES[brand] || { bg: '#6b7280', color: '#fff', text: brand || '???' }
+
   return (
     <span style={{
-      background: s.bg, color: s.color,
+      background: s.bg,
+      color: s.color,
       fontSize: size === 'lg' ? 13 : 11,
       fontWeight: 700,
       padding: size === 'lg' ? '4px 12px' : '2px 8px',
-      borderRadius: 5, letterSpacing: '0.06em', flexShrink: 0,
+      borderRadius: 5,
+      letterSpacing: '0.06em',
+      flexShrink: 0,
     }}>
       {s.text}
     </span>
@@ -146,10 +296,481 @@ const Toast = ({ message }) => (
   </motion.div>
 )
 
+const AccountProfileCard = ({ user, tier, getInitials, onAvatarChange, className = '' }) => {
+  const inputRef = useRef(null)
+
+  return (
+    <div className={`account-profile-card ${className}`.trim()}>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        className="account-avatar-input"
+        onChange={onAvatarChange}
+      />
+      <button
+        type="button"
+        className="account-avatar account-avatar-button"
+        onClick={() => inputRef.current?.click()}
+        aria-label="上傳頭像"
+      >
+        {user?.avatar ? <img src={user.avatar} alt={user?.name || '會員頭像'} /> : getInitials(user?.name)}
+        <span className="account-avatar-overlay">
+          <Camera size={18} />
+        </span>
+      </button>
+      <div className="account-user-name">{user?.name}</div>
+      <div className="account-user-email">{user?.email}</div>
+      <div className="account-tier-badge" style={{ background: tier.bg, color: tier.color }}>
+        <span>⭐ {tier.label}</span>
+      </div>
+      <div className="account-points-row">
+        <span>我的點數</span>
+        <span className="account-points-value">
+          {(user?.points || 0).toLocaleString()}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+const SubscriptionDeferModal = ({ show, subscription, onClose, onConfirm }) => {
+  const nextBillingDate = getDeferredBillingDate(subscription)
+
+  return (
+    <AnimatePresence>
+      {show && subscription && (
+        <>
+          <motion.div className="address-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <div className="address-modal-wrapper">
+            <motion.div className="address-modal"
+              initial={{ opacity: 0, y: 30, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}>
+              <div className="address-modal-header">
+                <h3 className="address-modal-title">確認延期訂閱</h3>
+                <button className="address-modal-close" onClick={onClose}><X size={16} /></button>
+              </div>
+
+              <div style={{
+                background: 'var(--color-bg-light)',
+                border: '1px solid var(--color-gray-light)',
+                borderRadius: 14,
+                padding: '16px 18px',
+                marginBottom: 20,
+              }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--color-text-dark)', marginBottom: 6 }}>
+                  {subscription.name}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--color-gray-dark)', lineHeight: 1.7 }}>
+                  訂閱週期：{getBillingCycleLabel(subscription.billingCycle)}<br />
+                  原預計下次扣款/訂單成立日：{formatDate(subscription.nextBillingDate)}
+                </div>
+              </div>
+
+              <div style={{
+                fontSize: 15,
+                fontWeight: 700,
+                color: 'var(--color-text-dark)',
+                textAlign: 'center',
+                marginBottom: 16,
+                lineHeight: 1.8,
+              }}>
+                您確定要將訂單延期至<br />
+                {nextBillingDate} 嗎？
+              </div>
+
+              <div style={{
+                background: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                borderRadius: 14,
+                padding: '14px 16px',
+                marginBottom: 24,
+                fontSize: 13,
+                color: '#1D4ED8',
+                lineHeight: 1.7,
+              }}>
+                延期後此功能僅能使用一次，確認後將以新的扣款日自動續訂。
+              </div>
+
+              <div className="address-modal-actions">
+                <button className="btn-modal-cancel" onClick={onClose} style={{ minHeight: 44 }}>
+                  再想想
+                </button>
+                <button className="btn-blue btn-modal-submit" onClick={onConfirm} style={{ minHeight: 44 }}>
+                  確定延期
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+const SubscriptionCancelModal = ({ show, subscription, confirmationText, setConfirmationText, onClose, onConfirm }) => {
+  const canConfirm = confirmationText.trim() === '取消'
+
+  return (
+    <AnimatePresence>
+      {show && subscription && (
+        <>
+          <motion.div className="address-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <div className="address-modal-wrapper">
+            <motion.div className="address-modal"
+              initial={{ opacity: 0, y: 30, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}>
+              <div className="address-modal-header">
+                <h3 className="address-modal-title">您確定要取消訂閱嗎？</h3>
+                <button className="address-modal-close" onClick={onClose}><X size={16} /></button>
+              </div>
+
+              <div style={{
+                background: '#FEF2F2',
+                border: '1px solid #FECACA',
+                borderRadius: 14,
+                padding: '16px 18px',
+                marginBottom: 20,
+              }}>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.7, color: '#991B1B' }}>
+                  取消後無法恢復，本訂閱將停止自動續訂。
+                </p>
+              </div>
+
+              <div style={{
+                background: 'var(--color-bg-light)',
+                border: '1px solid var(--color-gray-light)',
+                borderRadius: 14,
+                padding: '14px 16px',
+                marginBottom: 20,
+              }}>
+                <div style={{ fontSize: 12, color: 'var(--color-gray-dark)', marginBottom: 4 }}>訂閱方案</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-dark)' }}>{subscription.name}</div>
+                <div style={{ fontSize: 13, color: 'var(--color-gray-dark)', marginTop: 4 }}>{subscription.subscriptionNumber}</div>
+              </div>
+
+              <div className="address-form">
+                <div>
+                  <label className="address-form-label">請輸入「取消」以完成取消</label>
+                  <input
+                    type="text"
+                    className="apple-input"
+                    placeholder="取消"
+                    value={confirmationText}
+                    onChange={(e) => setConfirmationText(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="address-modal-actions">
+                <button
+                  className="btn-modal-cancel"
+                  onClick={onClose}
+                  style={{ minHeight: 44 }}
+                >
+                  我再想想
+                </button>
+                <button
+                  className="btn-modal-submit"
+                  onClick={onConfirm}
+                  disabled={!canConfirm}
+                  style={{
+                    minHeight: 44,
+                    background: canConfirm ? '#E74C3C' : '#E5E7EB',
+                    color: canConfirm ? '#FFFFFF' : '#6B7280',
+                    cursor: canConfirm ? 'pointer' : 'not-allowed',
+                    border: 'none',
+                  }}
+                >
+                  確認取消訂閱
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+const LineBindModal = ({ show, user, onClose, onBind }) => {
+  const isLineLinked = !!user?.lineLinked
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <>
+          <motion.div className="address-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <div className="address-modal-wrapper">
+            <motion.div className="address-modal"
+              initial={{ opacity: 0, y: 30, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}>
+              <div className="address-modal-header">
+                <h3 className="address-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <MessageCircle size={18} color="#06C755" />
+                  LINE 綁定
+                </h3>
+                <button className="address-modal-close" onClick={onClose}><X size={16} /></button>
+              </div>
+
+              <div style={{
+                background: 'var(--color-bg-light)',
+                border: '1px solid var(--color-gray-light)',
+                borderRadius: 14,
+                padding: '16px 18px',
+                marginBottom: 20,
+              }}>
+                <div style={{ fontSize: 12, color: 'var(--color-gray-dark)', marginBottom: 4 }}>目前狀態</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-dark)', marginBottom: 4 }}>
+                  {isLineLinked ? '已綁定 LINE 通知' : '尚未綁定 LINE'}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--color-gray-dark)', lineHeight: 1.7 }}>
+                  {isLineLinked
+                    ? `${user?.lineDisplayName || 'Polar LINE 會員'} · 綁定於 ${formatDate(user?.lineBoundAt || getTodayDateString())}`
+                    : '綁定後可接收訂閱扣款、配送進度與會員通知。'}
+                </div>
+              </div>
+
+              <div style={{
+                background: '#F0FDF4',
+                border: '1px solid #BBF7D0',
+                borderRadius: 14,
+                padding: '14px 16px',
+                marginBottom: 24,
+                fontSize: 13,
+                color: '#166534',
+                lineHeight: 1.7,
+              }}>
+                正式版需對接 LINE Login OAuth 2.0 redirect，完成授權後回寫會員綁定狀態。
+              </div>
+
+              <div className="address-modal-actions">
+                <button className="btn-modal-cancel" onClick={onClose} style={{ minHeight: 44 }}>
+                  關閉
+                </button>
+                {!isLineLinked && (
+                  <button
+                    className="btn-modal-submit"
+                    onClick={onBind}
+                    style={{ minHeight: 44, background: '#06C755', color: '#FFFFFF', border: 'none' }}
+                  >
+                    模擬完成綁定
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
 
 // ─────────────────────────────────────────────
 // AddressModal（外部定義）
 // ─────────────────────────────────────────────
+const DeleteAccountModal = ({
+  show,
+  password,
+  setPassword,
+  showPassword,
+  setShowPassword,
+  acknowledged,
+  setAcknowledged,
+  isDeleting,
+  onClose,
+  onConfirm,
+}) => {
+  const canConfirm = password.length >= 6 && acknowledged && !isDeleting
+
+  return (
+    <AnimatePresence>
+      {show && (
+        <>
+          <motion.div
+            className="address-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => { if (!isDeleting) onClose() }}
+          />
+          <div className="address-modal-wrapper">
+            <motion.div
+              className="address-modal"
+              initial={{ opacity: 0, y: 30, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.97 }}
+              transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+            >
+              <div className="address-modal-header">
+                <h3 className="address-modal-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span aria-hidden="true">⚠</span>
+                  刪除帳號
+                </h3>
+                <button className="address-modal-close" onClick={onClose} disabled={isDeleting}>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: 12,
+                marginBottom: 20,
+              }}>
+                <div style={{
+                  background: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: 16,
+                  padding: '16px 18px',
+                }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#B91C1C', marginBottom: 10 }}>
+                    🔴 將永久刪除
+                  </div>
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {DELETE_ACCOUNT_REMOVAL_ITEMS.map((item) => (
+                      <div key={item} style={{ fontSize: 13, color: '#991B1B', lineHeight: 1.6 }}>
+                        • {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{
+                  background: '#F0FDF4',
+                  border: '1px solid #BBF7D0',
+                  borderRadius: 16,
+                  padding: '16px 18px',
+                }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#166534', marginBottom: 10 }}>
+                    🟢 依法規保留
+                  </div>
+                  <div style={{ display: 'grid', gap: 8, marginBottom: 10 }}>
+                    {DELETE_ACCOUNT_RETENTION_ITEMS.map((item) => (
+                      <div key={item} style={{ fontSize: 13, color: '#166534', lineHeight: 1.6 }}>
+                        • {item}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#15803D', lineHeight: 1.6 }}>
+                    ＊依消保法保存
+                  </div>
+                </div>
+              </div>
+
+              <div className="address-form" style={{ gap: 18 }}>
+                <div>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    marginBottom: 6,
+                  }}>
+                    <label className="address-form-label" style={{ marginBottom: 0 }}>
+                      請輸入當前密碼
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      disabled={isDeleting}
+                      style={{
+                        border: 'none',
+                        background: 'transparent',
+                        color: 'var(--color-brand-blue)',
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: isDeleting ? 'default' : 'pointer',
+                        padding: 0,
+                      }}
+                    >
+                      {showPassword ? '隱藏' : '顯示'}
+                    </button>
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className="apple-input"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder="請輸入目前登入密碼"
+                    disabled={isDeleting}
+                  />
+                </div>
+
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 10,
+                  fontSize: 14,
+                  color: 'var(--color-text-dark)',
+                  lineHeight: 1.7,
+                  cursor: isDeleting ? 'default' : 'pointer',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={acknowledged}
+                    onChange={(event) => setAcknowledged(event.target.checked)}
+                    disabled={isDeleting}
+                    style={{ marginTop: 3 }}
+                  />
+                  <span>我了解刪除後無法復原，且將立即登出並清除目前登入狀態。</span>
+                </label>
+              </div>
+
+              <div className="address-modal-actions">
+                <button
+                  className="btn-modal-cancel"
+                  onClick={onClose}
+                  disabled={isDeleting}
+                  style={{ minHeight: 44 }}
+                >
+                  取消
+                </button>
+                <button
+                  className="btn-modal-submit"
+                  onClick={onConfirm}
+                  disabled={!canConfirm}
+                  style={{
+                    minHeight: 44,
+                    background: canConfirm ? '#E74C3C' : '#E5E7EB',
+                    color: canConfirm ? '#FFFFFF' : '#6B7280',
+                    border: 'none',
+                    cursor: canConfirm ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {isDeleting ? '處理中...' : '確認刪除帳號'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
 const AddressModal = ({ show, onClose, addressForm, setAddressForm, editingAddressId, onSave, addressError, onToast }) => (
   <AnimatePresence>
     {show && (
@@ -604,12 +1225,21 @@ const Account = () => {
   const [editingAddressId, setEditingAddressId] = useState(null)
   const [addressError,     setAddressError]     = useState('')
 
-  // 信用卡 state
-  const [cards,         setCards]         = useState(MOCK_CARDS)
+  // 訂閱 state
+  const [cards,         setCards]         = useState(MOCK_SUBSCRIPTIONS)
   const [showCardModal, setShowCardModal] = useState(false)
   const [cardForm,      setCardForm]      = useState(EMPTY_CARD_FORM)
-  const [editingCardId, setEditingCardId] = useState(null)
+  const [editingCardId, _setEditingCardId] = useState(null)
   const [cardError,     setCardError]     = useState('')
+  const [deferSubscription, setDeferSubscription] = useState(null)
+  const [cancelSubscription, setCancelSubscription] = useState(null)
+  const [cancelConfirmationText, setCancelConfirmationText] = useState('')
+  const [showLineBindModal, setShowLineBindModal] = useState(false)
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false)
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState('')
+  const [showDeleteAccountPassword, setShowDeleteAccountPassword] = useState(false)
+  const [deleteAccountConfirmed, setDeleteAccountConfirmed] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
 
   // ✅ 毛孩 state
   const [pets,         setPets]         = useState(user?.pets?.map((p, i) => ({ ...p, id: p.id || i + 1 })) || [])
@@ -629,13 +1259,10 @@ const Account = () => {
           ? accountTab
           : 'profile'
 
-  const tier = getMemberTier(user?.points || 0)
-  const nextTierPoints =
-    (user?.points >= 8000) ? null :
-    (user?.points >= 3000) ? 8000 :
-    (user?.points >= 1000) ? 3000 : 1000
-  const progressPct = nextTierPoints
-    ? Math.min((user?.points / nextTierPoints) * 100, 100) : 100
+  const tier = getAnnualSpendTier(mockAnnualSpend)
+  const progressPct = Math.min((mockAnnualSpend / nextTierAmount) * 100, 100)
+  const remainingToNextTier = Math.max(nextTierAmount - mockAnnualSpend, 0)
+  const isLineLinked = !!user?.lineLinked
 
   const showToast      = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000) }
   const getInitials    = (name) => name ? name.slice(0, 2).toUpperCase() : 'PL'
@@ -646,6 +1273,86 @@ const Account = () => {
   }
   const handleSaveProfile = () => { updateProfile(profileForm); showToast('個人資料已更新 ✓') }
   const handleLogout      = () => { logout(); navigate('/') }
+  const resetDeleteAccountState = () => {
+    setDeleteAccountPassword('')
+    setShowDeleteAccountPassword(false)
+    setDeleteAccountConfirmed(false)
+    setIsDeletingAccount(false)
+  }
+  const openDeleteAccountModal = () => {
+    resetDeleteAccountState()
+    setShowDeleteAccountModal(true)
+  }
+  const closeDeleteAccountModal = () => {
+    if (isDeletingAccount) return
+    setShowDeleteAccountModal(false)
+    resetDeleteAccountState()
+  }
+  const handleDeleteAccount = async () => {
+    if (deleteAccountPassword.length < 6 || !deleteAccountConfirmed || isDeletingAccount) return
+
+    setIsDeletingAccount(true)
+    await new Promise((resolve) => setTimeout(resolve, 800))
+    setShowDeleteAccountModal(false)
+    resetDeleteAccountState()
+    logout()
+    navigate('/')
+  }
+  const handleAvatarChange = (event) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    if (!SUPPORTED_AVATAR_TYPES.includes(file.type)) {
+      showToast('僅支援 JPG / PNG / WebP / GIF 格式')
+      return
+    }
+
+    if (file.size > MAX_AVATAR_FILE_SIZE) {
+      showToast('頭像檔案不可超過 5MB')
+      return
+    }
+
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      const avatar = typeof reader.result === 'string' ? reader.result : ''
+      if (!avatar) {
+        showToast('頭像讀取失敗，請重新選擇檔案')
+        return
+      }
+
+      const result = updateProfile({ avatar })
+
+      if (result?.success === false) {
+        showToast('頭像已更新，但瀏覽器儲存空間不足')
+        return
+      }
+
+      showToast('頭像已更新 ✓')
+    }
+
+    reader.onerror = () => showToast('頭像讀取失敗，請重新選擇檔案')
+    reader.readAsDataURL(file)
+  }
+  const openLineBindModal = () => setShowLineBindModal(true)
+  const closeLineBindModal = () => setShowLineBindModal(false)
+  const handleMockLineBind = () => {
+    const result = updateProfile({
+      lineLinked: true,
+      lineDisplayName: `${user?.name || 'Polar 會員'} 的 LINE`,
+      lineBoundAt: getTodayDateString(),
+    })
+
+    if (result?.success === false) {
+      showToast('LINE 已綁定，但瀏覽器儲存空間不足')
+      closeLineBindModal()
+      return
+    }
+
+    showToast('LINE 已完成綁定 ✓')
+    closeLineBindModal()
+  }
 
   const handleChangePassword = async () => {
     if (!passwordForm.old || !passwordForm.new || !passwordForm.confirm) { setPasswordError('所有欄位都是必填的'); return }
@@ -699,13 +1406,19 @@ const Account = () => {
   const handleDeleteAddress      = (id) => { setAddresses(prev => prev.filter(a => a.id !== id)); showToast('地址已刪除') }
   const handleSetDefaultAddress  = (id) => { setAddresses(prev => prev.map(a => ({ ...a, isDefault: a.id === id }))); showToast('已設為預設地址 ✓') }
 
-  // ── 信用卡操作 ──
-  const openAddCardModal  = () => { setCardForm(EMPTY_CARD_FORM); setEditingCardId(null); setCardError(''); setShowCardModal(true) }
-  const openEditCardModal = (card) => {
-    setCardForm({ ...EMPTY_CARD_FORM, holderName: card.holderName, expiryRaw: parseExpiryRaw(card.expiry), last4: card.last4, isDefault: card.isDefault })
-    setEditingCardId(card.id); setCardError(''); setShowCardModal(true)
-  }
+  // ── 訂閱操作 ──
+  const openAddCardModal = () => { showToast('建立訂閱功能即將開放') }
   const closeCardModal = () => { setShowCardModal(false); setCardError('') }
+  const openDeferSubscriptionModal = (card) => setDeferSubscription(card)
+  const closeDeferSubscriptionModal = () => setDeferSubscription(null)
+  const openCancelSubscriptionModal = (card) => {
+    setCancelSubscription(card)
+    setCancelConfirmationText('')
+  }
+  const closeCancelSubscriptionModal = () => {
+    setCancelSubscription(null)
+    setCancelConfirmationText('')
+  }
 
   const validateCardForm = () => {
     if (!editingCardId) {
@@ -743,8 +1456,46 @@ const Account = () => {
     closeCardModal()
   }
 
-  const handleDeleteCard     = (card) => { if (!window.confirm(`確定要刪除 ${card.brand} •••• ${card.last4} 嗎？`)) return; setCards(prev => prev.filter(c => c.id !== card.id)); showToast('信用卡已刪除') }
-  const handleSetDefaultCard = (id)   => { setCards(prev => prev.map(c => ({ ...c, isDefault: c.id === id }))); showToast('已設為預設付款方式 ✓') }
+  const handleDeferSubscription = () => {
+    const id = deferSubscription?.id
+    if (!id) return
+
+    const operatedAt = getTodayDateString()
+    let deferredName = ''
+    let deferredDate = ''
+
+    setCards(prev => prev.map(card => {
+      if (card.id !== id || card.isCanceled || card.hasDeferred) return card
+      deferredName = card.name
+      deferredDate = addOneBillingMonth(card.nextBillingDate)
+
+      return {
+        ...card,
+        hasDeferred: true,
+        deferredAt: operatedAt,
+        originalNextBillingDate: card.originalNextBillingDate || card.nextBillingDate,
+        nextBillingDate: deferredDate,
+      }
+    }))
+
+    if (deferredName && deferredDate) showToast(`${deferredName} 已延期至 ${deferredDate}`)
+    closeDeferSubscriptionModal()
+  }
+
+  const handleCancelSubscription = () => {
+    if (!cancelSubscription || cancelConfirmationText.trim() !== '取消') return
+
+    const canceledAt = getTodayDateString()
+
+    setCards(prev => prev.map(card => (
+      card.id === cancelSubscription.id
+        ? { ...card, isCanceled: true, canceledAt }
+        : card
+    )))
+
+    showToast(`${cancelSubscription.name} 已取消訂閱`)
+    closeCancelSubscriptionModal()
+  }
 
   // ── ✅ 毛孩操作 ──
   const openAddPetModal  = () => { setPetForm(EMPTY_PET_FORM); setEditingPetId(null); setPetError(''); setShowPetModal(true) }
@@ -795,8 +1546,8 @@ const Account = () => {
 
           <div className="tier-progress-section">
             <div className="tier-progress-label">
-              <span>目前點數：<strong style={{ color: 'var(--color-brand-coffee)' }}>{(user?.points || 0).toLocaleString()} 點</strong></span>
-              {nextTierPoints && <span>距下一等級還差 {(nextTierPoints - user?.points).toLocaleString()} 點</span>}
+              <span><strong style={{ color: 'var(--color-brand-coffee)' }}>NT$ {mockAnnualSpend.toLocaleString()}</strong></span>
+              <span>年度累計消費金額距離下一等級還差 {remainingToNextTier.toLocaleString()} 元</span>
             </div>
             <div className="tier-progress-bar">
               <div className="tier-progress-fill" style={{ width: `${progressPct}%` }} />
@@ -1042,45 +1793,91 @@ const Account = () => {
 
       case 'cards': return (
         <motion.div key="cards" {...fadeUp}>
-          <h2 className="account-section-title"><CreditCard size={22} className="account-nav-icon" />信用卡管理</h2>
+          <h2 className="account-section-title"><CreditCard size={22} className="account-nav-icon" />訂閱專區</h2>
           {cards.length === 0 ? (
             <div className="account-empty-state">
-              <div className="account-empty-icon">💳</div>
-              <h3>尚未綁定任何信用卡</h3>
-              <p>新增信用卡以享有快速結帳體驗</p>
-              <button className="btn-blue" style={{ padding: '12px 24px', borderRadius: 980, fontSize: 15 }} onClick={openAddCardModal}>新增信用卡</button>
+              <div className="account-empty-icon">📦</div>
+              <h3>目前尚未設定訂閱</h3>
+              <p>建立固定配送的訂閱方案，讓毛孩的日常補貨不再忘記。</p>
+              <button className="btn-blue" style={{ padding: '12px 24px', borderRadius: 980, fontSize: 15, minHeight: 44 }} onClick={openAddCardModal}>建立訂閱</button>
             </div>
           ) : (
-            <>
-              <div className="address-grid">
-                {cards.map(card => (
-                  <div key={card.id} className={`address-card ${card.isDefault ? 'default' : ''}`}>
-                    {card.isDefault && <span className="address-default-badge">預設付款</span>}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                      <CardBrandBadge brand={card.brand} size="lg" />
-                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text-dark)', letterSpacing: '0.12em' }}>•••• {card.last4}</span>
+            <div className="address-grid">
+              {cards.map(card => {
+                const statusMeta = getSubscriptionStatusMeta(card)
+
+                return (
+                  <div
+                    key={card.id}
+                    className="address-card"
+                    style={card.isCanceled ? { background: 'var(--color-bg-light)', opacity: 0.72 } : undefined}
+                  >
+                    <span className="address-default-badge" style={{ background: statusMeta.bg, color: statusMeta.color, border: statusMeta.border }}>
+                      {statusMeta.label}
+                    </span>
+                    <div style={{ fontSize: 12, color: 'var(--color-gray-dark)', marginBottom: 8, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace', letterSpacing: '0.08em' }}>
+                      {card.subscriptionNumber}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--color-gray-dark)', marginBottom: 2 }}>持卡人</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-text-dark)', marginBottom: 10 }}>{card.holderName}</div>
-                    <div style={{ fontSize: 12, color: 'var(--color-gray-dark)', marginBottom: 2 }}>到期日</div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--color-text-dark)', marginBottom: 16 }}>{card.expiry}</div>
-                    <div className="address-actions">
-                      <button className="btn-address-action" onClick={() => openEditCardModal(card)}>
-                        <Edit2 size={12} style={{ display: 'inline', marginRight: 4 }} />編輯
-                      </button>
-                      {!card.isDefault && <button className="btn-address-action" onClick={() => handleSetDefaultCard(card.id)}>設為預設</button>}
-                      <button className="btn-address-action" style={{ color: '#e74c3c' }} onClick={() => handleDeleteCard(card)}>
-                        <Trash2 size={12} style={{ display: 'inline' }} />
-                      </button>
+                    <div className="address-name" style={{ marginBottom: 8, paddingRight: 72 }}>{card.name}</div>
+                    <div className="address-detail">
+                      {card.productName}<br />
+                      訂閱週期：{getBillingCycleLabel(card.billingCycle)}<br />
+                      規格：{card.variant}<br />
+                      數量：{card.quantity} {card.quantityUnit}／{getBillingCycleLabel(card.billingCycle)}<br />
+                      金額：NT$ {card.price.toLocaleString()}<br />
+                      {card.isCanceled ? '原預計下次扣款/訂單成立日' : '預計下次扣款/訂單成立日'}：{formatDate(card.nextBillingDate)}
+                    </div>
+                    {card.hasDeferred && (
+                      <div style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: '#1D4ED8' }}>
+                        {formatShortDate(card.originalNextBillingDate)} → {formatShortDate(card.nextBillingDate)}（{formatDate(card.deferredAt)} 操作）
+                      </div>
+                    )}
+                    {card.isCanceled && (
+                      <div style={{ marginTop: 10, fontSize: 12, color: 'var(--color-gray-dark)' }}>
+                        已於 {formatDate(card.canceledAt)} 取消，保留歷史記錄供您查閱。
+                      </div>
+                    )}
+                    {!card.isCanceled && (
+                      <div className="address-actions">
+                        <button
+                          className="btn-address-action"
+                          onClick={() => openDeferSubscriptionModal(card)}
+                          disabled={card.hasDeferred}
+                          style={{
+                            minHeight: 44,
+                            opacity: card.hasDeferred ? 0.55 : 1,
+                            cursor: card.hasDeferred ? 'not-allowed' : 'pointer',
+                            background: card.hasDeferred ? 'var(--color-bg-light)' : undefined,
+                            color: card.hasDeferred ? 'var(--color-gray-dark)' : undefined,
+                          }}
+                        >
+                          {card.hasDeferred ? `已延期（${formatDate(card.deferredAt)}）` : '延期一個月'}
+                        </button>
+                        <button
+                          className="btn-address-action"
+                          onClick={() => openCancelSubscriptionModal(card)}
+                          style={{ minHeight: 44, color: '#e74c3c' }}
+                        >
+                          取消訂閱
+                        </button>
+                      </div>
+                    )}
+                    <div style={{
+                      marginTop: 14,
+                      paddingTop: 12,
+                      borderTop: '1px solid var(--color-gray-light)',
+                      fontSize: 12,
+                      color: 'var(--color-gray-dark)',
+                      lineHeight: 1.6,
+                    }}>
+                      {card.isCanceled
+                        ? '本訂閱已取消，保留歷史記錄供您查閱。'
+                        : '將於扣款日自動續訂，如需取消請於扣款日前 1 日操作。'}
                     </div>
                   </div>
-                ))}
-                <button className="btn-add-address" onClick={openAddCardModal}><Plus size={24} />新增信用卡</button>
-              </div>
-              <p style={{ marginTop: 24, fontSize: 12, color: 'var(--color-gray-dark)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Lock size={12} />您的信用卡資訊經過 256-bit SSL 加密保護，Polar 不會儲存完整卡號
-              </p>
-            </>
+                )
+              })}
+            </div>
           )}
         </motion.div>
       )
@@ -1110,13 +1907,43 @@ const Account = () => {
                 </button>
               </div>
             </div>
+            <div className="security-item" style={{ flexWrap: 'wrap' }}>
+              <div className="security-item-info">
+                <h4 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <MessageCircle size={18} color="#06C755" />
+                  LINE 綁定
+                </h4>
+                <p>
+                  {isLineLinked
+                    ? `${user?.lineDisplayName || '已綁定 LINE 帳號'}，可接收訂閱扣款與配送提醒。`
+                    : '綁定 LINE 後可接收訂閱扣款、配送進度與會員通知。'}
+                </p>
+              </div>
+              <button
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: 980,
+                  border: isLineLinked ? '1.5px solid #06C755' : 'none',
+                  background: isLineLinked ? '#ECFDF3' : '#06C755',
+                  color: isLineLinked ? '#06C755' : '#FFFFFF',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  minHeight: 44,
+                  flexShrink: 0,
+                }}
+                onClick={openLineBindModal}
+              >
+                {isLineLinked ? '查看綁定資訊' : '綁定 LINE'}
+              </button>
+            </div>
             <div className="security-item" style={{ borderColor: '#fee2e2' }}>
               <div className="security-item-info">
                 <h4 style={{ color: '#e74c3c' }}>刪除帳號</h4>
                 <p>此操作將無法復原，個人資料將被永久刪除</p>
               </div>
-              <button style={{ padding: '8px 16px', borderRadius: 980, border: '1.5px solid #e74c3c', background: 'transparent', color: '#e74c3c', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
-                onClick={() => window.confirm('確定要刪除帳號嗎？此操作無法復原。') && handleLogout()}>
+              <button style={{ padding: '8px 16px', borderRadius: 980, border: '1.5px solid #e74c3c', background: 'transparent', color: '#e74c3c', fontSize: 13, fontWeight: 500, cursor: 'pointer', minHeight: 44 }}
+                onClick={openDeleteAccountModal}>
                 刪除帳號
               </button>
             </div>
@@ -1147,6 +1974,38 @@ const Account = () => {
         editingCardId={editingCardId}
         onSave={handleSaveCard} cardError={cardError}
       />
+      <SubscriptionDeferModal
+        show={!!deferSubscription}
+        subscription={deferSubscription}
+        onClose={closeDeferSubscriptionModal}
+        onConfirm={handleDeferSubscription}
+      />
+      <SubscriptionCancelModal
+        show={!!cancelSubscription}
+        subscription={cancelSubscription}
+        confirmationText={cancelConfirmationText}
+        setConfirmationText={setCancelConfirmationText}
+        onClose={closeCancelSubscriptionModal}
+        onConfirm={handleCancelSubscription}
+      />
+      <LineBindModal
+        show={showLineBindModal}
+        user={user}
+        onClose={closeLineBindModal}
+        onBind={handleMockLineBind}
+      />
+      <DeleteAccountModal
+        show={showDeleteAccountModal}
+        password={deleteAccountPassword}
+        setPassword={setDeleteAccountPassword}
+        showPassword={showDeleteAccountPassword}
+        setShowPassword={setShowDeleteAccountPassword}
+        acknowledged={deleteAccountConfirmed}
+        setAcknowledged={setDeleteAccountConfirmed}
+        isDeleting={isDeletingAccount}
+        onClose={closeDeleteAccountModal}
+        onConfirm={handleDeleteAccount}
+      />
       {/* ✅ PetModal */}
       <PetModal
         show={showPetModal} onClose={closePetModal}
@@ -1165,20 +2024,22 @@ const Account = () => {
         ))}
       </div>
 
+      <AccountProfileCard
+        user={user}
+        tier={tier}
+        getInitials={getInitials}
+        onAvatarChange={handleAvatarChange}
+        className="account-profile-card-mobile"
+      />
+
       <div className="account-layout">
         <div className="account-sidebar">
-          <div className="account-profile-card">
-            <div className="account-avatar">
-              {user?.avatar ? <img src={user.avatar} alt={user.name} /> : getInitials(user?.name)}
-            </div>
-            <div className="account-user-name">{user?.name}</div>
-            <div className="account-user-email">{user?.email}</div>
-            <div className="account-tier-badge" style={{ color: tier.color, backgroundColor: tier.bg }}>⭐ {tier.label}</div>
-            <div className="account-points-row">
-              <span>我的點數</span>
-              <span className="account-points-value">{(user?.points || 0).toLocaleString()}</span>
-            </div>
-          </div>
+          <AccountProfileCard
+            user={user}
+            tier={tier}
+            getInitials={getInitials}
+            onAvatarChange={handleAvatarChange}
+          />
           <div className="account-nav">
             {TABS.map(({ key, label, icon: Icon, path }) => (
               <button key={key}
