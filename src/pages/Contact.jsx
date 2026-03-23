@@ -1,15 +1,15 @@
 import React, { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion as Motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   AlertCircle,
-  Building2,
+  ChevronLeft,
+  ChevronRight,
   FileText,
   Handshake,
   Mail,
   Newspaper,
   Paperclip,
-  Phone,
   ShieldCheck,
   UploadCloud,
   UserRound,
@@ -17,53 +17,72 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import LogoImg from '../png/LOGO.png'
-import './Auth/Auth.css'
 import './Contact.css'
 
-const motion = Motion
+const CONTACT_STEPS = ['身份確認', '問題描述', '確認送出']
 
-const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024
-const ALLOWED_ATTACHMENT_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
+const PROBLEM_TYPES = {
+  consumer: ['訂單問題', '退換貨', '商品諮詢', '帳號問題', '配送問題', '其他'],
+  partner: ['合作提案', '代理經銷', '媒體授權', '其他'],
+  media: ['採訪申請', '形象授權', '公關合作', '其他'],
+  other: ['一般詢問', '建議回饋', '其他'],
+}
 
 const IDENTITY_OPTIONS = [
-  { key: 'consumer', label: '消費者', icon: UserRound },
-  { key: 'partner', label: '合作廠商', icon: Handshake },
-  { key: 'media', label: '媒體', icon: Newspaper },
+  { key: 'consumer', label: '一般消費者', icon: UserRound },
+  { key: 'partner', label: '企業合作', icon: Handshake },
+  { key: 'media', label: '媒體採訪', icon: Newspaper },
   { key: 'other', label: '其他', icon: FileText },
 ]
 
-const CONTACT_TYPE_OPTIONS = {
-  consumer: ['訂單與配送', '退換貨申請', '產品與成分', '會員與點數', '訂閱方案', '付款與發票'],
-  partner: ['通路合作', '供應與採購', '品牌聯名', '報價需求', '其他合作提案'],
-  media: ['採訪邀約', '品牌新聞', '圖文素材申請', '其他媒體需求'],
-  other: ['一般諮詢', '網站建議', '活動合作', '其他事項'],
+const MAX_FILE_SIZE = 10 * 1024 * 1024
+const MAX_FILES = 3
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
+
+const slideVariants = {
+  enter: { opacity: 0, x: 30 },
+  center: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: -30 },
+}
+
+const STEP_META = {
+  0: {
+    title: '嗨，請先認識一下您',
+    description: '讓我們知道您是誰，這樣才能把您的訊息交給最適合的人。',
+  },
+  1: {
+    title: '告訴我們發生了什麼',
+    description: '不用完美，把情況說清楚就好，我們會從這裡開始幫您。',
+  },
+  2: {
+    title: '看起來都對嗎？',
+    description: '最後確認一下內容，沒問題就送出，我們馬上開始處理。',
+  },
 }
 
 const createReferenceNumber = () => {
   const today = new Date()
-  const year = today.getFullYear()
-  const month = String(today.getMonth() + 1).padStart(2, '0')
-  const day = String(today.getDate()).padStart(2, '0')
+  const y = today.getFullYear()
+  const m = String(today.getMonth() + 1).padStart(2, '0')
+  const d = String(today.getDate()).padStart(2, '0')
   const suffix = String(Math.floor(Math.random() * 10000)).padStart(4, '0')
 
-  return `CS${year}${month}${day}-${suffix}`
+  return `CS${y}${m}${d}-${suffix}`
 }
 
 const formatFileSize = (size) => {
   if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`
-
   return `${(size / (1024 * 1024)).toFixed(1)} MB`
 }
 
 const getInitialForm = (user) => ({
-  identity: 'consumer',
+  identity: '',
   name: user?.name || '',
   email: user?.email || '',
   phone: user?.phone || '',
   companyName: '',
   jobTitle: '',
   taxId: '',
-  orderNumber: '',
   problemType: '',
   subject: '',
   message: '',
@@ -75,15 +94,17 @@ const Contact = () => {
   const { user } = useAuth()
   const fileInputRef = useRef(null)
 
-  const [form, setForm] = useState(getInitialForm(user))
-  const [errors, setErrors] = useState({})
-  const [isDragActive, setIsDragActive] = useState(false)
+  const [step, setStep] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submittedReference, setSubmittedReference] = useState('')
+  const [isDragActive, setIsDragActive] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [form, setForm] = useState(getInitialForm(user))
 
-  const currentTypeOptions = CONTACT_TYPE_OPTIONS[form.identity] || CONTACT_TYPE_OPTIONS.other
+  const currentTypeOptions = PROBLEM_TYPES[form.identity] || PROBLEM_TYPES.other
   const showBusinessFields = form.identity === 'partner' || form.identity === 'media'
-  const showConsumerOrderField = form.identity === 'consumer'
+  const identityLabel =
+    IDENTITY_OPTIONS.find((option) => option.key === form.identity)?.label || '未選擇'
 
   const setField = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -102,23 +123,23 @@ const Contact = () => {
       problemType: '',
       companyName: '',
       jobTitle: '',
-      orderNumber: '',
+      taxId: '',
     }))
   }
 
   const mergeAttachments = (incomingFiles) => {
-    const files = Array.from(incomingFiles || [])
+    const files = Array.from(incomingFiles)
     if (!files.length) return
 
-    const invalidType = files.find((file) => !ALLOWED_ATTACHMENT_TYPES.includes(file.type))
+    const invalidType = files.find((file) => !ALLOWED_TYPES.includes(file.type))
     if (invalidType) {
-      setErrors((prev) => ({ ...prev, attachments: '附件僅支援 JPG、PNG 或 PDF 檔案。' }))
+      setErrors((prev) => ({ ...prev, attachments: '附件格式還不符合，目前支援 JPG、PNG 或 PDF' }))
       return
     }
 
-    const invalidSize = files.find((file) => file.size > MAX_ATTACHMENT_SIZE)
+    const invalidSize = files.find((file) => file.size > MAX_FILE_SIZE)
     if (invalidSize) {
-      setErrors((prev) => ({ ...prev, attachments: '單一附件大小不可超過 10MB。' }))
+      setErrors((prev) => ({ ...prev, attachments: '單一附件再小一點會更順利，請控制在 10MB 內' }))
       return
     }
 
@@ -127,26 +148,27 @@ const Contact = () => {
 
       files.forEach((file) => {
         const exists = merged.some(
-          (item) => item.name === file.name && item.size === file.size && item.lastModified === file.lastModified,
+          (item) =>
+            item.name === file.name &&
+            item.size === file.size &&
+            item.lastModified === file.lastModified,
         )
 
         if (!exists) merged.push(file)
       })
 
+      if (merged.length > MAX_FILES) {
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          attachments: `附件最多先上傳 ${MAX_FILES} 個，我們就能開始幫您處理`,
+        }))
+        return prev
+      }
+
       return { ...prev, attachments: merged }
     })
+
     setErrors((prev) => ({ ...prev, attachments: '' }))
-  }
-
-  const handleFileInputChange = (event) => {
-    mergeAttachments(event.target.files)
-    event.target.value = ''
-  }
-
-  const handleDrop = (event) => {
-    event.preventDefault()
-    setIsDragActive(false)
-    mergeAttachments(event.dataTransfer.files)
   }
 
   const removeAttachment = (index) => {
@@ -156,38 +178,61 @@ const Contact = () => {
     }))
   }
 
-  const validate = () => {
+  const validateStep0 = () => {
     const nextErrors = {}
 
-    if (!form.identity) nextErrors.identity = '請先選擇身份別。'
-    if (!form.name.trim()) nextErrors.name = '請輸入姓名。'
-    if (!form.email.trim()) nextErrors.email = '請輸入 Email。'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) nextErrors.email = '請輸入有效的 Email 格式。'
+    if (!form.identity) nextErrors.identity = '先選一個身份，我們才能幫您分流'
+    if (!form.name.trim()) nextErrors.name = '需要填寫姓名才能繼續'
+    if (!form.email.trim()) nextErrors.email = '需要留下 Email，我們才能回覆您'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) nextErrors.email = '這個 Email 看起來格式不太對，再幫我們確認一下'
 
-    if (form.phone && !/^09\d{8}$/.test(form.phone.trim())) {
-      nextErrors.phone = '手機號碼請輸入 09 開頭的 10 碼格式。'
+    if (form.phone.trim() && !/^09\d{8}$/.test(form.phone.trim())) {
+      nextErrors.phone = '手機號碼看起來不太對，請確認是否為 09 開頭的 10 碼'
     }
 
-    if (showBusinessFields && !form.companyName.trim()) nextErrors.companyName = '請輸入公司名稱。'
-    if (showBusinessFields && !form.jobTitle.trim()) nextErrors.jobTitle = '請輸入職稱。'
-    if (form.taxId && !/^\d{8}$/.test(form.taxId.trim())) nextErrors.taxId = '統一編號請輸入 8 碼數字。'
-
-    if (!form.problemType) nextErrors.problemType = '請選擇問題類型。'
-    if (!form.subject.trim()) nextErrors.subject = '請輸入訊息主旨。'
-    else if (form.subject.trim().length > 80) nextErrors.subject = '訊息主旨不可超過 80 字。'
-
-    if (!form.message.trim()) nextErrors.message = '請輸入詳細說明。'
-    else if (form.message.trim().length > 1000) nextErrors.message = '詳細說明不可超過 1000 字。'
-
-    if (!form.agreePrivacy) nextErrors.agreePrivacy = '請勾選同意隱私政策後再送出。'
+    if (showBusinessFields && !form.companyName.trim()) nextErrors.companyName = '需要填寫公司名稱，方便我們安排窗口'
+    if (showBusinessFields && !form.jobTitle.trim()) nextErrors.jobTitle = '需要填寫職稱，方便我們安排對接'
+    if (form.taxId.trim() && !/^\d{8}$/.test(form.taxId.trim())) nextErrors.taxId = '統一編號格式看起來不太對，請確認是否為 8 碼'
 
     return nextErrors
+  }
+
+  const validateStep1 = () => {
+    const nextErrors = {}
+
+    if (!form.problemType) nextErrors.problemType = '先選一個問題類型，我們比較好幫您分流'
+    if (!form.subject.trim()) nextErrors.subject = '需要填寫主旨，讓我們先快速理解狀況'
+    else if (form.subject.trim().length > 80) nextErrors.subject = '主旨有點長了，精簡到 80 個字內就可以'
+
+    if (!form.message.trim()) nextErrors.message = '需要填寫訊息內容，我們才能開始協助您'
+    else if (form.message.trim().length > 1000) nextErrors.message = '訊息有點長了，整理到 1000 個字內就可以'
+
+    return nextErrors
+  }
+
+  const validateStep2 = () => {
+    const nextErrors = {}
+
+    if (!form.agreePrivacy) nextErrors.agreePrivacy = '送出前，請先閱讀並同意隱私權政策'
+
+    return nextErrors
+  }
+
+  const handleNext = () => {
+    const nextErrors = step === 0 ? validateStep0() : validateStep1()
+
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors)
+      return
+    }
+
+    setStep((prev) => prev + 1)
   }
 
   const handleSubmit = async (event) => {
     event.preventDefault()
 
-    const nextErrors = validate()
+    const nextErrors = validateStep2()
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors)
       return
@@ -197,15 +242,29 @@ const Contact = () => {
     await new Promise((resolve) => setTimeout(resolve, 900))
     setSubmittedReference(createReferenceNumber())
     setIsSubmitting(false)
+    setStep(3)
   }
 
   const handleReset = () => {
+    setStep(0)
     setForm(getInitialForm(user))
     setErrors({})
-    setIsDragActive(false)
-    setIsSubmitting(false)
     setSubmittedReference('')
+    setIsSubmitting(false)
+    setIsDragActive(false)
+
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
+
+  const reviewItems = [
+    { label: '身份', value: identityLabel },
+    { label: '姓名', value: form.name },
+    { label: 'Email', value: form.email },
+    { label: '手機', value: form.phone || '未填寫' },
+    { label: '問題類型', value: form.problemType },
+    { label: '主旨', value: form.subject },
+    { label: '附件', value: form.attachments.length ? `${form.attachments.length} 個檔案` : '無' },
+  ]
 
   return (
     <main className="auth-page contact-page">
@@ -228,33 +287,28 @@ const Contact = () => {
         </div>
 
         <div className="auth-brand-content">
-          <h2>聯絡 Polar<br />讓每次詢問都可追蹤</h2>
-          <p>依據您的身份與問題類型自動分流，協助我們更快把需求送到正確窗口。</p>
+          <h2>Mr.Polar — 我們在這裡</h2>
+          <p>每一則留言，我們都認真對待</p>
         </div>
 
         <div className="auth-brand-features">
           <div className="auth-brand-feature">
             <div className="auth-brand-feature-icon"><Mail size={16} /></div>
-            <span>送出後立即建立案件編號，方便追蹤處理進度。</span>
+            <span>真人團隊，不是機器人</span>
           </div>
           <div className="auth-brand-feature">
             <div className="auth-brand-feature-icon"><Handshake size={16} /></div>
-            <span>支援消費者、合作廠商、媒體與其他綜合詢問。</span>
+            <span>歡迎品牌夥伴一起談</span>
           </div>
           <div className="auth-brand-feature">
             <div className="auth-brand-feature-icon"><ShieldCheck size={16} /></div>
-            <span>表單資料以 256-bit SSL 加密傳輸，保護您的聯絡資訊。</span>
+            <span>您的資訊，我們好好保管</span>
           </div>
         </div>
       </div>
 
       <div className="auth-form-panel">
-        <motion.div
-          className="auth-form-container contact-form-container"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.25, 1, 0.5, 1] }}
-        >
+        <div className="auth-form-container contact-form-container">
           <div className="auth-mobile-logo">
             <Link to="/">
               <img
@@ -265,363 +319,522 @@ const Contact = () => {
             </Link>
           </div>
 
-          {!submittedReference ? (
+          {step < 3 && (
             <>
-              <div className="auth-header">
-                <h1>聯絡我們</h1>
-                <p>填寫完整資訊後，我們會依案件性質分派對應團隊，並以 Email 與您聯繫。</p>
+              <div className="auth-steps">
+                {CONTACT_STEPS.map((label, i) => (
+                  <div key={i} className="auth-step-item">
+                    <div className={`auth-step-dot ${i === step ? 'active' : i < step ? 'done' : ''}`} />
+                    <span className={`auth-step-label ${i === step ? 'active' : ''}`}>{label}</span>
+                  </div>
+                ))}
               </div>
 
-              <form className="auth-form" onSubmit={handleSubmit} noValidate>
-                <section className="contact-section">
-                  <div className="contact-section-head">
-                    <span className="contact-section-step">A</span>
-                    <div>
-                      <h2>身份</h2>
-                      <p>選擇身份後，問題類型與欄位會自動切換。</p>
-                    </div>
-                  </div>
+              <div className="auth-header">
+                <h1>{STEP_META[step].title}</h1>
+                <p>{STEP_META[step].description}</p>
+              </div>
+            </>
+          )}
 
-                  <div className="contact-identity-grid">
-                    {IDENTITY_OPTIONS.map((option) => (
-                      <button
-                        key={option.key}
-                        type="button"
-                        className={`contact-identity-btn ${form.identity === option.key ? 'active' : ''}`}
-                        onClick={() => handleIdentityChange(option.key)}
-                      >
-                        <option.icon size={18} />
-                        <span>{option.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {errors.identity && <p className="auth-field-error"><AlertCircle size={12} />{errors.identity}</p>}
-                </section>
-
-                <section className="contact-section">
-                  <div className="contact-section-head">
-                    <span className="contact-section-step">B</span>
-                    <div>
-                      <h2>基本資料</h2>
-                      <p>請留下可聯繫資訊，方便我們回覆。</p>
-                    </div>
-                  </div>
-
-                  <div className="auth-row-half">
-                    <div className="auth-field">
-                      <label htmlFor="contact-name">姓名 *</label>
-                      <input
-                        id="contact-name"
-                        type="text"
-                        className="apple-input"
-                        placeholder="請輸入姓名"
-                        value={form.name}
-                        onChange={(event) => setField('name', event.target.value)}
-                      />
-                      {errors.name && <p className="auth-field-error"><AlertCircle size={12} />{errors.name}</p>}
-                    </div>
-
-                    <div className="auth-field">
-                      <label htmlFor="contact-email">Email *</label>
-                      <input
-                        id="contact-email"
-                        type="email"
-                        className="apple-input"
-                        placeholder="name@example.com"
-                        value={form.email}
-                        onChange={(event) => setField('email', event.target.value)}
-                      />
-                      {errors.email && <p className="auth-field-error"><AlertCircle size={12} />{errors.email}</p>}
-                    </div>
-                  </div>
-
-                  <div className="auth-row-half">
-                    <div className="auth-field">
-                      <label htmlFor="contact-phone">手機號碼</label>
-                      <input
-                        id="contact-phone"
-                        type="tel"
-                        className="apple-input"
-                        placeholder="0912345678"
-                        maxLength={10}
-                        value={form.phone}
-                        onChange={(event) => setField('phone', event.target.value.replace(/\D/g, ''))}
-                      />
-                      {errors.phone && <p className="auth-field-error"><AlertCircle size={12} />{errors.phone}</p>}
-                    </div>
-
-                    {showConsumerOrderField ? (
-                      <div className="auth-field">
-                        <label htmlFor="contact-order">相關訂單編號</label>
-                        <input
-                          id="contact-order"
-                          type="text"
-                          className="apple-input"
-                          placeholder="例如 PL2026-0314"
-                          value={form.orderNumber}
-                          onChange={(event) => setField('orderNumber', event.target.value)}
-                        />
+          {step < 3 ? (
+            <form className="auth-form" onSubmit={handleSubmit} noValidate>
+              <AnimatePresence mode="wait">
+                {step === 0 && (
+                  <motion.div
+                    key="step0"
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.3 }}
+                  >
+                    <section className="contact-section">
+                      <div className="contact-section-head">
+                        <span className="contact-section-step">A</span>
+                        <div>
+                          <h2>您是？</h2>
+                          <p>選一個最接近的身份就好，不用太精確。</p>
+                        </div>
                       </div>
-                    ) : (
-                      <div className="contact-spacer" aria-hidden="true" />
-                    )}
-                  </div>
 
-                  <AnimatePresence initial={false}>
-                    {showBusinessFields && (
-                      <motion.div
-                        key="business-fields"
-                        initial={{ opacity: 0, height: 0, y: -10 }}
-                        animate={{ opacity: 1, height: 'auto', y: 0 }}
-                        exit={{ opacity: 0, height: 0, y: -10 }}
-                        transition={{ duration: 0.25 }}
-                        className="contact-motion-block"
-                      >
-                        <div className="auth-row-half">
-                          <div className="auth-field">
-                            <label htmlFor="contact-company">公司名稱 *</label>
-                            <input
-                              id="contact-company"
-                              type="text"
-                              className="apple-input"
-                              placeholder="請輸入公司名稱"
-                              value={form.companyName}
-                              onChange={(event) => setField('companyName', event.target.value)}
-                            />
-                            {errors.companyName && <p className="auth-field-error"><AlertCircle size={12} />{errors.companyName}</p>}
-                          </div>
-
-                          <div className="auth-field">
-                            <label htmlFor="contact-job-title">職稱 *</label>
-                            <input
-                              id="contact-job-title"
-                              type="text"
-                              className="apple-input"
-                              placeholder="請輸入職稱"
-                              value={form.jobTitle}
-                              onChange={(event) => setField('jobTitle', event.target.value)}
-                            />
-                            {errors.jobTitle && <p className="auth-field-error"><AlertCircle size={12} />{errors.jobTitle}</p>}
-                          </div>
-                        </div>
-
-                        <div className="auth-row-half">
-                          <div className="auth-field">
-                            <label htmlFor="contact-tax-id">統一編號</label>
-                            <input
-                              id="contact-tax-id"
-                              type="text"
-                              className="apple-input"
-                              placeholder="請輸入 8 碼統編"
-                              maxLength={8}
-                              value={form.taxId}
-                              onChange={(event) => setField('taxId', event.target.value.replace(/\D/g, ''))}
-                            />
-                            {errors.taxId && <p className="auth-field-error"><AlertCircle size={12} />{errors.taxId}</p>}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </section>
-
-                <section className="contact-section">
-                  <div className="contact-section-head">
-                    <span className="contact-section-step">C</span>
-                    <div>
-                      <h2>問題類型</h2>
-                      <p>依據身份別顯示對應分類，幫助快速分流。</p>
-                    </div>
-                  </div>
-
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={form.identity}
-                      className="contact-type-panel"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <div className="contact-pill-group">
-                        {currentTypeOptions.map((type) => (
+                      <div className="contact-identity-grid">
+                        {IDENTITY_OPTIONS.map((option) => (
                           <button
-                            key={type}
+                            key={option.key}
                             type="button"
-                            className={`contact-pill ${form.problemType === type ? 'active' : ''}`}
-                            onClick={() => setField('problemType', type)}
+                            className={`contact-identity-btn ${form.identity === option.key ? 'active' : ''}`}
+                            onClick={() => handleIdentityChange(option.key)}
                           >
-                            {type}
+                            <option.icon size={18} />
+                            <span>{option.label}</span>
                           </button>
                         ))}
                       </div>
-                    </motion.div>
-                  </AnimatePresence>
-                  {errors.problemType && <p className="auth-field-error"><AlertCircle size={12} />{errors.problemType}</p>}
+                      {errors.identity && <p className="auth-field-error"><AlertCircle size={12} />{errors.identity}</p>}
+                    </section>
 
-                  <div className="auth-field" style={{ marginBottom: 0 }}>
-                    <div className="contact-counter-row">
-                      <label htmlFor="contact-subject">訊息主旨 *</label>
-                      <span>{form.subject.length}/80</span>
-                    </div>
-                    <input
-                      id="contact-subject"
-                      type="text"
-                      className="apple-input"
-                      placeholder="請輸入 80 字內的主旨"
-                      maxLength={80}
-                      value={form.subject}
-                      onChange={(event) => setField('subject', event.target.value)}
-                    />
-                    {errors.subject && <p className="auth-field-error"><AlertCircle size={12} />{errors.subject}</p>}
-                  </div>
-                </section>
-
-                <section className="contact-section">
-                  <div className="contact-section-head">
-                    <span className="contact-section-step">D</span>
-                    <div>
-                      <h2>詳細內容</h2>
-                      <p>請盡量提供完整情境、時間點或需求內容。</p>
-                    </div>
-                  </div>
-
-                  <div className="auth-field">
-                    <div className="contact-counter-row">
-                      <label htmlFor="contact-message">詳細說明 *</label>
-                      <span>{form.message.length}/1000</span>
-                    </div>
-                    <textarea
-                      id="contact-message"
-                      className="apple-input contact-textarea"
-                      placeholder="請輸入詳細說明，最多 1000 字。"
-                      maxLength={1000}
-                      value={form.message}
-                      onChange={(event) => setField('message', event.target.value)}
-                    />
-                    {errors.message && <p className="auth-field-error"><AlertCircle size={12} />{errors.message}</p>}
-                  </div>
-
-                  <div className="auth-field" style={{ marginBottom: 0 }}>
-                    <label>附件</label>
-                    <div
-                      className={`contact-upload-zone ${isDragActive ? 'is-drag-active' : ''}`}
-                      onDragOver={(event) => {
-                        event.preventDefault()
-                        setIsDragActive(true)
-                      }}
-                      onDragLeave={(event) => {
-                        event.preventDefault()
-                        setIsDragActive(false)
-                      }}
-                      onDrop={handleDrop}
-                    >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        multiple
-                        className="contact-upload-input"
-                        onChange={handleFileInputChange}
-                      />
-                      <div className="contact-upload-icon">
-                        <UploadCloud size={22} />
+                    <section className="contact-section">
+                      <div className="contact-section-head">
+                        <span className="contact-section-step">B</span>
+                        <div>
+                          <h2>怎麼聯絡您？</h2>
+                          <p>我們回覆時會用到，不會做其他用途。</p>
+                        </div>
                       </div>
-                      <h3>拖曳檔案到這裡，或手動選擇附件</h3>
-                      <p>支援 JPG / PNG / PDF，單一檔案上限 10MB。</p>
-                      <button
-                        type="button"
-                        className="contact-upload-btn"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Paperclip size={16} />
-                        選擇附件
-                      </button>
-                    </div>
-                    {errors.attachments && <p className="auth-field-error"><AlertCircle size={12} />{errors.attachments}</p>}
 
-                    {form.attachments.length > 0 && (
-                      <div className="contact-file-list">
-                        {form.attachments.map((file, index) => (
-                          <div key={`${file.name}-${file.lastModified}-${index}`} className="contact-file-item">
-                            <div className="contact-file-meta">
-                              <FileText size={18} />
-                              <div>
-                                <strong>{file.name}</strong>
-                                <span>{formatFileSize(file.size)}</span>
+                      <div className="auth-row-half">
+                        <div className="auth-field">
+                          <label htmlFor="contact-name">姓名（必填）</label>
+                          <input
+                            id="contact-name"
+                            type="text"
+                            className="apple-input"
+                            placeholder="請輸入姓名"
+                            value={form.name}
+                            onChange={(event) => setField('name', event.target.value)}
+                          />
+                          {errors.name && <p className="auth-field-error"><AlertCircle size={12} />{errors.name}</p>}
+                        </div>
+
+                        <div className="auth-field">
+                          <label htmlFor="contact-email">Email（必填）</label>
+                          <input
+                            id="contact-email"
+                            type="email"
+                            className="apple-input"
+                            placeholder="name@example.com"
+                            value={form.email}
+                            onChange={(event) => setField('email', event.target.value)}
+                          />
+                          {errors.email && <p className="auth-field-error"><AlertCircle size={12} />{errors.email}</p>}
+                        </div>
+                      </div>
+
+                      <div className="auth-row-half">
+                        <div className="auth-field">
+                          <label htmlFor="contact-phone">手機號碼（選填）</label>
+                          <input
+                            id="contact-phone"
+                            type="tel"
+                            className="apple-input"
+                            placeholder="0912345678"
+                            maxLength={10}
+                            value={form.phone}
+                            onChange={(event) => setField('phone', event.target.value.replace(/\D/g, ''))}
+                          />
+                          {errors.phone && <p className="auth-field-error"><AlertCircle size={12} />{errors.phone}</p>}
+                        </div>
+
+                        <div className="contact-spacer" aria-hidden="true" />
+                      </div>
+
+                      <AnimatePresence initial={false}>
+                        {showBusinessFields && (
+                          <motion.div
+                            key="business-fields"
+                            initial={{ opacity: 0, height: 0, y: -10 }}
+                            animate={{ opacity: 1, height: 'auto', y: 0 }}
+                            exit={{ opacity: 0, height: 0, y: -10 }}
+                            transition={{ duration: 0.25 }}
+                            className="contact-motion-block"
+                          >
+                            <div className="auth-row-half">
+                              <div className="auth-field">
+                                <label htmlFor="contact-company">公司名稱（必填）</label>
+                                <input
+                                  id="contact-company"
+                                  type="text"
+                                  className="apple-input"
+                                  placeholder="請輸入公司名稱"
+                                  value={form.companyName}
+                                  onChange={(event) => setField('companyName', event.target.value)}
+                                />
+                                {errors.companyName && <p className="auth-field-error"><AlertCircle size={12} />{errors.companyName}</p>}
+                              </div>
+
+                              <div className="auth-field">
+                                <label htmlFor="contact-job-title">職稱（必填）</label>
+                                <input
+                                  id="contact-job-title"
+                                  type="text"
+                                  className="apple-input"
+                                  placeholder="請輸入職稱"
+                                  value={form.jobTitle}
+                                  onChange={(event) => setField('jobTitle', event.target.value)}
+                                />
+                                {errors.jobTitle && <p className="auth-field-error"><AlertCircle size={12} />{errors.jobTitle}</p>}
                               </div>
                             </div>
-                            <button type="button" onClick={() => removeAttachment(index)} aria-label={`移除 ${file.name}`}>
-                              <X size={16} />
-                            </button>
+
+                            <div className="auth-row-half">
+                              <div className="auth-field">
+                                <label htmlFor="contact-tax-id">統一編號</label>
+                                <input
+                                  id="contact-tax-id"
+                                  type="text"
+                                  className="apple-input"
+                                  placeholder="請輸入 8 碼統一編號"
+                                  maxLength={8}
+                                  value={form.taxId}
+                                  onChange={(event) => setField('taxId', event.target.value.replace(/\D/g, ''))}
+                                />
+                                {errors.taxId && <p className="auth-field-error"><AlertCircle size={12} />{errors.taxId}</p>}
+                              </div>
+
+                              <div className="contact-spacer" aria-hidden="true" />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </section>
+
+                    <button type="button" className="btn-blue auth-submit-btn" onClick={handleNext}>
+                      繼續 <ChevronRight size={16} style={{ display: 'inline', verticalAlign: 'middle' }} />
+                    </button>
+                  </motion.div>
+                )}
+
+                {step === 1 && (
+                  <motion.div
+                    key="step1"
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.3 }}
+                  >
+                    <section className="contact-section">
+                      <div className="contact-section-head">
+                        <span className="contact-section-step">C</span>
+                        <div>
+                          <h2>關於什麼事？</h2>
+                          <p>選一個最接近的類型，方便我們找對人回覆。</p>
+                        </div>
+                      </div>
+
+                      <AnimatePresence mode="wait" initial={false}>
+                        <motion.div
+                          key={form.identity || 'default'}
+                          className="contact-type-panel"
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -12 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <div className="contact-pill-group">
+                            {currentTypeOptions.map((type) => (
+                              <button
+                                key={type}
+                                type="button"
+                                className={`contact-pill ${form.problemType === type ? 'active' : ''}`}
+                                onClick={() => setField('problemType', type)}
+                              >
+                                {type}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      </AnimatePresence>
+
+                      {errors.problemType && <p className="auth-field-error"><AlertCircle size={12} />{errors.problemType}</p>}
+                    </section>
+
+                    <section className="contact-section">
+                      <div className="contact-section-head">
+                        <span className="contact-section-step">D</span>
+                        <div>
+                          <h2>說說詳情</h2>
+                          <p>主旨簡短說明，下方留白處放細節，多寫無妨。</p>
+                        </div>
+                      </div>
+
+                      <div className="auth-field">
+                        <div className="contact-counter-row">
+                          <label htmlFor="contact-subject">主旨（必填）</label>
+                          <span>{form.subject.length} / 80</span>
+                        </div>
+                        <input
+                          id="contact-subject"
+                          type="text"
+                          className="apple-input"
+                          placeholder="用一句話說明您的問題"
+                          maxLength={80}
+                          value={form.subject}
+                          onChange={(event) => setField('subject', event.target.value)}
+                        />
+                        {errors.subject && <p className="auth-field-error"><AlertCircle size={12} />{errors.subject}</p>}
+                      </div>
+
+                      <div className="auth-field" style={{ marginBottom: 0 }}>
+                        <div className="contact-counter-row">
+                          <label htmlFor="contact-message">訊息內容（必填）</label>
+                          <span>{form.message.length} / 1000</span>
+                        </div>
+                        <textarea
+                          id="contact-message"
+                          className="apple-input contact-textarea"
+                          placeholder="可以描述發生的情況、想詢問的內容，或任何想讓我們知道的事…"
+                          maxLength={1000}
+                          value={form.message}
+                          onChange={(event) => setField('message', event.target.value)}
+                        />
+                        {errors.message && <p className="auth-field-error"><AlertCircle size={12} />{errors.message}</p>}
+                      </div>
+                    </section>
+
+                    <section className="contact-section">
+                      <div className="contact-section-head">
+                        <span className="contact-section-step">E</span>
+                        <div>
+                          <h2>有圖有真相（選填）</h2>
+                          <p>若有截圖或相關檔案，一起傳給我們更有幫助。</p>
+                        </div>
+                      </div>
+
+                      <div className="auth-field" style={{ marginBottom: 0 }}>
+                        <div
+                          className={`contact-upload-zone ${isDragActive ? 'is-drag-active' : ''}`}
+                          onDragOver={(event) => {
+                            event.preventDefault()
+                            setIsDragActive(true)
+                          }}
+                          onDragLeave={(event) => {
+                            event.preventDefault()
+                            setIsDragActive(false)
+                          }}
+                          onDrop={(event) => {
+                            event.preventDefault()
+                            setIsDragActive(false)
+                            mergeAttachments(event.dataTransfer.files)
+                          }}
+                        >
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.pdf"
+                            multiple
+                            className="contact-upload-input"
+                            onChange={(event) => {
+                              mergeAttachments(event.target.files)
+                              event.target.value = ''
+                            }}
+                          />
+
+                          <div className="contact-upload-icon">
+                            <UploadCloud size={22} />
+                          </div>
+
+                          <h3>把檔案拖進來，或點這裡選擇</h3>
+                          <p>JPG · PNG · PDF，每個不超過 10MB，最多 3 個</p>
+
+                          <button
+                            type="button"
+                            className="contact-upload-btn"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <Paperclip size={16} />
+                            選擇檔案
+                          </button>
+                        </div>
+
+                        {errors.attachments && <p className="auth-field-error"><AlertCircle size={12} />{errors.attachments}</p>}
+
+                        {form.attachments.length > 0 && (
+                          <div className="contact-file-list">
+                            {form.attachments.map((file, index) => (
+                              <div key={`${file.name}-${file.lastModified}-${index}`} className="contact-file-item">
+                                <div className="contact-file-meta">
+                                  <FileText size={18} />
+                                  <div>
+                                    <strong>{file.name}</strong>
+                                    <span>{formatFileSize(file.size)}</span>
+                                  </div>
+                                </div>
+
+                                <button type="button" onClick={() => removeAttachment(index)} aria-label={`移除 ${file.name}`}>
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </section>
+
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <button
+                        type="button"
+                        onClick={() => setStep(0)}
+                        style={{
+                          flex: '0 0 48px',
+                          padding: '16px',
+                          borderRadius: 12,
+                          border: '1.5px solid var(--color-gray-light)',
+                          background: 'var(--color-bg-white)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--color-gray-dark)',
+                        }}
+                        aria-label="返回上一步"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+
+                      <button type="button" className="btn-blue auth-submit-btn" onClick={handleNext} style={{ flex: 1, marginBottom: 0 }}>
+                        下一步 <ChevronRight size={16} style={{ display: 'inline', verticalAlign: 'middle' }} />
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
+                {step === 2 && (
+                  <motion.div
+                    key="step2"
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.3 }}
+                  >
+                    <section className="contact-section">
+                      <div className="contact-section-head">
+                        <span className="contact-section-step">F</span>
+                        <div>
+                          <h2>您填寫的資訊</h2>
+                          <p>如有需要修改，直接點左側返回即可。</p>
+                        </div>
+                      </div>
+
+                      <div className="contact-type-panel" style={{ borderRadius: 20, padding: 24, marginBottom: 20 }}>
+                        {reviewItems.map((item, index) => (
+                          <div
+                            key={item.label}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '108px 1fr',
+                              gap: 16,
+                              alignItems: 'start',
+                              padding: '12px 0',
+                              borderBottom: index < reviewItems.length - 1 ? '1px solid var(--color-gray-light)' : 'none',
+                            }}
+                          >
+                            <strong
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 600,
+                                color: 'var(--color-gray-dark)',
+                              }}
+                            >
+                              {item.label}
+                            </strong>
+                            <span
+                              style={{
+                                fontSize: 15,
+                                lineHeight: 1.7,
+                                color: 'var(--color-text-dark)',
+                                wordBreak: 'break-word',
+                              }}
+                            >
+                              {item.value}
+                            </span>
                           </div>
                         ))}
                       </div>
-                    )}
-                  </div>
-                </section>
 
-                <section className="contact-section">
-                  <div className="contact-section-head">
-                    <span className="contact-section-step">E</span>
-                    <div>
-                      <h2>確認</h2>
-                      <p>送出前請確認資料正確，並同意隱私政策。</p>
+                      <div className="auth-terms contact-privacy">
+                        <input
+                          type="checkbox"
+                          id="contact-agree-privacy"
+                          checked={form.agreePrivacy}
+                          onChange={(event) => setField('agreePrivacy', event.target.checked)}
+                        />
+                        <label htmlFor="contact-agree-privacy">
+                          我已閱讀 <Link to="/privacy">隱私權政策</Link>，同意 Mr.Polar 依此處理我的資料
+                        </label>
+                      </div>
+                      {errors.agreePrivacy && <p className="auth-field-error"><AlertCircle size={12} />{errors.agreePrivacy}</p>}
+
+                      <div className="contact-ssl-note" style={{ marginBottom: 0 }}>
+                        <ShieldCheck size={18} />
+                        <span>您的資料使用 256-bit SSL 加密傳輸，Mr.Polar 不會對外分享</span>
+                      </div>
+                    </section>
+
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <button
+                        type="button"
+                        onClick={() => setStep(1)}
+                        style={{
+                          flex: '0 0 48px',
+                          padding: '16px',
+                          borderRadius: 12,
+                          border: '1.5px solid var(--color-gray-light)',
+                          background: 'var(--color-bg-white)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--color-gray-dark)',
+                        }}
+                        aria-label="返回上一步"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+
+                      <button type="submit" className="btn-blue auth-submit-btn" disabled={isSubmitting} style={{ flex: 1, marginBottom: 0 }}>
+                        {isSubmitting ? <><span className="auth-spinner" />處理中...</> : '送出訊息'}
+                      </button>
                     </div>
-                  </div>
-
-                  <div className="auth-terms contact-privacy">
-                    <input
-                      type="checkbox"
-                      id="contact-agree-privacy"
-                      checked={form.agreePrivacy}
-                      onChange={(event) => setField('agreePrivacy', event.target.checked)}
-                    />
-                    <label htmlFor="contact-agree-privacy">
-                      我同意依照 <Link to="/faq">隱私政策</Link> 使用本次提交之聯絡資料，作為案件處理與後續回覆用途。
-                    </label>
-                  </div>
-                  {errors.agreePrivacy && <p className="auth-field-error"><AlertCircle size={12} />{errors.agreePrivacy}</p>}
-                </section>
-
-                <div className="contact-ssl-note">
-                  <ShieldCheck size={18} />
-                  <span>您的資料透過 256-bit SSL 加密傳輸，符合台灣消費者常見的信任與安全期待。</span>
-                </div>
-
-                <button type="submit" className="btn-blue auth-submit-btn" disabled={isSubmitting}>
-                  {isSubmitting ? <><span className="auth-spinner" />送出中...</> : '送出需求'}
-                </button>
-              </form>
-            </>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </form>
           ) : (
             <motion.div
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.35 }}
+              key="step3"
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3 }}
             >
               <div className="auth-success-box contact-success-box">
-                <h3>案件已成功送出</h3>
-                <p>我們已收到您的訊息，後續將由對應團隊與您聯繫。</p>
+                <div className="success-icon">🐾</div>
+                <h3>已經收到了！</h3>
+                <p>
+                  謝謝您聯繫北極先生。<br />我們會在 <strong>1–3 個工作天</strong>內回覆您。
+                </p>
               </div>
 
               <div className="contact-reference-card">
-                <div className="contact-reference-label">參考編號</div>
+                <div className="contact-reference-label">您的諮詢編號</div>
                 <div className="contact-reference-value">{submittedReference}</div>
-                <div className="contact-reference-help">建議保留此編號，後續詢問可更快協助您查詢進度。</div>
+                <div className="contact-reference-help">回覆信件的主旨會帶上這組編號，方便您辨識。</div>
               </div>
 
               <div className="contact-success-actions">
-                <button type="button" className="btn-blue auth-submit-btn" onClick={handleReset}>
-                  再送出一則訊息
-                </button>
+                <Link
+                  to="/"
+                  className="btn-blue auth-submit-btn"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textDecoration: 'none',
+                  }}
+                >
+                  回到首頁
+                </Link>
                 <p className="auth-switch">
-                  <Link to="/">返回首頁</Link>
+                  <button type="button" onClick={handleReset}>還有其他問題？再寫一封</button>
                 </p>
               </div>
             </motion.div>
           )}
-        </motion.div>
+        </div>
       </div>
     </main>
   )

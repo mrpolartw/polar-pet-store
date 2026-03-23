@@ -389,7 +389,7 @@ const Register = () => {
                 <div className="auth-terms">
                   <input type="checkbox" id="reg-agree" checked={form.agreeTerms} onChange={e => setField('agreeTerms', e.target.checked)} />
                   <label htmlFor="reg-agree">
-                    我已閱讀並同意 <Link to="/faq">服務條款</Link> 及 <Link to="/faq">隱私政策</Link>，並確認年滿 18 歲。
+                    我已閱讀並同意 <Link to="/terms">服務條款</Link> 及 <Link to="/privacy">隱私政策</Link>，並確認年滿 18 歲。
                   </label>
                 </div>
                 {errors.agreeTerms && <p className="auth-field-error" style={{ marginTop: -16, marginBottom: 12 }}><AlertCircle size={12} />{errors.agreeTerms}</p>}

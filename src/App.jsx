@@ -31,6 +31,9 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Category from './pages/Category';
 import Contact from './pages/Contact';
+import PrivacyPolicy from './pages/PrivacyPolicy/PrivacyPolicy';
+import MemberBenefits from './pages/MemberBenefits/MemberBenefits';
+import TermsOfService from './pages/TermsOfService/TermsOfService';
 import CustomCursor from './components/CustomCursor';
 import Products from './pages/Shop/Products';
 
@@ -82,6 +85,16 @@ function AppContent() {
   const navbarClass = `navbar-apple ${(!isHomePage || scrolled) ? 'scrolled' : ''}`;
 
   const getInitials = (name) => (name ? name.slice(0, 1).toUpperCase() : 'P');
+  const mobileMenuTransform =
+    mobileMenuDepth === 'main'
+      ? 'translateX(0)'
+      : mobileMenuDepth === 'brand'
+        ? 'translateX(-25%)'
+        : mobileMenuDepth === 'support'
+          ? 'translateX(-50%)'
+          : mobileMenuDepth === 'contact'
+            ? 'translateX(-75%)'
+            : 'translateX(0)';
 
   // ----------------------------------------
   // 3. 生命週期與監聽 (Effects)
@@ -183,14 +196,24 @@ function AppContent() {
             <div className="nav-desktop-links">
               <Link to="/products" onMouseEnter={() => handleMouseEnterDropdown(null)}>商品列表</Link>
               <Link to="/joints" onMouseEnter={() => handleMouseEnterDropdown(null)}>關節保健</Link>
-              <Link to="/about" onMouseEnter={() => handleMouseEnterDropdown(null)}>品牌介紹</Link>
+              <div
+                className={`nav-item-dropdown ${activeDropdown === 'brand' ? 'active' : ''}`}
+                onMouseEnter={() => handleMouseEnterDropdown('brand')}
+              >
+                <Link to="/about" onClick={(e) => e.preventDefault()}>品牌介紹</Link>
+              </div>
               <div
                 className={`nav-item-dropdown ${activeDropdown === 'support' ? 'active' : ''}`}
                 onMouseEnter={() => handleMouseEnterDropdown('support')}
               >
                 <Link to="/support" onClick={(e) => e.preventDefault()}>服務支援</Link>
               </div>
-              <Link to="/contact" onMouseEnter={() => handleMouseEnterDropdown(null)}>聯絡我們</Link>
+              <div
+                className={`nav-item-dropdown ${activeDropdown === 'contact' ? 'active' : ''}`}
+                onMouseEnter={() => handleMouseEnterDropdown('contact')}
+              >
+                <Link to="/contact" onClick={(e) => e.preventDefault()}>聯絡我們</Link>
+              </div>
             </div>
 
             {/* 右側：功能按鈕區 */}
@@ -610,6 +633,22 @@ function AppContent() {
         {/* 桌機版：Mega Menu */}
         <div className={`mega-menu ${activeDropdown ? 'show' : ''}`}>
           <div className="mega-menu-content">
+            {activeDropdown === 'brand' && (
+              <>
+                <div className="mega-menu-column">
+                  <h4>品牌故事</h4>
+                  <Link to="/about" onClick={() => setActiveDropdown(null)}>品牌源由</Link>
+                  <Link to="/founder" onClick={() => setActiveDropdown(null)}>創辦人故事</Link>
+                  <Link to="/design-philosophy" onClick={() => setActiveDropdown(null)}>設計理念</Link>
+                </div>
+                <div className="mega-menu-column">
+                  <h4>品質承諾</h4>
+                  <Link to="/brand-promise" onClick={() => setActiveDropdown(null)}>品牌承諾</Link>
+                  <Link to="/quality-assurance" onClick={() => setActiveDropdown(null)}>品質保證</Link>
+                  <Link to="/customer-feedback" onClick={() => setActiveDropdown(null)}>顧客回饋</Link>
+                </div>
+              </>
+            )}
             {activeDropdown === 'support' && (
               <>
                 <div className="mega-menu-column">
@@ -633,6 +672,25 @@ function AppContent() {
                 </div>
               </>
             )}
+            {activeDropdown === 'contact' && (
+              <>
+                <div className="mega-menu-column">
+                  <h4>說說您的想法</h4>
+                  <Link to="/contact" onClick={() => setActiveDropdown(null)}>專員聯繫</Link>
+                </div>
+                <div className="mega-menu-column">
+                  <h4>直接與我們聊聊</h4>
+                  <a
+                    href="https://lin.ee/THZqvZ5r"
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() => setActiveDropdown(null)}
+                  >
+                    LINE 官方帳號
+                  </a>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -641,14 +699,21 @@ function AppContent() {
       <div className={`nav-overlay ${isMenuOpen ? 'open' : ''}`}>
         <div
           className="nav-overlay-slider"
-          style={{ transform: mobileMenuDepth === 'main' ? 'translateX(0)' : 'translateX(-50%)' }}
+          style={{ transform: mobileMenuTransform }}
         >
           {/* 第 1 層面板：主選單 */}
           <div className="nav-overlay-panel">
             <ul className="nav-links-mobile">
               <li><Link to="/products" onClick={toggleMenu}>商品列表</Link></li>
               <li><Link to="/joints" onClick={toggleMenu}>關節保健</Link></li>
-              <li><Link to="/about" onClick={toggleMenu}>品牌介紹</Link></li>
+              <li>
+                <button
+                  className="nav-mobile-next-btn"
+                  onClick={() => setMobileMenuDepth('brand')}
+                >
+                  品牌介紹 <span className="arrow">〉</span>
+                </button>
+              </li>
               <li>
                 <button
                   className="nav-mobile-next-btn"
@@ -657,7 +722,14 @@ function AppContent() {
                   服務支援 <span className="arrow">〉</span>
                 </button>
               </li>
-              <li><Link to="/contact" onClick={toggleMenu}>聯絡我們</Link></li>
+              <li>
+                <button
+                  className="nav-mobile-next-btn"
+                  onClick={() => setMobileMenuDepth('contact')}
+                >
+                  聯絡我們 <span className="arrow">〉</span>
+                </button>
+              </li>
               <li style={{
                 marginTop: 16,
                 borderTop: '1px solid var(--color-gray-light)',
@@ -693,7 +765,26 @@ function AppContent() {
             </ul>
           </div>
 
-          {/* 第 2 層面板：服務支援次選單 */}
+          {/* 第 2 層面板：品牌介紹次選單 */}
+          <div className="nav-overlay-panel">
+            <button
+              className="nav-mobile-back-btn"
+              onClick={() => setMobileMenuDepth('main')}
+            >
+              <span className="arrow">〈</span> 品牌介紹
+            </button>
+            <ul className="nav-links-mobile sub-links">
+              <li className="mobile-sub-title">品牌故事</li>
+              <li><Link to="/about" onClick={toggleMenu}>品牌源由</Link></li>
+              <li><Link to="/founder" onClick={toggleMenu}>創辦人故事</Link></li>
+              <li><Link to="/design-philosophy" onClick={toggleMenu}>設計理念</Link></li>
+              <li className="mobile-sub-title" style={{ marginTop: '24px' }}>品質承諾</li>
+              <li><Link to="/brand-promise" onClick={toggleMenu}>品牌承諾</Link></li>
+              <li><Link to="/quality-assurance" onClick={toggleMenu}>品質保證</Link></li>
+              <li><Link to="/customer-feedback" onClick={toggleMenu}>顧客回饋</Link></li>
+            </ul>
+          </div>
+
           <div className="nav-overlay-panel">
             <button
               className="nav-mobile-back-btn"
@@ -720,6 +811,30 @@ function AppContent() {
               <li><Link to="/faq" onClick={toggleMenu}>常見問題 (FAQ)</Link></li>
             </ul>
           </div>
+
+          <div className="nav-overlay-panel">
+            <button
+              className="nav-mobile-back-btn"
+              onClick={() => setMobileMenuDepth('main')}
+            >
+              <span className="arrow">〈</span> 聯絡我們
+            </button>
+            <ul className="nav-links-mobile sub-links">
+              <li className="mobile-sub-title">說說您的想法</li>
+              <li><Link to="/contact" onClick={toggleMenu}>專員聯繫</Link></li>
+              <li className="mobile-sub-title" style={{ marginTop: '24px' }}>直接與我們聊聊</li>
+              <li>
+                <a
+                  href="https://lin.ee/THZqvZ5r"
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={toggleMenu}
+                >
+                  LINE 官方帳號
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -728,6 +843,11 @@ function AppContent() {
         {/* ── 核心頁面 ── */}
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
+        <Route path="/founder" element={<Category title="創辦人介紹" subtitle="認識 Mr.Polar 的初心與品牌起點" />} />
+        <Route path="/design-philosophy" element={<Category title="設計理念" subtitle="以毛孩與飼主體驗為核心的品牌思維" />} />
+        <Route path="/brand-promise" element={<Category title="品牌承諾" subtitle="從原料到服務，守住每一份信任" />} />
+        <Route path="/quality-assurance" element={<Category title="品質安心" subtitle="透明把關每一道品質與安全流程" />} />
+        <Route path="/customer-feedback" element={<Category title="顧客回饋" subtitle="來自真實飼主與毛孩的使用分享" />} />
         <Route path="/order" element={<OrderQuery />} />
 
         {/* ── 購物流程 ── */}
@@ -751,6 +871,9 @@ function AppContent() {
         {/* ── 服務支援 ── */}
         <Route path="/support" element={<Category title="客戶服務" subtitle="我們隨時在您身邊" />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/member-benefits" element={<MemberBenefits />} />
+        <Route path="/terms" element={<TermsOfService />} />
         <Route path="/blog" element={<Category title="最新消息" subtitle="毛孩知識與品牌故事" />} />
         <Route path="/faq" element={<Category title="常見問題" subtitle="服務條款與隱私政策" />} />
 
@@ -786,17 +909,22 @@ function AppContent() {
               <h4>關於 Polar</h4>
               <ul>
                 <li><Link to="/about">品牌故事</Link></li>
+                <li><Link to="/member-benefits">會員權益說明</Link></li>
                 <li><Link to="/blog">最新消息</Link></li>
-                <li><Link to="/faq">服務條款</Link></li>
-                <li><Link to="/faq">隱私政策</Link></li>
+                <li><Link to="/terms">服務條款</Link></li>
+                <li><Link to="/privacy">隱私權政策</Link></li>
               </ul>
             </div>
           </div>
           <div className="footer-bottom">
-            <p>Copyright © 2026 Mr.Polar Inc.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <p style={{ margin: 0 }}>Copyright © 2026 Mr.Polar Inc.</p>
+              <p style={{ margin: 0 }}>統一編號：95448000</p>
+              <p style={{ margin: 0 }}>地址：臺中市西屯區何安里臺灣大道二段910號13樓之2</p>
+            </div>
             <div className="footer-legal">
-              <Link to="/faq">隱私政策</Link>
-              <Link to="/faq">使用條款</Link>
+              <Link to="/privacy">隱私權政策</Link>
+              <Link to="/terms">使用條款</Link>
             </div>
           </div>
         </div>

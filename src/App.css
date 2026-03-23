@@ -501,13 +501,13 @@ html, body {
 
 .nav-overlay-slider {
   display: flex;
-  width: 200%;
+  width: 400%;
   height: 100%;
   transition: transform var(--transition-smooth);
 }
 
 .nav-overlay-panel {
-  width: 50%;
+  width: 25%;
   height: 100%;
   padding: 0 24px;
   overflow-y: auto;
