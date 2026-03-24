@@ -1,6 +1,6 @@
 import React from 'react'
 import { ShoppingCart } from 'lucide-react'
-import { formatPrice } from '../../data/productCatalog'
+import { formatPrice } from '../../utils/formatters'
 
 const ProductStickyBar = ({ product, selectedVariant, quantity, onAddToCart, onBuyNow }) => (
   <div className="pdp-sticky-bar">
@@ -11,6 +11,7 @@ const ProductStickyBar = ({ product, selectedVariant, quantity, onAddToCart, onB
     <div className="pdp-sticky-actions">
       <button type="button" className="pdp-sticky-secondary" onClick={onAddToCart}>
         <ShoppingCart size={16} />
+        加入購物車
       </button>
       <button type="button" className="btn-blue pdp-sticky-primary" onClick={onBuyNow}>
         立即購買

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import LogoImg from '../png/LOGO.png'
+import './Auth/Auth.css'
 import './Contact.css'
 
 const CONTACT_STEPS = ['身份確認', '問題描述', '確認送出']
@@ -47,16 +48,16 @@ const slideVariants = {
 
 const STEP_META = {
   0: {
-    title: '嗨，請先認識一下您',
-    description: '讓我們知道您是誰，這樣才能把您的訊息交給最適合的人。',
+    title: '嗨，先認識一下你',
+    description: '讓我們知道你是誰，這樣我們比較知道怎麼回你。',
   },
   1: {
     title: '告訴我們發生了什麼',
-    description: '不用完美，把情況說清楚就好，我們會從這裡開始幫您。',
+    description: '不用完美，把情況說清楚就好，我們會從這裡開始幫你。',
   },
   2: {
     title: '看起來都對嗎？',
-    description: '最後確認一下內容，沒問題就送出，我們馬上開始處理。',
+    description: '最後再看一眼。沒問題就送出，我們就開始處理。',
   },
 }
 
@@ -160,7 +161,7 @@ const Contact = () => {
       if (merged.length > MAX_FILES) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          attachments: `附件最多先上傳 ${MAX_FILES} 個，我們就能開始幫您處理`,
+          attachments: `附件先上傳 ${MAX_FILES} 個就好，我們比較好開始處理`,
         }))
         return prev
       }
@@ -181,9 +182,9 @@ const Contact = () => {
   const validateStep0 = () => {
     const nextErrors = {}
 
-    if (!form.identity) nextErrors.identity = '先選一個身份，我們才能幫您分流'
+    if (!form.identity) nextErrors.identity = '先選一個身份，我們比較知道怎麼接住你'
     if (!form.name.trim()) nextErrors.name = '需要填寫姓名才能繼續'
-    if (!form.email.trim()) nextErrors.email = '需要留下 Email，我們才能回覆您'
+    if (!form.email.trim()) nextErrors.email = '需要留下 Email，我們才能回你'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) nextErrors.email = '這個 Email 看起來格式不太對，再幫我們確認一下'
 
     if (form.phone.trim() && !/^09\d{8}$/.test(form.phone.trim())) {
@@ -200,11 +201,11 @@ const Contact = () => {
   const validateStep1 = () => {
     const nextErrors = {}
 
-    if (!form.problemType) nextErrors.problemType = '先選一個問題類型，我們比較好幫您分流'
+    if (!form.problemType) nextErrors.problemType = '先選一個問題類型，我們比較知道怎麼接住你'
     if (!form.subject.trim()) nextErrors.subject = '需要填寫主旨，讓我們先快速理解狀況'
     else if (form.subject.trim().length > 80) nextErrors.subject = '主旨有點長了，精簡到 80 個字內就可以'
 
-    if (!form.message.trim()) nextErrors.message = '需要填寫訊息內容，我們才能開始協助您'
+    if (!form.message.trim()) nextErrors.message = '需要填寫訊息內容，我們才能開始幫你'
     else if (form.message.trim().length > 1000) nextErrors.message = '訊息有點長了，整理到 1000 個字內就可以'
 
     return nextErrors
@@ -273,7 +274,7 @@ const Contact = () => {
           <Link to="/">
             <img
               src={LogoImg}
-              alt="Mr. Polar"
+              alt="Mr.Polar 北極先生"
               style={{
                 height: 'auto',
                 width: 293,
@@ -302,7 +303,7 @@ const Contact = () => {
           </div>
           <div className="auth-brand-feature">
             <div className="auth-brand-feature-icon"><ShieldCheck size={16} /></div>
-            <span>您的資訊，我們好好保管</span>
+            <span>你的資料，我們好好保管</span>
           </div>
         </div>
       </div>
@@ -313,7 +314,7 @@ const Contact = () => {
             <Link to="/">
               <img
                 src={LogoImg}
-                alt="Mr. Polar"
+                alt="Mr.Polar 北極先生"
                 style={{ height: 'auto', width: 293, maxWidth: '100%', display: 'block' }}
               />
             </Link>
@@ -353,7 +354,7 @@ const Contact = () => {
                       <div className="contact-section-head">
                         <span className="contact-section-step">A</span>
                         <div>
-                          <h2>您是？</h2>
+                          <h2>你是？</h2>
                           <p>選一個最接近的身份就好，不用太精確。</p>
                         </div>
                       </div>
@@ -378,7 +379,7 @@ const Contact = () => {
                       <div className="contact-section-head">
                         <span className="contact-section-step">B</span>
                         <div>
-                          <h2>怎麼聯絡您？</h2>
+                          <h2>怎麼聯絡你？</h2>
                           <p>我們回覆時會用到，不會做其他用途。</p>
                         </div>
                       </div>
@@ -558,7 +559,7 @@ const Contact = () => {
                           id="contact-subject"
                           type="text"
                           className="apple-input"
-                          placeholder="用一句話說明您的問題"
+                          placeholder="用一句話說明你的問題"
                           maxLength={80}
                           value={form.subject}
                           onChange={(event) => setField('subject', event.target.value)}
@@ -703,7 +704,7 @@ const Contact = () => {
                       <div className="contact-section-head">
                         <span className="contact-section-step">F</span>
                         <div>
-                          <h2>您填寫的資訊</h2>
+                          <h2>你填寫的資訊</h2>
                           <p>如有需要修改，直接點左側返回即可。</p>
                         </div>
                       </div>
@@ -752,14 +753,14 @@ const Contact = () => {
                           onChange={(event) => setField('agreePrivacy', event.target.checked)}
                         />
                         <label htmlFor="contact-agree-privacy">
-                          我已閱讀 <Link to="/privacy">隱私權政策</Link>，同意 Mr.Polar 依此處理我的資料
+                          我已閱讀 <Link to="/privacy">隱私權政策</Link>，同意北極先生依此處理我的資料
                         </label>
                       </div>
                       {errors.agreePrivacy && <p className="auth-field-error"><AlertCircle size={12} />{errors.agreePrivacy}</p>}
 
                       <div className="contact-ssl-note" style={{ marginBottom: 0 }}>
                         <ShieldCheck size={18} />
-                        <span>您的資料使用 256-bit SSL 加密傳輸，Mr.Polar 不會對外分享</span>
+                        <span>你的資料會用 256-bit SSL 加密傳輸，北極先生不會對外分享</span>
                       </div>
                     </section>
 
@@ -805,14 +806,16 @@ const Contact = () => {
                 <div className="success-icon">🐾</div>
                 <h3>已經收到了！</h3>
                 <p>
-                  謝謝您聯繫北極先生。<br />我們會在 <strong>1–3 個工作天</strong>內回覆您。
+                  謝謝你告訴我們。<br />
+                  我們會在 <strong>1–3 個工作天</strong>內回覆，
+                  有急事也可以直接找我們的 LINE。
                 </p>
               </div>
 
               <div className="contact-reference-card">
-                <div className="contact-reference-label">您的諮詢編號</div>
+                <div className="contact-reference-label">你的諮詢編號</div>
                 <div className="contact-reference-value">{submittedReference}</div>
-                <div className="contact-reference-help">回覆信件的主旨會帶上這組編號，方便您辨識。</div>
+                <div className="contact-reference-help">我們回覆時會帶上這組編號，方便你對照。</div>
               </div>
 
               <div className="contact-success-actions">
@@ -826,10 +829,10 @@ const Contact = () => {
                     textDecoration: 'none',
                   }}
                 >
-                  回到首頁
+                  回首頁
                 </Link>
                 <p className="auth-switch">
-                  <button type="button" onClick={handleReset}>還有其他問題？再寫一封</button>
+                  <button type="button" onClick={handleReset}>還有問題？再寫一封</button>
                 </p>
               </div>
             </motion.div>

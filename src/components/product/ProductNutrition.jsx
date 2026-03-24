@@ -3,7 +3,7 @@ import React from 'react'
 const ProductNutrition = ({ product }) => (
   <section className="pdp-section-card">
     <div className="pdp-section-head">
-      <div className="pdp-section-kicker">Proof & Utility</div>
+      <div className="pdp-section-kicker">吃進去的是什麼</div>
       <h2>{product.nutritionSectionTitle}</h2>
       <p>{product.nutritionSectionIntro}</p>
     </div>

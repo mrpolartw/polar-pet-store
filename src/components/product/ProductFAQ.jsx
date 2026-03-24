@@ -7,9 +7,9 @@ const ProductFAQ = ({ faqs }) => {
   return (
     <section className="pdp-section-card">
       <div className="pdp-section-head">
-        <div className="pdp-section-kicker">FAQ</div>
-        <h2>常見問題</h2>
-        <p>把最容易阻礙下單的疑問提前拆解，讓資訊掃讀更輕鬆。</p>
+        <div className="pdp-section-kicker">你可能想問的</div>
+        <h2>你可能想問的</h2>
+        <p>先把常見問題放在這裡，讓你不用來回找答案。</p>
       </div>
 
       <div className="pdp-faq-list">

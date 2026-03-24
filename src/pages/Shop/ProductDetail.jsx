@@ -104,7 +104,7 @@ const ProductDetail = () => {
           <section className="pdp-empty-state">
             <h1>找不到這個商品</h1>
             <p>目前沒有對應的商品內容，請回商品列表繼續瀏覽。</p>
-            <Link to="/products" className="btn-blue pdp-empty-link">返回商品列表</Link>
+            <Link to="/products" className="btn-blue pdp-empty-link">← 回去看看</Link>
           </section>
         </div>
       </main>

@@ -13,32 +13,31 @@ const slides = [
     {
         id: 1,
         image: banner1,
-        title: 'Polar Pro',
-        subtitle: '重新定義，頂級寵物營養學。',
-        desc: '以航太級凍乾鎖鮮技術，封存來自純淨海域與農場的最原始精華。'
+        title: '為毛孩，只放真正需要的。',
+        subtitle: '天然食材。清楚成分。吃得放心。',
+        desc: '',
     },
     {
         id: 2,
         image: banner2,
-        title: '溫暖陪伴每一天',
-        subtitle: '為牠們量身打造的日常餐點。',
-        desc: '每一口都充滿了愛與關懷，讓您的愛犬天天活力充沛。'
+        title: '從一款肉泥開始。',
+        subtitle: '保健不複雜——選對的，就夠了。',
+        desc: '',
     },
     {
         id: 3,
         image: banner3,
-        title: '原肉手工零食',
-        subtitle: '週末的幸福獎勵，純粹無添加。',
-        desc: '從源頭把關的安心肉源，無化學香料滿足球小怪物的味蕾。'
+        title: '你在乎牠吃什麼，我們也是。',
+        subtitle: '每一樣食材，都有我們說得清楚的理由。',
+        desc: '',
     },
     {
         id: 4,
         image: banner4,
-        title: '無憂無慮的日常跑跳',
-        subtitle: '全方位的關節保養與防護。',
-        desc: '科學精算的全方位營養，搭配玻尿酸與天然軟骨素，讓每一步都穩健輕盈。'
+        title: '加入北極先生。',
+        subtitle: '成為會員，和毛孩一起開始。',
+        desc: '',
     },
-    
 ];
 
 const HeroCarousel = () => {
@@ -113,7 +112,7 @@ const HeroCarousel = () => {
                         className="carousel-item"
                         style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
                     >
-                        <div className="carousel-bg" style={{ backgroundImage: `url(${slides[currentIndex].image})` }}></div>
+                        <div className="carousel-bg" style={{ backgroundImage: `url(${slides[currentIndex].image})` }} />
                     </motion.div>
                 </AnimatePresence>
             </div>

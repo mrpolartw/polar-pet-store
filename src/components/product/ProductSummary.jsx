@@ -1,6 +1,6 @@
 import React from 'react'
 import { Heart, ShieldCheck, ShoppingCart, Star, Zap } from 'lucide-react'
-import { formatPrice } from '../../data/productCatalog'
+import { formatPrice } from '../../utils/formatters'
 
 const ProductSummary = ({
   product,
@@ -20,7 +20,7 @@ const ProductSummary = ({
     <aside className="pdp-summary-card">
       <div className="pdp-summary-top">
         <div className="pdp-summary-copy">
-          <div className="pdp-summary-kicker">Polar Product Detail</div>
+          <div className="pdp-summary-kicker">為毛孩準備的</div>
           <h1>{product.name}</h1>
           <p>{product.usp}</p>
         </div>
@@ -29,7 +29,7 @@ const ProductSummary = ({
           type="button"
           className={`pdp-favorite-btn ${isFavorite ? 'active' : ''}`}
           onClick={onToggleFavorite}
-          aria-label={isFavorite ? '取消收藏' : '加入收藏'}
+          aria-label={isFavorite ? '從收藏中移除' : '收藏這款'}
         >
           <Heart size={18} />
         </button>
@@ -42,7 +42,7 @@ const ProductSummary = ({
           ))}
         </div>
         <span>{product.rating.toFixed(1)}</span>
-        <span>({product.reviewCount} 則評價)</span>
+        <span>({product.reviewCount} 位飼主評價)</span>
       </div>
 
       <p className="pdp-summary-description">{product.shortDescription}</p>
@@ -64,7 +64,7 @@ const ProductSummary = ({
       </div>
 
       <div className="pdp-control-group">
-        <div className="pdp-control-label">規格選擇</div>
+        <div className="pdp-control-label">選擇規格</div>
         <div className="pdp-variant-grid">
           {product.variants.map((variant) => (
             <button
@@ -81,7 +81,7 @@ const ProductSummary = ({
       </div>
 
       <div className="pdp-control-group">
-        <div className="pdp-control-label">數量</div>
+        <div className="pdp-control-label">購買數量</div>
         <div className="pdp-quantity-stepper">
           <button type="button" onClick={() => onQuantityChange(Math.max(1, quantity - 1))}>-</button>
           <span>{quantity}</span>
@@ -103,11 +103,11 @@ const ProductSummary = ({
       <div className="pdp-trust-panel">
         <div className="pdp-trust-item">
           <ShieldCheck size={16} />
-          <span>滿 NT$1,500 享免運，付款流程採 256-bit SSL 加密保護。</span>
+          <span>滿 NT$1,500 免運到家</span>
         </div>
         <div className="pdp-trust-item">
           <ShieldCheck size={16} />
-          <span>已選規格：{selectedVariant.label}，送出前可於購物車再次調整數量。</span>
+          <span>7 天鑑賞期，不滿意告訴我們</span>
         </div>
       </div>
     </aside>

@@ -418,3 +418,13 @@
     align-items: flex-start;
   }
 }
+
+@media (max-width: 767px) {
+  .contact-page .auth-brand-panel {
+    display: none;
+  }
+
+  .contact-page .auth-form-panel {
+    padding: 40px 20px;
+  }
+}

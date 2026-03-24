@@ -3,7 +3,7 @@ import React from 'react'
 const ProductIngredients = ({ product }) => (
   <section className="pdp-section-card">
     <div className="pdp-section-head">
-      <div className="pdp-section-kicker">Ingredient Transparency</div>
+      <div className="pdp-section-kicker">放了什麼，說清楚</div>
       <h2>{product.ingredientsTitle}</h2>
       <p>{product.ingredientsIntro}</p>
     </div>
@@ -21,13 +21,13 @@ const ProductIngredients = ({ product }) => (
 
       <div className="pdp-ingredient-side">
         <div className="pdp-side-card">
-          <h3>不含什麼</h3>
+          <h3>我們不放的</h3>
           <ul>
             {product.exclusions.map((item) => <li key={item}>{item}</li>)}
           </ul>
         </div>
         <div className="pdp-side-card">
-          <h3>來源與安心說明</h3>
+          <h3>食材從哪裡來</h3>
           <p>{product.sourceNote}</p>
         </div>
       </div>

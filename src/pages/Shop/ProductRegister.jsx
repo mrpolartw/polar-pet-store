@@ -109,16 +109,16 @@ function AuthPrompt() {
   return (
     <main className="pr-page">
       <section className="pr-hero">
-        <h1 className="headline-pro">產品安心登記</h1>
+        <h1 className="headline-pro">登錄你的商品</h1>
         <p className="subhead-pro" style={{ marginTop: 12 }}>
-          登入您購買的Mr.Polar商品，即可查看商品完整安心履歷
+          登入你購買的 Mr.Polar 商品，就能查看完整安心履歷
         </p>
       </section>
       <div className="pr-container">
         <div className="pr-auth-gate">
           <div className="pr-auth-gate-icon"><Shield size={48} strokeWidth={1.5} /></div>
-          <h2>需要登入才能使用此功能</h2>
-          <p>產品序號登入需要會員身份，以確保每個序號的唯一性與安全性。</p>
+          <h2>需要先登入才能使用</h2>
+          <p>先登入，才能把這項商品記到你的帳號裡，也能確認序號沒有重複登錄。</p>
           <div className="pr-auth-gate-btns">
             <Link to="/login" className="btn-blue pr-auth-btn">
               <LogIn size={18} /> 登入帳號
@@ -129,7 +129,7 @@ function AuthPrompt() {
           </div>
           <p className="pr-auth-hint">
             <Shield size={12} style={{ marginRight: 5 }} />
-            您的資料受到 256-bit SSL 加密保護
+            你的資料會用 256-bit SSL 加密保護
           </p>
         </div>
       </div>
@@ -208,7 +208,7 @@ export default function ProductRegister() {
   /* ── Search ── */
   const doSearch = (inputSerial) => {
     const s = (inputSerial ?? serial).trim().toUpperCase();
-    if (!s) { setError('請輸入產品序號'); return; }
+    if (!s) { setError('先輸入產品序號'); return; }
     setError('');
     setStep('verifying');
 
@@ -264,7 +264,7 @@ export default function ProductRegister() {
       <div className="pr-card-header">
         <div className="pr-card-icon"><Hash size={22} /></div>
         <div>
-          <h2 className="pr-card-title">輸入產品序號</h2>
+          <h2 className="pr-card-title">登錄你的商品</h2>
           <p className="pr-card-subtitle">序號印於產品包裝背面或底部標籤</p>
         </div>
       </div>
@@ -323,7 +323,7 @@ export default function ProductRegister() {
   const renderVerifying = () => (
     <div className="pr-card pr-verifying">
       <div className="pr-spinner" />
-      <p className="pr-verifying-text">正在驗證產品序號...</p>
+      <p className="pr-verifying-text">正在確認這組序號…</p>
     </div>
   );
 
@@ -370,7 +370,8 @@ export default function ProductRegister() {
           <div className="pr-status-banner success">
             <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
             <span>
-              登記成功！登記人：<strong>{product.registeredBy}</strong>，
+              登錄完成。已經記下來了。有任何問題，隨時找我們。
+              登錄人：<strong>{product.registeredBy}</strong>，
               時間：<strong>{product.registeredDate}</strong>
             </span>
           </div>
@@ -415,7 +416,7 @@ export default function ProductRegister() {
         <div className="pr-actions">
           {step === 'result' && (
             <button className="btn-blue pr-register-btn" onClick={handleRegister}>
-              <UserCheck size={18} /> 立即登記此產品
+              <UserCheck size={18} /> 送出
             </button>
           )}
           <button className="pr-back-btn" onClick={handleReset}>
@@ -439,9 +440,9 @@ export default function ProductRegister() {
 
       {/* ── Hero ── */}
       <section className="pr-hero">
-        <h1 className="headline-pro" >商品安心登記</h1>
+        <h1 className="headline-pro" >登錄你的商品</h1>
         <p className="subhead-pro" >
-          登入您購買的Mr.Polar商品，即可查看商品完整安心履歷
+          登入你購買的 Mr.Polar 商品，就能查看完整安心履歷
         </p>
         {user && (
           <span className="pr-hero-user">
@@ -480,7 +481,7 @@ export default function ProductRegister() {
             </div>
             <p className="pr-camera-hint">
               {scanStatus === 'found'
-                ? 'QR Code 偵測成功！'
+                ? 'QR Code 偵測成功'
                 : '將 QR Code 對準框內，系統自動掃描'}
             </p>
           </div>

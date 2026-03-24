@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import { useCart } from '../../context/useCart'
+import { formatPrice } from '../../utils/formatters'
 import {
   CATEGORIES,
   PET_TYPES,
@@ -22,7 +23,6 @@ import {
   PRODUCT_FILTERS,
   SORT_OPTIONS,
   createCartPayload,
-  formatPrice,
 } from '../../data/productCatalog'
 import './Products.css'
 
@@ -95,7 +95,7 @@ function ProductCard({ product, viewMode, onAddToCart }) {
             </div>
             <div className="prod-card-actions">
               <Link to={`/products/${product.slug}`} className="prod-detail-link">
-                查看詳情
+                看看這款
               </Link>
               <button
                 type="button"
@@ -180,7 +180,7 @@ function FilterPanel({
         <Search size={16} className="prod-filter-search-icon" />
         <input
           type="text"
-          placeholder="搜尋商品..."
+          placeholder="找毛孩要的..."
           className="prod-filter-search-input"
           value={search}
           onChange={(event) => {
@@ -245,7 +245,7 @@ function FilterPanel({
 
       {activeFilters.length > 0 && (
         <button className="prod-filter-clear-all" onClick={clearAllFilters}>
-          <X size={14} /> 清除全部篩選
+          <X size={14} /> 清除條件
         </button>
       )}
     </div>
@@ -385,7 +385,7 @@ export default function Products() {
   return (
     <main className="products-page">
       <div className="checkout-header-simple">
-        <h1 className="headline-pro">所有商品</h1>
+        <h1 className="headline-pro">為牠找到對的那一款</h1>
       </div>
 
       <div className="products-layout">
@@ -393,7 +393,7 @@ export default function Products() {
           <div className="prod-sidebar-card">
             <div className="prod-sidebar-title">
               <SlidersHorizontal size={16} style={{ marginRight: 8 }} />
-              篩選條件
+              找你要的
             </div>
             <FilterPanel
               search={search}
@@ -467,7 +467,7 @@ export default function Products() {
                   <button onClick={filter.clear}><X size={12} /></button>
                 </span>
               ))}
-              <button className="prod-filter-chip-clear" onClick={clearAllFilters}>清除全部</button>
+              <button className="prod-filter-chip-clear" onClick={clearAllFilters}>清除條件</button>
             </div>
           )}
 
@@ -485,10 +485,10 @@ export default function Products() {
           ) : (
             <div className="prod-empty">
               <span className="prod-empty-icon">🔎</span>
-              <h3>目前沒有符合條件的商品</h3>
-              <p>你可以清除篩選或換一個搜尋條件試試看。</p>
+              <h3>這個條件找不到商品</h3>
+              <p>換個篩選條件試試，或直接告訴我們你在找什麼。</p>
               <button className="btn-blue" style={{ padding: '12px 28px', borderRadius: 980, marginTop: 8 }} onClick={clearAllFilters}>
-                清除所有篩選
+                清除條件
               </button>
             </div>
           )}
@@ -521,7 +521,7 @@ export default function Products() {
         <div className="prod-filter-drawer-overlay" onClick={() => setFilterOpen(false)}>
           <div className="prod-filter-drawer" onClick={(event) => event.stopPropagation()}>
             <div className="prod-filter-drawer-header">
-              <h3>篩選條件</h3>
+              <h3>找你要的</h3>
               <button onClick={() => setFilterOpen(false)}><X size={20} /></button>
             </div>
             <div className="prod-filter-drawer-body">
@@ -541,7 +541,7 @@ export default function Products() {
             </div>
             <div className="prod-filter-drawer-footer">
               <button className="btn-blue" style={{ width: '100%', padding: '16px', borderRadius: 12, fontSize: 16 }} onClick={() => setFilterOpen(false)}>
-                查看 {filteredProducts.length} 項商品
+                看看 {filteredProducts.length} 款
               </button>
             </div>
           </div>

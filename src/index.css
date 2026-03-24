@@ -73,6 +73,12 @@ body {
   overflow-x: hidden;
 }
 
+body.menu-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
 a {
   text-decoration: none;
   color: inherit;

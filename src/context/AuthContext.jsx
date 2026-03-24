@@ -1,112 +1,125 @@
-import React, { createContext, useState } from 'react'
+import React, { createContext, useState, useEffect, useCallback } from 'react'
+
+import authService from '../services/authService'
 
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('polar_user')
-      return saved ? JSON.parse(saved) : null
-    } catch {
-      return null
-    }
-  })
-  const [isLoading, setIsLoading] = useState(false)
+  const [user, setUser] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [authError, setAuthError] = useState('')
 
-  const _saveUser = (u) => {
-    setUser(u)
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        // TODO: [BACKEND] 後端實作後，getMe() 會驗證現有 session/token
+        // 目前 authService.getMe() 為 TODO placeholder，會 throw error
+        // 所以 catch 到 error 時 setUser(null) 是正確行為
+        const data = await authService.getMe()
+        setUser(data?.customer ?? data ?? null)
+      } catch {
+        if (import.meta.env.DEV) {
+          console.warn('[Auth] Session check failed (後端尚未實作，此為預期行為)')
+        }
+        setUser(null)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkSession()
+  }, [])
+
+  const login = useCallback(async (email, password) => {
+    setIsLoading(true)
+    setAuthError('')
+
     try {
-      localStorage.setItem('polar_user', JSON.stringify(u))
+      // TODO: [BACKEND] authService.login 需後端 POST /store/auth 實作
+      const data = await authService.login(email, password)
+      const nextUser = data?.customer ?? data ?? null
+
+      if (!nextUser) {
+        throw new Error('登入失敗，請稍後再試')
+      }
+
+      setUser(nextUser)
       return { success: true }
+    } catch (err) {
+      const message = err?.message || '登入失敗，請稍後再試'
+      setAuthError(message)
+      return { success: false, message }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  const register = useCallback(async (userData) => {
+    setIsLoading(true)
+    setAuthError('')
+
+    try {
+      // TODO: [BACKEND] authService.register 需後端 POST /store/customers 實作
+      const data = await authService.register(userData)
+      const nextUser = data?.customer ?? data ?? null
+
+      if (!nextUser) {
+        throw new Error('註冊失敗，請稍後再試')
+      }
+
+      setUser(nextUser)
+      return { success: true }
+    } catch (err) {
+      const message = err?.message || '註冊失敗，請稍後再試'
+      setAuthError(message)
+      return { success: false, message }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  const logout = useCallback(async () => {
+    try {
+      // TODO: [BACKEND] authService.logout 需後端清除 session
+      await authService.logout()
     } catch {
-      return { success: false, message: '無法寫入瀏覽器儲存空間' }
+      // logout 失敗仍清除前端狀態
+    } finally {
+      setUser(null)
+      setAuthError('')
+      // TODO: [AUTH] 清除 sessionStorage token（後端串接後補上）
     }
-  }
+  }, [])
 
-  const login = async (email, password) => {
+  const updateProfile = useCallback(async (updates) => {
     setIsLoading(true)
-    setAuthError('')
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 800))
-      if (password.length < 6) {
-        setAuthError('密碼至少需要 6 個字元')
-        return { success: false }
-      }
-      const mockUser = {
-        id: 1,
-        name: email.split('@')[0],
-        email,
-        phone: '0912-345-678',
-        birthday: '1995-06-15',
-        avatar: null,
-        lineLinked: false,
-        lineDisplayName: '',
-        lineBoundAt: '',
-        memberSince: '2024-01-15',
-        points: 3280,
-        addresses: [
-          {
-            id: 1,
-            label: '住家',
-            name: '王小明',
-            phone: '0912-345-678',
-            city: '台北市',
-            district: '大安區',
-            address: '忠孝東路 123 號 5 樓',
-            isDefault: true,
-          },
-        ],
-      }
-      _saveUser(mockUser)
+      // TODO: [BACKEND] authService.updateProfile 需後端 POST /store/customers/me 實作
+      const data = await authService.updateProfile(updates)
+      const updated = data?.customer ?? data ?? updates
+      setUser(prev => ({ ...prev, ...updated }))
       return { success: true }
+    } catch (err) {
+      return { success: false, message: err?.message || '更新失敗，請稍後再試' }
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  const register = async (userData) => {
+  const changePassword = useCallback(async (oldPassword, newPassword) => {
     setIsLoading(true)
-    setAuthError('')
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      const newUser = {
-        id: Date.now(),
-        ...userData,
-        avatar: null,
-        lineLinked: false,
-        lineDisplayName: '',
-        lineBoundAt: '',
-        memberSince: new Date().toISOString().split('T')[0],
-        points: 100,
-        addresses: [],
-      }
-      _saveUser(newUser)
+      // TODO: [BACKEND] authService.changePassword 需後端實作
+      await authService.changePassword(oldPassword, newPassword)
       return { success: true }
+    } catch (err) {
+      return { success: false, message: err?.message || '密碼變更失敗，請稍後再試' }
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem('polar_user')
-  }
-
-  const updateProfile = (updates) => {
-    const updated = { ...user, ...updates }
-    return _saveUser(updated)
-  }
-
-  const changePassword = async (oldPassword) => {
-    setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 600))
-    setIsLoading(false)
-    if (oldPassword.length < 6) {
-      return { success: false, message: '舊密碼格式不正確' }
-    }
-    return { success: true }
-  }
+  }, [])
 
   return (
     <AuthContext.Provider

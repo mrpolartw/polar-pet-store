@@ -3,7 +3,7 @@ import React from 'react'
 const ProductFeedingGuide = ({ guide }) => (
   <section className="pdp-section-card">
     <div className="pdp-section-head">
-      <div className="pdp-section-kicker">Guide</div>
+      <div className="pdp-section-kicker">怎麼餵</div>
       <h2>{guide.title}</h2>
       <p>{guide.intro}</p>
     </div>
@@ -27,7 +27,7 @@ const ProductFeedingGuide = ({ guide }) => (
           </ul>
         </div>
         <div className="pdp-side-card">
-          <h3>保存與提醒</h3>
+          <h3>怎麼保存，記得補充水分</h3>
           <p>{guide.storage}</p>
           <p>{guide.water}</p>
         </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, ShoppingBag, Menu, X, LogOut } from 'lucide-react';
 
@@ -11,31 +11,41 @@ import './App.css';
 import LogoImg from './png/LOGO去背景.png';
 
 // --- Shop Pages ---
-import Cart from './pages/Shop/Cart';
-import Checkout from './pages/Shop/Checkout';
-import ProductDetail from './pages/Shop/ProductDetail';
 // 訂單查詢頁面
-import OrderQuery from './pages/Shop/OrderQuery';
-import ProductRegister from './pages/Shop/ProductRegister';
 
 // --- Auth Pages ---
-import Login from './pages/Auth/Login';
-import Register from './pages/Auth/Register';
-import ForgotPassword from './pages/Auth/ForgotPassword';
 
 // --- Account Pages ---
-import Account from './pages/Account/Account';
 
 // --- Other Pages & Components ---
-import Home from './pages/Home';
-import About from './pages/About';
-import Category from './pages/Category';
-import Contact from './pages/Contact';
-import PrivacyPolicy from './pages/PrivacyPolicy/PrivacyPolicy';
-import MemberBenefits from './pages/MemberBenefits/MemberBenefits';
-import TermsOfService from './pages/TermsOfService/TermsOfService';
+import { ProtectedRoute, PublicRoute } from './guards';
+import { ROUTES } from './constants/routes';
+import { ErrorBoundary, PageLoader } from './components/common';
 import CustomCursor from './components/CustomCursor';
-import Products from './pages/Shop/Products';
+
+const Home = React.lazy(() => import('./pages/Home'));
+const About = React.lazy(() => import('./pages/About'));
+const Category = React.lazy(() => import('./pages/Category'));
+const Contact = React.lazy(() => import('./pages/Contact'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy/PrivacyPolicy'));
+const MemberBenefits = React.lazy(() => import('./pages/MemberBenefits/MemberBenefits'));
+const TermsOfService = React.lazy(() => import('./pages/TermsOfService/TermsOfService'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
+const Unauthorized = React.lazy(() => import('./pages/Unauthorized'));
+
+const Login = React.lazy(() => import('./pages/Auth/Login'));
+const Register = React.lazy(() => import('./pages/Auth/Register'));
+const ForgotPassword = React.lazy(() => import('./pages/Auth/ForgotPassword'));
+
+const Account = React.lazy(() => import('./pages/Account/Account'));
+
+const Products = React.lazy(() => import('./pages/Shop/Products'));
+const ProductDetail = React.lazy(() => import('./pages/Shop/ProductDetail'));
+const Cart = React.lazy(() => import('./pages/Shop/Cart'));
+const Checkout = React.lazy(() => import('./pages/Shop/Checkout'));
+const OrderConfirm = React.lazy(() => import('./pages/Shop/OrderConfirm'));
+const OrderQuery = React.lazy(() => import('./pages/Shop/OrderQuery'));
+const ProductRegister = React.lazy(() => import('./pages/Shop/ProductRegister'));
 
 
 // ==========================================
@@ -68,34 +78,30 @@ function AppContent() {
   const [mobileMenuDepth, setMobileMenuDepth] = useState('main');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const scrollYRef = useRef(0);
 
   // ----------------------------------------
   // 2. 衍生變數 (Derived Variables)
   // ----------------------------------------
-  const isAuthPage =
+  const isMinimalLayout =
     location.pathname === '/login' ||
     location.pathname === '/register' ||
-    location.pathname === '/forgot-password';
+    location.pathname === '/forgot-password' ||
+    location.pathname === '/contact';
 
   const isHomePage =
     location.pathname === '/' ||
     location.pathname === '/polar-pet-store/' ||
     location.pathname === '/polar-pet-store';
 
+  // 判斷是否為精確指標裝置（滑鼠），觸控裝置返回 false
+  const isPointerFine = typeof window !== 'undefined'
+    && window.matchMedia('(pointer: fine)').matches;
+
   const navbarClass = `navbar-apple ${(!isHomePage || scrolled) ? 'scrolled' : ''}`;
 
   const getInitials = (name) => (name ? name.slice(0, 1).toUpperCase() : 'P');
-  const mobileMenuTransform =
-    mobileMenuDepth === 'main'
-      ? 'translateX(0)'
-      : mobileMenuDepth === 'brand'
-        ? 'translateX(-25%)'
-        : mobileMenuDepth === 'support'
-          ? 'translateX(-50%)'
-          : mobileMenuDepth === 'contact'
-            ? 'translateX(-75%)'
-            : 'translateX(0)';
-
+  
   // ----------------------------------------
   // 3. 生命週期與監聽 (Effects)
   // ----------------------------------------
@@ -111,15 +117,28 @@ function AppContent() {
 
   useEffect(() => {
     const resetTimer = setTimeout(() => {
+      const shouldRestoreScroll = document.body.classList.contains('menu-open');
       setIsMenuOpen(false);
       setActiveDropdown(null);
       setIsCartOpen(false);
       setIsUserMenuOpen(false);
-      setTimeout(() => setMobileMenuDepth('main'), 300);
+      document.body.classList.remove('menu-open');
+      document.body.style.top = '';
+      if (shouldRestoreScroll) {
+        window.scrollTo(0, scrollYRef.current);
+      }
+      setTimeout(() => setMobileMenuDepth('main'), 420);
     }, 0);
 
     return () => clearTimeout(resetTimer);
   }, [location.pathname]);
+
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove('menu-open');
+      document.body.style.top = '';
+    };
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -139,10 +158,20 @@ function AppContent() {
   // 4. 事件處理函數 (Handlers)
   // ----------------------------------------
   const toggleMenu = () => {
-    if (isMenuOpen) {
-      setTimeout(() => setMobileMenuDepth('main'), 300);
+    const willOpen = !isMenuOpen;
+
+    if (!willOpen) {
+      document.body.classList.remove('menu-open');
+      document.body.style.top = '';
+      window.scrollTo(0, scrollYRef.current);
+      setTimeout(() => setMobileMenuDepth('main'), 420);
+    } else {
+      scrollYRef.current = window.scrollY;
+      document.body.classList.add('menu-open');
+      document.body.style.top = `-${window.scrollY}px`;
     }
-    setIsMenuOpen(!isMenuOpen);
+
+    setIsMenuOpen(willOpen);
   };
 
   const handleMouseEnterDropdown = (type) => {
@@ -158,17 +187,22 @@ function AppContent() {
   };
 
   // Auth 頁面：全螢幕，不顯示 Navbar 與 Footer
-  if (isAuthPage) {
+  if (isMinimalLayout) {
     return (
-      <div className="app-container" style={{ paddingTop: 0 }}>
-        <CustomCursor />
-        <ScrollToTop />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-        </Routes>
-      </div>
+      <ErrorBoundary>
+        <div className="app-container" style={{ paddingTop: 0 }}>
+          {isPointerFine && <CustomCursor />}
+          <ScrollToTop />
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path={ROUTES.LOGIN} element={<PublicRoute><Login /></PublicRoute>} />
+              <Route path={ROUTES.REGISTER} element={<PublicRoute><Register /></PublicRoute>} />
+              <Route path={ROUTES.FORGOT_PASSWORD} element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+              <Route path="/contact" element={<Contact />} />
+            </Routes>
+          </Suspense>
+        </div>
+      </ErrorBoundary>
     );
   }
 
@@ -176,9 +210,10 @@ function AppContent() {
   // 5. 畫面渲染 (Render)
   // ----------------------------------------
   return (
-    <div className="app-container">
-      <CustomCursor />
-      <ScrollToTop />
+    <ErrorBoundary>
+      <div className="app-container">
+        {isPointerFine && <CustomCursor />}
+        <ScrollToTop />
 
       {/* ==================== 導覽列區塊 ==================== */}
       <div className="navbar-wrapper" onMouseLeave={() => setActiveDropdown(null)}>
@@ -188,7 +223,7 @@ function AppContent() {
             {/* 左側 Logo */}
             <div className="nav-logo">
               <Link to="/" onClick={() => setActiveDropdown(null)}>
-                <img src={LogoImg} alt="Polar Logo" />
+                <img src={LogoImg} alt="Mr.Polar 北極先生" />
               </Link>
             </div>
 
@@ -223,6 +258,7 @@ function AppContent() {
               <button
                 className="icon-btn"
                 aria-label="搜尋"
+                title="找毛孩要的..."
                 onMouseEnter={() => handleMouseEnterDropdown(null)}
               >
                 <Search size={18} />
@@ -232,7 +268,7 @@ function AppContent() {
               <div className="cart-item-wrapper" style={{ position: 'relative' }}>
                 <button
                   className={`icon-btn ${isCartOpen ? 'active' : ''}`}
-                  aria-label="購物袋"
+                  aria-label="購物車"
                   style={{ position: 'relative' }}
                   onClick={() => {
                     setIsCartOpen(!isCartOpen);
@@ -283,7 +319,7 @@ function AppContent() {
                           color: 'var(--color-text-dark)',
                           letterSpacing: '-0.01em',
                         }}>
-                          購物袋
+                          購物車
                         </span>
                         <Link
                           to="/cart"
@@ -306,7 +342,7 @@ function AppContent() {
                             e.currentTarget.style.background = 'var(--color-brand-blue)';
                           }}
                         >
-                          檢視購物袋
+                          前往購物車
                         </Link>
                       </div>
 
@@ -317,7 +353,7 @@ function AppContent() {
                           color: 'var(--color-gray-dark)',
                           marginBottom: 12,
                         }}>
-                          購物袋內有 {itemCount} 件商品
+                          購物車裡有 {itemCount} 件商品
                         </p>
                       )}
 
@@ -444,7 +480,7 @@ function AppContent() {
                           borderBottom: '1px solid rgba(0,0,0,0.06)',
                           marginBottom: 14,
                         }}>
-                          購物袋目前是空的
+                          還沒有選好的商品
                         </div>
                       )}
 
@@ -586,7 +622,7 @@ function AppContent() {
                             onMouseEnter={e => { e.currentTarget.style.background = '#fff5f5'; }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
                           >
-                            <LogOut size={14} /> 登出帳號
+                            <LogOut size={14} /> 登出
                           </button>
                         </div>
                       </div>
@@ -675,7 +711,7 @@ function AppContent() {
             {activeDropdown === 'contact' && (
               <>
                 <div className="mega-menu-column">
-                  <h4>說說您的想法</h4>
+                  <h4>找我們說</h4>
                   <Link to="/contact" onClick={() => setActiveDropdown(null)}>專員聯繫</Link>
                 </div>
                 <div className="mega-menu-column">
@@ -697,148 +733,142 @@ function AppContent() {
 
       {/* ==================== 手機版選單區塊 ==================== */}
       <div className={`nav-overlay ${isMenuOpen ? 'open' : ''}`}>
-        <div
-          className="nav-overlay-slider"
-          style={{ transform: mobileMenuTransform }}
-        >
-          {/* 第 1 層面板：主選單 */}
-          <div className="nav-overlay-panel">
-            <ul className="nav-links-mobile">
-              <li><Link to="/products" onClick={toggleMenu}>商品列表</Link></li>
-              <li><Link to="/joints" onClick={toggleMenu}>關節保健</Link></li>
-              <li>
-                <button
-                  className="nav-mobile-next-btn"
-                  onClick={() => setMobileMenuDepth('brand')}
-                >
-                  品牌介紹 <span className="arrow">〉</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className="nav-mobile-next-btn"
-                  onClick={() => setMobileMenuDepth('support')}
-                >
-                  服務支援 <span className="arrow">〉</span>
-                </button>
-              </li>
-              <li>
-                <button
-                  className="nav-mobile-next-btn"
-                  onClick={() => setMobileMenuDepth('contact')}
-                >
-                  聯絡我們 <span className="arrow">〉</span>
-                </button>
-              </li>
-              <li style={{
-                marginTop: 16,
-                borderTop: '1px solid var(--color-gray-light)',
-                paddingTop: 16,
+  <div
+    className="nav-overlay-slider"
+    style={{ transform: mobileMenuDepth === 'main' ? 'translateX(0)' : 'translateX(-25%)' }}
+  >
+
+    {/* 第 1 層面板：主選單 */}
+    <div className="nav-overlay-panel">
+      <ul className="nav-links-mobile">
+        <li><Link to="/products" onClick={toggleMenu}>商品列表</Link></li>
+        <li><Link to="/joints" onClick={toggleMenu}>關節保健</Link></li>
+
+        {/* 有子選單的項目 */}
+        <li>
+          <button
+            className="nav-mobile-next-btn"
+            onClick={() => setMobileMenuDepth('brand')}
+          >
+            品牌介紹 <span className="arrow">〉</span>
+          </button>
+        </li>
+        <li>
+          <button
+            className="nav-mobile-next-btn"
+            onClick={() => setMobileMenuDepth('support')}
+          >
+            服務支援 <span className="arrow">〉</span>
+          </button>
+        </li>
+        <li>
+          <button
+            className="nav-mobile-next-btn"
+            onClick={() => setMobileMenuDepth('contact')}
+          >
+            聯絡我們 <span className="arrow">〉</span>
+          </button>
+        </li>
+
+        <li style={{
+          marginTop: 16,
+          borderTop: '1px solid var(--color-gray-light)',
+          paddingTop: 16,
+        }}>
+          {isLoggedIn ? (
+            <Link
+              to="/account"
+              onClick={toggleMenu}
+              style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+            >
+              <div style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, var(--color-brand-blue), var(--color-brand-coffee))',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: 12,
+                fontWeight: 700,
+                flexShrink: 0,
               }}>
-                {isLoggedIn ? (
-                  <Link
-                    to="/account"
-                    onClick={toggleMenu}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-                  >
-                    <div style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, var(--color-brand-blue), var(--color-brand-coffee))',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'white',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}>
-                      {getInitials(user?.name)}
-                    </div>
-                    {user?.name} 的會員中心
-                  </Link>
-                ) : (
-                  <Link to="/login" onClick={toggleMenu}>登入 / 加入會員</Link>
-                )}
-              </li>
-            </ul>
-          </div>
+                {getInitials(user?.name)}
+              </div>
+              {user?.name} 的會員中心
+            </Link>
+          ) : (
+            <Link to="/login" onClick={toggleMenu}>登入 / 加入會員</Link>
+          )}
+        </li>
+      </ul>
+    </div>
 
-          {/* 第 2 層面板：品牌介紹次選單 */}
-          <div className="nav-overlay-panel">
-            <button
-              className="nav-mobile-back-btn"
-              onClick={() => setMobileMenuDepth('main')}
-            >
-              <span className="arrow">〈</span> 品牌介紹
-            </button>
-            <ul className="nav-links-mobile sub-links">
-              <li className="mobile-sub-title">品牌故事</li>
-              <li><Link to="/about" onClick={toggleMenu}>品牌源由</Link></li>
-              <li><Link to="/founder" onClick={toggleMenu}>創辦人故事</Link></li>
-              <li><Link to="/design-philosophy" onClick={toggleMenu}>設計理念</Link></li>
-              <li className="mobile-sub-title" style={{ marginTop: '24px' }}>品質承諾</li>
-              <li><Link to="/brand-promise" onClick={toggleMenu}>品牌承諾</Link></li>
-              <li><Link to="/quality-assurance" onClick={toggleMenu}>品質保證</Link></li>
-              <li><Link to="/customer-feedback" onClick={toggleMenu}>顧客回饋</Link></li>
-            </ul>
-          </div>
+    {/* 第 2 層面板：動態次選單 */}
+    <div className="nav-overlay-panel">
+      <button
+        className="nav-mobile-back-btn"
+        onClick={() => setMobileMenuDepth('main')}
+      >
+        <span className="arrow">〈</span>
+        {mobileMenuDepth === 'brand' ? ' 品牌介紹'
+          : mobileMenuDepth === 'support' ? ' 服務支援'
+          : mobileMenuDepth === 'contact' ? ' 聯絡我們'
+          : ''}
+      </button>
 
-          <div className="nav-overlay-panel">
-            <button
-              className="nav-mobile-back-btn"
-              onClick={() => setMobileMenuDepth('main')}
-            >
-              <span className="arrow">〈</span> 服務支援
-            </button>
-            <ul className="nav-links-mobile sub-links">
-              <li className="mobile-sub-title">線上服務</li>
-              <li><Link to="/blog" onClick={toggleMenu}>部落格專欄</Link></li>
-              <li>
-                <a
-                  href="https://line.me/tw/"
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={toggleMenu}
-                >
-                  LINE 官方客戶服務
-                </a>
-              </li>
-              <li className="mobile-sub-title" style={{ marginTop: '24px' }}>售後支援</li>
-              <li><Link to="/order" onClick={toggleMenu}>訂單查詢</Link></li>
-              <li><Link to="/register-product" onClick={toggleMenu}>產品序號登記</Link></li>
-              <li><Link to="/faq" onClick={toggleMenu}>常見問題 (FAQ)</Link></li>
-            </ul>
-          </div>
+      {/* 品牌介紹內容 */}
+      {mobileMenuDepth === 'brand' && (
+        <ul className="nav-links-mobile sub-links">
+          <li className="mobile-sub-title">品牌故事</li>
+          <li><Link to="/about" onClick={toggleMenu}>品牌源由</Link></li>
+          <li><Link to="/founder" onClick={toggleMenu}>創辦人故事</Link></li>
+          <li><Link to="/design-philosophy" onClick={toggleMenu}>設計理念</Link></li>
+          <li className="mobile-sub-title" style={{ marginTop: '24px' }}>品質承諾</li>
+          <li><Link to="/brand-promise" onClick={toggleMenu}>品牌承諾</Link></li>
+          <li><Link to="/quality-assurance" onClick={toggleMenu}>品質保證</Link></li>
+          <li><Link to="/customer-feedback" onClick={toggleMenu}>顧客回饋</Link></li>
+        </ul>
+      )}
 
-          <div className="nav-overlay-panel">
-            <button
-              className="nav-mobile-back-btn"
-              onClick={() => setMobileMenuDepth('main')}
-            >
-              <span className="arrow">〈</span> 聯絡我們
-            </button>
-            <ul className="nav-links-mobile sub-links">
-              <li className="mobile-sub-title">說說您的想法</li>
-              <li><Link to="/contact" onClick={toggleMenu}>專員聯繫</Link></li>
-              <li className="mobile-sub-title" style={{ marginTop: '24px' }}>直接與我們聊聊</li>
-              <li>
-                <a
-                  href="https://lin.ee/THZqvZ5r"
-                  target="_blank"
-                  rel="noreferrer"
-                  onClick={toggleMenu}
-                >
-                  LINE 官方帳號
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
+      {/* 服務支援內容 */}
+      {mobileMenuDepth === 'support' && (
+        <ul className="nav-links-mobile sub-links">
+          <li className="mobile-sub-title">線上服務</li>
+          <li><Link to="/blog" onClick={toggleMenu}>部落格專欄</Link></li>
+          <li>
+            <a href="https://line.me/tw/" target="_blank" rel="noreferrer" onClick={toggleMenu}>
+              LINE 官方客戶服務
+            </a>
+          </li>
+          <li className="mobile-sub-title" style={{ marginTop: '24px' }}>售後支援</li>
+          <li><Link to="/order" onClick={toggleMenu}>訂單查詢</Link></li>
+          <li><Link to="/register-product" onClick={toggleMenu}>產品序號登記</Link></li>
+          <li><Link to="/faq" onClick={toggleMenu}>常見問題 (FAQ)</Link></li>
+        </ul>
+      )}
+
+      {/* 聯絡我們內容 */}
+      {mobileMenuDepth === 'contact' && (
+        <ul className="nav-links-mobile sub-links">
+          <li className="mobile-sub-title">找我們說</li>
+          <li><Link to="/contact" onClick={toggleMenu}>專員聯繫</Link></li>
+          <li className="mobile-sub-title" style={{ marginTop: '24px' }}>直接與我們聊聊</li>
+          <li>
+            <a href="https://lin.ee/THZqvZ5r" target="_blank" rel="noreferrer" onClick={toggleMenu}>
+              LINE 官方帳號
+            </a>
+          </li>
+        </ul>
+      )}
+    </div>
+
+  </div>
+</div>
 
       {/* ==================== 頁面路由區塊 ==================== */}
+      <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* ── 核心頁面 ── */}
         <Route path="/" element={<Home />} />
@@ -852,10 +882,11 @@ function AppContent() {
 
         {/* ── 購物流程 ── */}
         <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
+        <Route path={ROUTES.CHECKOUT} element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+        <Route path={ROUTES.ORDER_CONFIRM} element={<ProtectedRoute><OrderConfirm /></ProtectedRoute>} />
 
         {/* ── 會員系統 ── */}
-        <Route path="/account" element={<Account />} />
+        <Route path={ROUTES.ACCOUNT} element={<ProtectedRoute><Account /></ProtectedRoute>} />
         <Route path="/orders" element={<Account />} />
         <Route path="/favorites" element={<Account />} />
         <Route path="/register-product" element={<ProductRegister />} />
@@ -869,26 +900,28 @@ function AppContent() {
         <Route path="/joints" element={<Category title="Polar Joints" subtitle="專為關節保健設計" />} />
 
         {/* ── 服務支援 ── */}
-        <Route path="/support" element={<Category title="客戶服務" subtitle="我們隨時在您身邊" />} />
-        <Route path="/contact" element={<Contact />} />
+        <Route path="/support" element={<Category title="找我們說" subtitle="有問題，直接找我們。" />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/member-benefits" element={<MemberBenefits />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/blog" element={<Category title="最新消息" subtitle="毛孩知識與品牌故事" />} />
         <Route path="/faq" element={<Category title="常見問題" subtitle="服務條款與隱私政策" />} />
 
+        <Route path="/unauthorized" element={<Unauthorized />} />
+
         {/* ── 404 Fallback（放最後）── */}
-        <Route path="*" element={<Home />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
 
       {/* ==================== 頁尾區塊 ==================== */}
       <footer className="footer-global">
         <div className="footer-content">
-          <p className="footer-mini-text">© 2026 Mr.Polar Inc. 保留所有權利。</p>
+          <p className="footer-mini-text">為毛孩，只放真正需要的。</p>
           <div className="footer-divider" />
           <div className="footer-nav">
             <div className="footer-column">
-              <h4>商品系列</h4>
+              <h4>找一找</h4>
               <ul>
                 <li><Link to="/main-food">Polar 主食罐</Link></li>
                 <li><Link to="/snacks">Polar 零食點心</Link></li>
@@ -897,7 +930,7 @@ function AppContent() {
               </ul>
             </div>
             <div className="footer-column">
-              <h4>購物服務</h4>
+              <h4>找我們說</h4>
               <ul>
                 <li><Link to="/cart">購物車</Link></li>
                 <li><Link to="/order">訂單查詢</Link></li>
@@ -906,7 +939,7 @@ function AppContent() {
               </ul>
             </div>
             <div className="footer-column">
-              <h4>關於 Polar</h4>
+              <h4>關於北極先生</h4>
               <ul>
                 <li><Link to="/about">品牌故事</Link></li>
                 <li><Link to="/member-benefits">會員權益說明</Link></li>
@@ -918,7 +951,7 @@ function AppContent() {
           </div>
           <div className="footer-bottom">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <p style={{ margin: 0 }}>Copyright © 2026 Mr.Polar Inc.</p>
+              <p style={{ margin: 0 }}>{'© 2026 北極先生國際股份有限公司' + '\u3000' + '保留所有權利'}</p>
               <p style={{ margin: 0 }}>統一編號：95448000</p>
               <p style={{ margin: 0 }}>地址：臺中市西屯區何安里臺灣大道二段910號13樓之2</p>
             </div>
@@ -930,6 +963,7 @@ function AppContent() {
         </div>
       </footer>
     </div>
+    </ErrorBoundary>
   );
 }
 

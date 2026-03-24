@@ -1,11 +1,18 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle, ChevronRight, ChevronLeft, Gift, Star, Package, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
 import LogoImg from '../../png/LOGO.png'
 import './Auth.css'
-
+import {
+  validateEmail,
+  validatePhone,
+  validatePassword,
+  validatePasswordConfirm,
+  validateRequired,
+  validateName,
+} from '../../utils/validators'
 const motion = Motion
 
 const getPasswordStrength = (pwd) => {
@@ -80,11 +87,16 @@ const Register = () => {
 
   const validateStep0 = () => {
     const e = {}
-    if (!form.name.trim()) e.name = '請填寫姓名'
-    if (!form.phone.trim()) e.phone = '請填寫手機號碼'
-    else if (!/^09\d{8}$/.test(form.phone)) e.phone = '手機號碼格式不正確（09 開頭共 10 碼）'
-    if (!form.email.trim()) e.email = '請填寫電子郵件'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = '電子郵件格式不正確'
+
+    const nameError = validateName(form.name)
+    if (nameError) e.name = nameError
+
+    const emailError = validateEmail(form.email)
+    if (emailError) e.email = emailError
+
+    const phoneError = validatePhone(form.phone)
+    if (phoneError) e.phone = phoneError
+
     return e
   }
 
@@ -100,11 +112,15 @@ const Register = () => {
 
   const validateStep2 = () => {
     const e = {}
-    if (!form.password) e.password = '請設定密碼'
-    else if (form.password.length < 8) e.password = '密碼至少 8 個字元'
-    if (!form.confirmPassword) e.confirmPassword = '請再次輸入密碼'
-    else if (form.password !== form.confirmPassword) e.confirmPassword = '兩次輸入的密碼不一致'
-    if (!form.agreeTerms) e.agreeTerms = '請勾選同意服務條款'
+
+    const passwordError = validatePassword(form.password)
+    if (passwordError) e.password = passwordError
+
+    const confirmError = validatePasswordConfirm(form.password, form.confirmPassword)
+    if (confirmError) e.confirmPassword = confirmError
+
+    if (!form.agreeTerms) e.agreeTerms = '請勾選並同意服務條款與隱私政策'
+
     return e
   }
 
@@ -432,3 +448,4 @@ const Register = () => {
 }
 
 export default Register
+

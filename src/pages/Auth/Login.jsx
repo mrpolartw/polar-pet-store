@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+﻿import React, { useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff, AlertCircle, Package, Star, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
-
+import { ROUTES } from '../../constants/routes'
+import { validateEmail, validateRequired } from '../../utils/validators'
 // 桌面版：LOGO.png（含淺色背景）
 import LogoDesktop from '../../png/LOGO.png'
 // 手機版：LOGO去背景.png（透明底，在淺色頁面直接顯示原色）
@@ -22,14 +23,15 @@ const Login = () => {
   const [rememberMe, setRememberMe] = useState(false)
   const [errors, setErrors] = useState({})
 
-  const from = location.state?.from || '/account'
-
   const validate = () => {
     const e = {}
-    if (!email.trim()) e.email = '請填寫電子郵件'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = '電子郵件格式不正確'
-    if (!password) e.password = '請填寫密碼'
-    else if (password.length < 6) e.password = '密碼至少 6 個字元'
+
+    const emailError = validateEmail(email)
+    if (emailError) e.email = emailError
+
+    const passwordError = validateRequired(password, '密碼')
+    if (passwordError) e.password = passwordError
+
     return e
   }
 
@@ -39,8 +41,10 @@ const Login = () => {
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
     const result = await login(email, password)
-    if (result.success) navigate(from, { replace: true })
-  }
+    if (result.success) {
+      const destination = location.state?.from || ROUTES.HOME
+      navigate(destination, { replace: true })
+    }  }
 
   const fadeUp = {
     initial: { opacity: 0, y: 24 },
@@ -264,3 +268,4 @@ const Login = () => {
 }
 
 export default Login
+

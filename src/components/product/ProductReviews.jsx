@@ -4,9 +4,9 @@ import { Star } from 'lucide-react'
 const ProductReviews = ({ product }) => (
   <section className="pdp-section-card">
     <div className="pdp-section-head">
-      <div className="pdp-section-kicker">Social Proof</div>
-      <h2>評價與社會證明</h2>
-      <p>先用最常被提到的重點建立信任，再補上真實使用情境與感受。</p>
+      <div className="pdp-section-kicker">其他飼主說</div>
+      <h2>飼主說的</h2>
+      <p>來自真實購買者的回饋，未經篩選。</p>
     </div>
 
     <div className="pdp-review-summary">
@@ -18,7 +18,7 @@ const ProductReviews = ({ product }) => (
               <Star key={value} size={16} className={value <= Math.round(product.rating) ? 'filled' : ''} />
             ))}
           </div>
-          <p>{product.reviewCount} 則評價</p>
+          <p>{product.reviewCount} 位飼主評價</p>
         </div>
       </div>
 

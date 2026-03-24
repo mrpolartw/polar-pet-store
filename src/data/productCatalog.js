@@ -92,7 +92,7 @@ export const CATEGORIES = [
   { key: 'all', label: '全部商品' },
   { key: 'food', label: '主食糧' },
   { key: 'snacks', label: '零食點心' },
-  { key: 'health', label: '機能保健' },
+  { key: 'health', label: '保健機能' },
   { key: 'supplies', label: '用品器具' },
 ]
 
@@ -123,10 +123,8 @@ export const PRODUCT_FILTERS = [
   { key: 'bestseller', label: '熱銷推薦' },
   { key: 'discount', label: '限時優惠' },
   { key: 'bundle', label: '組合搭配' },
-  { key: 'new', label: '新品上市' },
+  { key: 'new', label: '新上架' },
 ]
-
-export const formatPrice = (price) => `NT$${Number(price).toLocaleString()}`
 
 export const slugify = (value) => value
   .toLowerCase()

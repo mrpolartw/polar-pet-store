@@ -1829,3 +1829,75 @@ html, body {
     font-size: 28px !important;
   }
 }
+
+@media (max-width: 480px) {
+  .app-container {
+    padding-top: 68px;
+  }
+
+  .navbar-apple {
+    height: 68px;
+  }
+
+  .navbar-container {
+    padding: 0 12px;
+  }
+
+  .nav-logo img {
+    height: 48px;
+  }
+
+  .nav-actions {
+    gap: 10px;
+  }
+
+  .icon-btn,
+  .hamburger-btn {
+    font-size: 18px;
+  }
+
+  .nav-login-btn {
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+  }
+
+  .section-stats,
+  .section-features {
+    padding: 64px 16px;
+  }
+
+  .stats-header {
+    margin-bottom: 40px;
+    max-width: 320px;
+  }
+
+  .stats-header .kicker {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .stats-header h2.headline-regular {
+    font-size: 24px !important;
+    line-height: 1.25;
+    margin-bottom: 12px;
+  }
+
+  .stats-header .description-pro {
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: 320px;
+  }
+
+  .stats-container {
+    gap: 28px;
+  }
+
+  .stat-number {
+    font-size: clamp(42px, 16vw, 56px);
+  }
+
+  .stat-desc {
+    font-size: 15px;
+    max-width: 220px;
+  }
+}

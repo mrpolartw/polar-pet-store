@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Navigate, Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import {
@@ -7,7 +7,10 @@ import {
   Package, Truck, CheckCircle, XCircle, PawPrint, CreditCard,
   Store, X, Lock, Camera, MessageCircle,
 } from 'lucide-react'
-import { useAuth } from '../../context/useAuth'
+import { EmptyState, ErrorState, LoadingSpinner } from '../../components/common'
+import { ROUTES } from '../../constants/routes'
+import { useAuth } from '../../hooks/useAuth'
+import orderService from '../../services/orderService'
 import './Account.css'
 
 const motion = Motion
@@ -16,6 +19,9 @@ const motion = Motion
 // ─────────────────────────────────────────────
 // 常數 & Mock 資料
 // ─────────────────────────────────────────────
+// TODO: [BACKEND] 以下為開發期間暫用的本地 mock orders
+// 後端實作後，改為呼叫 orderService.getOrders() 並移除此區塊
+// 目前 VITE_USE_MOCK=true 時，已透過 mockHandlers 提供測試資料
 const MOCK_ORDERS = [
   {
     id: 'PL2026-0314', date: '2026-03-10', status: 'delivered', statusLabel: '已送達', total: 3560,
@@ -25,13 +31,13 @@ const MOCK_ORDERS = [
     ],
   },
   {
-    id: 'PL2026-0298', date: '2026-02-28', status: 'processing', statusLabel: '處理中', total: 1280,
+    id: 'PL2026-0298', date: '2026-02-28', status: 'processing', statusLabel: '正在準備', total: 1280,
     items: [
       { name: 'Polar 主食罐', img: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=200' },
     ],
   },
   {
-    id: 'PL2026-0271', date: '2026-02-10', status: 'shipping', statusLabel: '配送中', total: 2130,
+    id: 'PL2026-0271', date: '2026-02-10', status: 'shipping', statusLabel: '已出發，在路上了', total: 2130,
     items: [
       { name: 'Polar 零食', img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=200' },
       { name: 'Polar 主食罐', img: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=200' },
@@ -113,7 +119,7 @@ const BILLING_CYCLE_LABELS = {
 const DELETE_ACCOUNT_REMOVAL_ITEMS = [
   '帳號基本資料',
   '登入憑證',
-  '收藏清單',
+  '收藏的商品',
   '收件地址',
   '訂閱設定',
   '點數與等級',
@@ -151,12 +157,12 @@ const EMPTY_PET_FORM = {
 }
 
 const TABS = [
-  { key: 'profile',   label: '個人資料',   icon: User,        path: '/account' },
+  { key: 'profile',   label: '帳號設定',   icon: User,        path: '/account' },
   { key: 'orders',    label: '我的訂單',   icon: ShoppingBag, path: '/orders' },
-  { key: 'favorites', label: '收藏清單',   icon: Heart,       path: '/favorites' },
+  { key: 'favorites', label: '收藏的商品', icon: Heart,       path: '/favorites' },
   { key: 'addresses', label: '地址管理',   icon: MapPin,      path: '/account' },
-  { key: 'cards',     label: '訂閱專區',   icon: CreditCard,  path: '/account' },
-  { key: 'security',  label: '帳號安全',   icon: ShieldCheck, path: '/account' },
+  { key: 'cards',     label: '訂閱方案',   icon: CreditCard,  path: '/account' },
+  { key: 'security',  label: '密碼與安全', icon: ShieldCheck, path: '/account' },
 ]
 
 const getAnnualSpendTier = (annualSpend) => {
@@ -232,6 +238,45 @@ const getSubscriptionStatusMeta = (subscription) => {
   }
 
   return { label: '訂閱中', bg: '#F0FDF4', color: '#166534', border: '1px solid #BBF7D0' }
+}
+
+const normalizeOrderStatus = (status) => {
+  if (status === 'shipped') return 'shipping'
+  return status || 'processing'
+}
+
+const getOrderStatusLabel = (status) => {
+  switch (status) {
+    case 'delivered':
+      return '已送達'
+    case 'shipping':
+    case 'shipped':
+      return '配送中'
+    case 'cancelled':
+      return '已取消'
+    case 'processing':
+    default:
+      return '正在準備'
+  }
+}
+
+const normalizeAccountOrder = (order) => {
+  const normalizedStatus = normalizeOrderStatus(order?.status)
+
+  return {
+    id: order?.id ?? '',
+    date: String(order?.createdAt ?? order?.date ?? '').slice(0, 10),
+    status: normalizedStatus,
+    statusLabel: getOrderStatusLabel(normalizedStatus),
+    total: Number(order?.total ?? 0),
+    items: Array.isArray(order?.items)
+      ? order.items.map((item, index) => ({
+          id: item?.id ?? item?.variantId ?? `item-${index}`,
+          name: item?.name ?? '未命名商品',
+          img: item?.img ?? item?.image ?? '',
+        }))
+      : [],
+  }
 }
 
 // ── 毛孩類型對應 Emoji ──
@@ -319,13 +364,13 @@ const AccountProfileCard = ({ user, tier, getInitials, onAvatarChange, className
           <Camera size={18} />
         </span>
       </button>
-      <div className="account-user-name">{user?.name}</div>
-      <div className="account-user-email">{user?.email}</div>
+      <div className="account-user-name">{`嗨，${user?.name}`}</div>
+      <div className="account-user-email">你和毛孩的所有紀錄，都在這裡。</div>
       <div className="account-tier-badge" style={{ background: tier.bg, color: tier.color }}>
         <span>⭐ {tier.label}</span>
       </div>
       <div className="account-points-row">
-        <span>我的點數</span>
+        <span>目前點數</span>
         <span className="account-points-value">
           {(user?.points || 0).toLocaleString()}
         </span>
@@ -382,7 +427,7 @@ const SubscriptionDeferModal = ({ show, subscription, onClose, onConfirm }) => {
                 marginBottom: 16,
                 lineHeight: 1.8,
               }}>
-                您確定要將訂單延期至<br />
+                你確定要把訂單延期到<br />
                 {nextBillingDate} 嗎？
               </div>
 
@@ -435,7 +480,7 @@ const SubscriptionCancelModal = ({ show, subscription, confirmationText, setConf
               exit={{ opacity: 0, y: 20, scale: 0.97 }}
               transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}>
               <div className="address-modal-header">
-                <h3 className="address-modal-title">您確定要取消訂閱嗎？</h3>
+                <h3 className="address-modal-title">你確定要取消訂閱嗎？</h3>
                 <button className="address-modal-close" onClick={onClose}><X size={16} /></button>
               </div>
 
@@ -735,7 +780,7 @@ const DeleteAccountModal = ({
                     disabled={isDeleting}
                     style={{ marginTop: 3 }}
                   />
-                  <span>我了解刪除後無法復原，且將立即登出並清除目前登入狀態。</span>
+                  <span>我知道刪除後無法復原，送出後會直接登出並清除目前登入狀態。</span>
                 </label>
               </div>
 
@@ -760,7 +805,7 @@ const DeleteAccountModal = ({
                     cursor: canConfirm ? 'pointer' : 'not-allowed',
                   }}
                 >
-                  {isDeleting ? '處理中...' : '確認刪除帳號'}
+                  {isDeleting ? '刪除中…' : '確認刪除帳號'}
                 </button>
               </div>
             </motion.div>
@@ -792,7 +837,7 @@ const AddressModal = ({ show, onClose, addressForm, setAddressForm, editingAddre
 
             <div className="address-type-grid">
               {[
-                { key: 'home', label: '宅配到府',     desc: '寄送至您的住家或公司' },
+                { key: 'home', label: '宅配到府',     desc: '寄到你家或公司' },
                 { key: '711', label: '7-11 超商取貨', desc: '串接 PayUni 選店' },
               ].map(opt => (
                 <button key={opt.key}
@@ -873,7 +918,7 @@ const AddressModal = ({ show, onClose, addressForm, setAddressForm, editingAddre
                     </>
                   ) : (
                     <>
-                      <p className="store-picker-desc">點擊下方按鈕，透過地圖選擇您附近的 7-11 門市</p>
+                      <p className="store-picker-desc">點下方按鈕，用地圖選你附近的 7-11 門市</p>
                       <button className="btn-blue" style={{ padding: '10px 24px', borderRadius: 980, fontSize: 14 }}
                         onClick={() => {
                           setAddressForm(p => ({ ...p, storeName: '7-ELEVEN 信義門市（測試）', storeId: 'TEST001' }))
@@ -915,7 +960,7 @@ const AddressModal = ({ show, onClose, addressForm, setAddressForm, editingAddre
             <div className="address-modal-actions">
               <button className="btn-modal-cancel" onClick={onClose}>取消</button>
               <button className="btn-blue btn-modal-submit" onClick={onSave}>
-                {editingAddressId ? '儲存變更' : '新增地址'}
+                {editingAddressId ? '儲存' : '新增地址'}
               </button>
             </div>
           </motion.div>
@@ -1055,7 +1100,7 @@ const CardModal = ({ show, onClose, cardForm, setCardForm, editingCardId, onSave
 
               <div className="card-security-notice">
                 <Lock size={12} />
-                您的卡片資訊透過 256-bit SSL 加密傳輸，Polar 不會儲存完整卡號與 CVV
+                你的卡片資訊會透過 256-bit SSL 加密傳輸，Polar 不會儲存完整卡號與 CVV
               </div>
 
               {cardError && <div className="address-form-error">⚠️ {cardError}</div>}
@@ -1063,7 +1108,7 @@ const CardModal = ({ show, onClose, cardForm, setCardForm, editingCardId, onSave
               <div className="address-modal-actions">
                 <button className="btn-modal-cancel" onClick={onClose}>取消</button>
                 <button className="btn-blue btn-modal-submit" onClick={onSave}>
-                  {isEdit ? '儲存變更' : '新增信用卡'}
+                  {isEdit ? '儲存' : '新增信用卡'}
                 </button>
               </div>
             </motion.div>
@@ -1187,7 +1232,7 @@ const PetModal = ({ show, onClose, petForm, setPetForm, editingPetId, onSave, pe
             <div className="address-modal-actions">
               <button className="btn-modal-cancel" onClick={onClose}>取消</button>
               <button className="btn-blue btn-modal-submit" onClick={onSave}>
-                {editingPetId ? '儲存變更' : '新增毛孩'}
+                {editingPetId ? '儲存' : '新增毛孩'}
               </button>
             </div>
           </motion.div>
@@ -1209,6 +1254,9 @@ const Account = () => {
   const [accountTab,    setAccountTab]    = useState('profile')
   const [toast,         setToast]         = useState('')
   const [favorites,     setFavorites]     = useState(MOCK_FAVORITES)
+  const [orders,        setOrders]        = useState([])
+  const [isOrdersLoading, setIsOrdersLoading] = useState(false)
+  const [ordersError,   setOrdersError]   = useState(null)
   const [profileForm,   setProfileForm]   = useState({
     name: user?.name || '', phone: user?.phone || '',
     birthday: user?.birthday || '', gender: user?.gender || '',
@@ -1248,6 +1296,26 @@ const Account = () => {
   const [editingPetId, setEditingPetId] = useState(null)
   const [petError,     setPetError]     = useState('')
 
+  const loadOrders = async () => {
+    setIsOrdersLoading(true)
+    setOrdersError(null)
+
+    try {
+      // TODO: [BACKEND] orderService.getOrders 需後端實作
+      const data = await orderService.getOrders()
+      setOrders((data?.orders ?? []).map(normalizeAccountOrder))
+    } catch (err) {
+      setOrdersError(err?.message || '無法載入訂單記錄')
+    } finally {
+      setIsOrdersLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!isLoggedIn) return
+    loadOrders()
+  }, [isLoggedIn])
+
   if (!isLoggedIn) return <Navigate to="/login" state={{ from: '/account' }} replace />
 
   const activeTab =
@@ -1271,7 +1339,7 @@ const Account = () => {
     else if (tab.key === 'favorites') navigate('/favorites')
     else { navigate('/account'); setAccountTab(tab.key) }
   }
-  const handleSaveProfile = () => { updateProfile(profileForm); showToast('個人資料已更新 ✓') }
+  const handleSaveProfile = () => { updateProfile(profileForm); showToast('已儲存。') }
   const handleLogout      = () => { logout(); navigate('/') }
   const resetDeleteAccountState = () => {
     setDeleteAccountPassword('')
@@ -1350,16 +1418,16 @@ const Account = () => {
       return
     }
 
-    showToast('LINE 已完成綁定 ✓')
+    showToast('已儲存。')
     closeLineBindModal()
   }
 
   const handleChangePassword = async () => {
-    if (!passwordForm.old || !passwordForm.new || !passwordForm.confirm) { setPasswordError('所有欄位都是必填的'); return }
-    if (passwordForm.new !== passwordForm.confirm) { setPasswordError('新密碼與確認密碼不一致'); return }
-    if (passwordForm.new.length < 8) { setPasswordError('新密碼至少 8 個字元'); return }
+    if (!passwordForm.old || !passwordForm.new || !passwordForm.confirm) { setPasswordError('三個欄位都要填'); return }
+    if (passwordForm.new !== passwordForm.confirm) { setPasswordError('兩次密碼不一樣，再確認一下'); return }
+    if (passwordForm.new.length < 8) { setPasswordError('新密碼至少要 8 個字元'); return }
     const result = await changePassword(passwordForm.old, passwordForm.new)
-    if (result.success) { setPasswordForm({ old: '', new: '', confirm: '' }); setPasswordError(''); showToast('密碼已更新 ✓') }
+    if (result.success) { setPasswordForm({ old: '', new: '', confirm: '' }); setPasswordError(''); showToast('已儲存。') }
     else setPasswordError(result.message)
   }
 
@@ -1407,7 +1475,7 @@ const Account = () => {
   const handleSetDefaultAddress  = (id) => { setAddresses(prev => prev.map(a => ({ ...a, isDefault: a.id === id }))); showToast('已設為預設地址 ✓') }
 
   // ── 訂閱操作 ──
-  const openAddCardModal = () => { showToast('建立訂閱功能即將開放') }
+  const openAddCardModal = () => { showToast('訂閱方案還在整理中，很快就會準備好。') }
   const closeCardModal = () => { setShowCardModal(false); setCardError('') }
   const openDeferSubscriptionModal = (card) => setDeferSubscription(card)
   const closeDeferSubscriptionModal = () => setDeferSubscription(null)
@@ -1542,7 +1610,7 @@ const Account = () => {
       // ── 個人資料（含毛孩管理） ──
       case 'profile': return (
         <motion.div key="profile" {...fadeUp}>
-          <h2 className="account-section-title"><User size={22} className="account-nav-icon" />個人資料</h2>
+          <h2 className="account-section-title"><User size={22} className="account-nav-icon" />你的資料</h2>
 
           <div className="tier-progress-section">
             <div className="tier-progress-label">
@@ -1597,7 +1665,7 @@ const Account = () => {
             </div>
             <div>
               <button className="btn-blue profile-save-btn" onClick={handleSaveProfile} disabled={isLoading}>
-                {isLoading ? '儲存中...' : '儲存變更'}
+                {isLoading ? '儲存中…' : '儲存'}
               </button>
             </div>
           </div>
@@ -1620,10 +1688,10 @@ const Account = () => {
               // 空狀態
               <div className="account-empty-state" style={{ padding: '32px 20px' }}>
                 <div className="account-empty-icon" style={{ fontSize: 40 }}>🐾</div>
-                <h3 style={{ fontSize: 15 }}>尚未新增毛孩資料</h3>
-                <p style={{ fontSize: 13 }}>新增毛孩享有專屬生日優惠與健康推播</p>
+                <h3 style={{ fontSize: 15 }}>還沒有毛孩的資料</h3>
+                <p style={{ fontSize: 13 }}>加上去之後，我們可以幫你推薦更適合牠的商品。</p>
                 <button className="btn-blue" style={{ padding: '10px 24px', borderRadius: 980, fontSize: 14 }} onClick={openAddPetModal}>
-                  新增毛孩
+                  加入毛孩資料
                 </button>
               </div>
             ) : (
@@ -1690,7 +1758,28 @@ const Account = () => {
         <motion.div key="orders" {...fadeUp}>
           <h2 className="account-section-title"><ShoppingBag size={22} className="account-nav-icon" />我的訂單</h2>
           <div className="order-list">
-            {MOCK_ORDERS.map(order => (
+            {isOrdersLoading && (
+              <LoadingSpinner size="medium" label="載入訂單記錄中..." />
+            )}
+
+            {ordersError && !isOrdersLoading && (
+              <ErrorState
+                message={ordersError}
+                onRetry={loadOrders}
+              />
+            )}
+
+            {!isOrdersLoading && !ordersError && orders.length === 0 && (
+              <EmptyState
+                icon="📦"
+                title="尚無訂單記錄"
+                description="您目前還沒有任何訂單。"
+                actionLabel="前往購物"
+                onAction={() => navigate(ROUTES.PRODUCTS)}
+              />
+            )}
+
+            {!isOrdersLoading && !ordersError && orders.length > 0 && orders.map(order => (
               <div className="order-card" key={order.id}>
                 <div className="order-card-header">
                   <div>
@@ -1703,7 +1792,9 @@ const Account = () => {
                 </div>
                 <div className="order-card-body">
                   <div className="order-items-preview">
-                    {order.items.map((item, i) => <img key={i} src={item.img} alt={item.name} className="order-item-img" />)}
+                    {order.items.map((item, i) => (
+                      <img key={item.id || i} src={item.img} alt={item.name} className="order-item-img" />
+                    ))}
                   </div>
                   <div className="order-info">
                     <div className="order-total">NT${order.total.toLocaleString()}</div>
@@ -1722,13 +1813,13 @@ const Account = () => {
 
       case 'favorites': return (
         <motion.div key="favorites" {...fadeUp}>
-          <h2 className="account-section-title"><Heart size={22} className="account-nav-icon" />收藏清單</h2>
+          <h2 className="account-section-title"><Heart size={22} className="account-nav-icon" />收藏的商品</h2>
           {favorites.length === 0 ? (
             <div className="account-empty-state">
               <div className="account-empty-icon">🐾</div>
-              <h3>收藏清單是空的</h3>
-              <p>收藏您喜歡的商品，方便隨時購買</p>
-              <Link to="/products" className="btn-blue" style={{ display: 'inline-block', padding: '12px 24px', borderRadius: 980, textDecoration: 'none', fontSize: 15 }}>探索商品</Link>
+              <h3>還沒有收藏的商品</h3>
+              <p>看到適合毛孩的，按下愛心先存起來。</p>
+              <Link to="/products" className="btn-blue" style={{ display: 'inline-block', padding: '12px 24px', borderRadius: 980, textDecoration: 'none', fontSize: 15 }}>去看看商品</Link>
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 20 }}>
@@ -1793,13 +1884,13 @@ const Account = () => {
 
       case 'cards': return (
         <motion.div key="cards" {...fadeUp}>
-          <h2 className="account-section-title"><CreditCard size={22} className="account-nav-icon" />訂閱專區</h2>
+          <h2 className="account-section-title"><CreditCard size={22} className="account-nav-icon" />訂閱方案</h2>
           {cards.length === 0 ? (
             <div className="account-empty-state">
               <div className="account-empty-icon">📦</div>
-              <h3>目前尚未設定訂閱</h3>
-              <p>建立固定配送的訂閱方案，讓毛孩的日常補貨不再忘記。</p>
-              <button className="btn-blue" style={{ padding: '12px 24px', borderRadius: 980, fontSize: 15, minHeight: 44 }} onClick={openAddCardModal}>建立訂閱</button>
+              <h3>還沒有訂閱方案</h3>
+              <p>設定好之後，每個月自動送到家，你不用記，我們幫你記。</p>
+              <button className="btn-blue" style={{ padding: '12px 24px', borderRadius: 980, fontSize: 15, minHeight: 44 }} onClick={openAddCardModal}>看看訂閱方案</button>
             </div>
           ) : (
             <div className="address-grid">
@@ -1834,7 +1925,7 @@ const Account = () => {
                     )}
                     {card.isCanceled && (
                       <div style={{ marginTop: 10, fontSize: 12, color: 'var(--color-gray-dark)' }}>
-                        已於 {formatDate(card.canceledAt)} 取消，保留歷史記錄供您查閱。
+                        已於 {formatDate(card.canceledAt)} 取消，保留歷史記錄讓你之後查得到。
                       </div>
                     )}
                     {!card.isCanceled && (
@@ -1871,7 +1962,7 @@ const Account = () => {
                       lineHeight: 1.6,
                     }}>
                       {card.isCanceled
-                        ? '本訂閱已取消，保留歷史記錄供您查閱。'
+                        ? '本訂閱已取消，保留歷史記錄讓你之後查得到。'
                         : '將於扣款日自動續訂，如需取消請於扣款日前 1 日操作。'}
                     </div>
                   </div>
@@ -1884,11 +1975,11 @@ const Account = () => {
 
       case 'security': return (
         <motion.div key="security" {...fadeUp}>
-          <h2 className="account-section-title"><ShieldCheck size={22} className="account-nav-icon" />帳號安全</h2>
+          <h2 className="account-section-title"><ShieldCheck size={22} className="account-nav-icon" />密碼與安全</h2>
           <div className="security-section">
             <div className="security-item" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
               <div className="security-item-info" style={{ marginBottom: 20 }}>
-                <h4>修改密碼</h4><p>定期更換密碼以保護帳號安全</p>
+                <h4>密碼與安全</h4><p>把密碼照顧好，你的資料也會更安心。</p>
               </div>
               <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 380 }}>
                 {['old', 'new', 'confirm'].map((field, i) => (
@@ -1903,7 +1994,7 @@ const Account = () => {
                 {passwordError && <p style={{ fontSize: 13, color: '#e74c3c' }}>{passwordError}</p>}
                 <button className="btn-blue" style={{ alignSelf: 'flex-start', padding: '12px 24px', borderRadius: 980, fontSize: 15 }}
                   onClick={handleChangePassword} disabled={isLoading}>
-                  {isLoading ? '更新中...' : '更新密碼'}
+                  {isLoading ? '儲存中…' : '儲存'}
                 </button>
               </div>
             </div>
@@ -1940,7 +2031,7 @@ const Account = () => {
             <div className="security-item" style={{ borderColor: '#fee2e2' }}>
               <div className="security-item-info">
                 <h4 style={{ color: '#e74c3c' }}>刪除帳號</h4>
-                <p>此操作將無法復原，個人資料將被永久刪除</p>
+                <p>這個動作不能復原，資料也會一起刪除。</p>
               </div>
               <button style={{ padding: '8px 16px', borderRadius: 980, border: '1.5px solid #e74c3c', background: 'transparent', color: '#e74c3c', fontSize: 13, fontWeight: 500, cursor: 'pointer', minHeight: 44 }}
                 onClick={openDeleteAccountModal}>
@@ -2051,7 +2142,7 @@ const Account = () => {
               </button>
             ))}
             <button className="account-nav-item logout-btn" onClick={handleLogout}>
-              <LogOut size={16} className="account-nav-icon" />登出帳號
+              <LogOut size={16} className="account-nav-icon" />登出
             </button>
           </div>
         </div>
