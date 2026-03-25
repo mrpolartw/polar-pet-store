@@ -2,112 +2,28 @@ import React, { useState } from 'react';
 import { Search, Package, Truck, CheckCircle2, Clock, Phone, Hash, ShoppingBag } from 'lucide-react';
 import './OrderQuery.css';
 
-// ── Mock 訂單資料（替換為真實 API 呼叫）──
-const MOCK_ORDERS = {
-    'PL-20260001': {
-        id: 'PL-20260001',
-        date: '2026-03-10',
-        status: 'delivered',
-        phone: '0912345678',
-        recipient: { name: '王小明' },
-        shippingMethod: 'home',
-        paymentMethod: 'credit',
-        items: [
-            {
-                id: 1,
-                name: 'Polar 頂級鮭魚糧',
-                specs: '成貓配方 / 1.5kg',
-                quantity: 2,
-                price: 890,
-                image: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&q=80&w=200',
+const MEDUSA_API_URL = import.meta.env.VITE_MEDUSA_API_URL || 'http://localhost:9000';
+const MEDUSA_API_KEY = import.meta.env.VITE_MEDUSA_API_KEY || '';
+
+// ── 呼叫後端訂單查詢 API ──
+const fetchOrders = async ({ order_id, phone }) => {
+    const params = new URLSearchParams();
+    if (order_id) params.set('order_id', order_id);
+    if (phone)    params.set('phone', phone);
+
+    const res = await fetch(
+        `${MEDUSA_API_URL}/store/orders/query?${params.toString()}`,
+        {
+            headers: {
+                'x-publishable-api-key': MEDUSA_API_KEY,
+                'Content-Type': 'application/json',
             },
-            {
-                id: 2,
-                name: 'Polar Joint 關節保健',
-                specs: '大型犬 / 60顆',
-                quantity: 1,
-                price: 1290,
-                image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=200',
-            },
-        ],
-        subtotal: 3070,
-        shippingFee: 100,
-        discount: 0,
-        total: 3170,
-        timeline: [
-            { label: '訂單成立', time: '2026-03-10 14:32', done: true },
-            { label: '備貨中',   time: '2026-03-10 16:00', done: true },
-            { label: '已出貨',   time: '2026-03-11 09:15', done: true },
-            { label: '已送達',   time: '2026-03-12 13:40', done: true },
-        ],
-    },
-    'PL-20260002': {
-        id: 'PL-20260002',
-        date: '2026-03-14',
-        status: 'shipped',
-        phone: '0987654321',
-        recipient: { name: '陳美麗' },
-        shippingMethod: 'store',
-        paymentMethod: 'linepay',
-        items: [
-            {
-                id: 3,
-                name: 'Polar 幼貓啟蒙糧',
-                specs: '幼貓配方 / 800g',
-                quantity: 3,
-                price: 650,
-                image: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&q=80&w=200',
-            },
-        ],
-        subtotal: 1950,
-        shippingFee: 0,
-        discount: 200,
-        promoCode: 'POLAR2026',
-        total: 1750,
-        timeline: [
-            { label: '訂單成立', time: '2026-03-14 10:20', done: true },
-            { label: '備貨中',   time: '2026-03-14 12:00', done: true },
-            { label: '運送中',   time: '2026-03-15 08:30', done: true },
-            { label: '等待取貨', time: '—',                done: false },
-        ],
-    },
-    'PL-20260003': {
-        id: 'PL-20260003',
-        date: '2026-03-15',
-        status: 'processing',
-        phone: '0987654321', // 同手機兩筆訂單，示範多筆結果
-        recipient: { name: '陳美麗' },
-        shippingMethod: 'home',
-        paymentMethod: 'transfer',
-        items: [
-            {
-                id: 4,
-                name: 'Polar 深海魚油',
-                specs: '全齡犬貓 / 120ml',
-                quantity: 2,
-                price: 480,
-                image: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=200',
-            },
-            {
-                id: 5,
-                name: 'Polar 益生菌保健',
-                specs: '成犬配方 / 90包',
-                quantity: 1,
-                price: 990,
-                image: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&q=80&w=200',
-            },
-        ],
-        subtotal: 1950,
-        shippingFee: 100,
-        discount: 0,
-        total: 2050,
-        timeline: [
-            { label: '訂單成立', time: '2026-03-15 09:00', done: true },
-            { label: '備貨中',   time: '2026-03-15 10:00', done: true },
-            { label: '尚未出貨', time: '—',                done: false },
-            { label: '尚未送達', time: '—',                done: false },
-        ],
-    },
+        }
+    );
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || '查詢失敗');
+    return data.orders; // array
 };
 
 const STATUS_MAP = {
@@ -115,6 +31,7 @@ const STATUS_MAP = {
     processing: { label: '備貨中',   color: '#8B5A2B' },
     shipped:    { label: '運送中',   color: '#c48c58' },
     delivered:  { label: '已完成',   color: '#2e7d32' },
+    cancelled:  { label: '已取消',   color: '#9e9e9e' },
 };
 
 const PAYMENT_LABELS = {
@@ -266,7 +183,7 @@ function OrderResult({ order, searchMode }) {
                             <div className="oq-info-row">
                                 <span className="oq-info-label">付款方式</span>
                                 <span className="oq-info-value">
-                                    {PAYMENT_LABELS[order.paymentMethod]}
+                                    {order.paymentLabel || PAYMENT_LABELS[order.paymentMethod] || '線上付款'}
                                 </span>
                             </div>
                             <div className="oq-info-row">
@@ -298,7 +215,7 @@ export default function OrderQuery() {
     const [error,      setError]      = useState('');
     const [searched,   setSearched]   = useState(false);
 
-    const handleSearch = (e) => {
+    const handleSearch = async (e) => {
         e.preventDefault();
         setError('');
 
@@ -321,28 +238,22 @@ export default function OrderQuery() {
         setOrderData(null);
         setOrderList([]);
 
-        // 模擬 API delay（替換為 fetch / axios）
-        setTimeout(() => {
+        try {
+            const orders = await fetchOrders({
+                order_id: trimmedId || undefined,
+                phone:    trimmedPhone || undefined,
+            });
+
             if (mode === 'orderId') {
-                const found = MOCK_ORDERS[trimmedId];
-                if (found) {
-                    setOrderData(found);
-                } else {
-                    setError('查無此訂單編號，請確認輸入是否正確。');
-                }
+                setOrderData(orders[0] || null);
             } else {
-                // ✦ 電話查詢：同一支手機可能有多筆訂單
-                const found = Object.values(MOCK_ORDERS).filter(
-                    (o) => o.phone === trimmedPhone
-                );
-                if (found.length > 0) {
-                    setOrderList(found);
-                } else {
-                    setError('查無相關訂單，請確認手機號碼是否正確。');
-                }
+                setOrderList(orders);
             }
+        } catch (err) {
+            setError(err.message || '查詢失敗，請稍後再試');
+        } finally {
             setIsLoading(false);
-        }, 900);
+        }
     };
 
     const hasResults = orderData !== null || orderList.length > 0;

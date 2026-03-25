@@ -136,7 +136,11 @@ const Checkout = () => {
             await sdk.store.cart.update(cartId, {
                 email: buyerEmail,
                 shipping_address: shippingAddress,
-                ...(notes ? { metadata: { notes } } : {}),
+                metadata: {
+                    buyer_phone: buyerPhone,
+                    payment_method: paymentMethod,
+                    ...(notes ? { notes } : {}),
+                },
             })
 
             // Step 2: 新增運送方式（若有可用選項）
