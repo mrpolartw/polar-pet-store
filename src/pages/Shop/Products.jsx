@@ -330,7 +330,7 @@ export default function Products() {
 
     // ── Medusa API State ──
     const [medusaProducts, setMedusaProducts] = useState([]);
-    const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+    const [_isLoadingProducts, setIsLoadingProducts] = useState(true);
 
     useEffect(() => {
         const fetchProducts = async () => {

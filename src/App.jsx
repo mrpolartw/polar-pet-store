@@ -13,6 +13,7 @@ import LogoImg from './png/LOGO去背景.png';
 // --- Shop Pages ---
 import Cart from './pages/Shop/Cart';
 import Checkout from './pages/Shop/Checkout';
+import OrderSuccess from './pages/Shop/OrderSuccess';
 // 訂單查詢頁面
 import OrderQuery from './pages/Shop/OrderQuery';
 import ProductRegister from './pages/Shop/ProductRegister';
@@ -729,6 +730,7 @@ function AppContent() {
         {/* ── 購物流程 ── */}
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/order-success" element={<OrderSuccess />} />
 
         {/* ── 會員系統 ── */}
         <Route path="/account" element={<Account />} />

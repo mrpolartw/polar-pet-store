@@ -8,7 +8,7 @@ const CartContext = createContext(null)
 const GUEST_CART_KEY = 'polar_cart_id'
 
 export const CartProvider = ({ children }) => {
-  const { isLoggedIn } = useAuth()
+  useAuth()
 
   const [cartId, setCartId] = useState(() => localStorage.getItem(GUEST_CART_KEY))
   const [cartItems, setCartItems] = useState([])
