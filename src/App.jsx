@@ -303,7 +303,7 @@ function AppContent() {
 
                 {/* ── 購物袋彈窗（Apple 官網風格）── */}
                 {isCartOpen && (
-                  <div className="cart-dropdown-overlay" style={{ width: 320 }}>
+                  <div className="cart-dropdown-overlay cart-preview-overlay" style={{ width: 320 }}>
                     <div className="cart-dropdown-content" style={{ padding: '20px 20px 16px' }}>
 
                       {/* Header：標題 + 檢視按鈕 */}
@@ -359,7 +359,7 @@ function AppContent() {
 
                       {/* 商品列表 */}
                       {cartItems && cartItems.length > 0 ? (
-                        <div style={{
+                        <div className="cart-preview-items" style={{
                           borderTop: '1px solid rgba(0,0,0,0.06)',
                           marginBottom: 14,
                           maxHeight: 280,

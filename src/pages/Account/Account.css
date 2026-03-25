@@ -1089,6 +1089,249 @@
   border: 1px solid var(--color-gray-light);
 }
 
+/* =============================================
+   iPhone SE / 小螢幕修正 (max-width: 390px)
+   ============================================= */
+@media (max-width: 390px) {
+
+  /* 1. 頁面外框 — 收緊 padding */
+  .account-page {
+    padding: 20px 12px 60px;
+  }
+
+  /* 2. 頂部 Tab 橫向捲動列 — 加右側留白避免最後一個 tab 被截 */
+  .account-mobile-tabs {
+    padding: 0 12px 12px;
+    gap: 6px;
+  }
+
+  .account-mobile-tab {
+    padding: 7px 14px;
+    font-size: 13px;
+  }
+
+  /* 最後一個 tab 右側留白 */
+  .account-mobile-tab:last-child {
+    margin-right: 12px;
+  }
+
+  /* 3. Profile 卡片 — 防止文字溢出 */
+  .account-profile-card {
+    padding: 24px 16px;
+  }
+
+  .account-user-name {
+    font-size: 16px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .account-user-email {
+    font-size: 12px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  /* 4. 歡迎副標題（如有）— 防止溢出 */
+  .account-profile-card p,
+  .account-profile-card span {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    max-width: 100%;
+  }
+
+  /* 5. 積分列 — 防止數字被擠出 */
+  .account-points-row {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .account-points-value {
+    font-size: 18px;
+  }
+
+  /* 6. 主內容區 — 收緊 padding */
+  .account-content {
+    padding: 20px 12px;
+    border-radius: 16px;
+  }
+
+  /* 7. section 標題 — 縮小字體 */
+  .account-section-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  /* 8. 等級進度區 — 防止文字換行擠壓 */
+  .tier-progress-section {
+    padding: 16px 12px;
+  }
+
+  .tier-progress-label {
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  /* 9. 訂單卡片 — 避免 actions 按鈕被截 */
+  .order-card-header {
+    padding: 12px 14px;
+  }
+
+  .order-card-body {
+    padding: 12px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* 10. 地址卡片 grid — 強制單欄 */
+  .address-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+/* =============================================
+   overflow 安全網 — 防止所有頁面意外橫向捲動
+   ============================================= */
+.account-page,
+.account-content,
+.account-profile-card,
+.account-mobile-tabs-wrapper {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 480px) {
+  .account-page {
+    padding: 28px 12px 64px;
+    overflow-x: clip;
+  }
+
+  .account-layout,
+  .account-layout > *,
+  .account-content,
+  .account-profile-card,
+  .tier-progress-section,
+  .profile-form,
+  .profile-form-row,
+  .profile-form-row > *,
+  .order-card,
+  .address-card,
+  .security-item,
+  .card-preview {
+    min-width: 0;
+  }
+
+  .account-mobile-tabs {
+    margin: 0 -12px 16px;
+    padding: 0 12px 12px;
+    gap: 10px;
+  }
+
+  .account-mobile-tab {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .account-profile-card {
+    padding: 24px 16px;
+    border-radius: 20px;
+  }
+
+  .account-user-name {
+    font-size: 17px;
+  }
+
+  .account-user-email {
+    font-size: 12px;
+  }
+
+  .account-points-row {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .account-content {
+    padding: 20px 14px;
+    min-height: auto;
+    border-radius: 20px;
+  }
+
+  .account-section-title {
+    font-size: 18px;
+    gap: 10px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+  }
+
+  .tier-progress-section {
+    padding: 16px 14px;
+  }
+
+  .tier-progress-label {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.5;
+  }
+
+  .tier-progress-label span {
+    display: block;
+    width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .profile-form {
+    gap: 16px;
+  }
+
+  .profile-form-row {
+    gap: 16px;
+  }
+
+  .order-card-header,
+  .order-card-body,
+  .address-card,
+  .security-item {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .order-card-body {
+    gap: 12px;
+  }
+
+  .order-actions,
+  .address-actions,
+  .card-preview-top,
+  .card-preview-bottom {
+    flex-wrap: wrap;
+  }
+
+  .card-preview {
+    padding: 20px 16px 18px;
+  }
+
+  .card-preview-number {
+    font-size: 16px;
+    letter-spacing: 0.12em;
+    word-break: break-all;
+  }
+
+  .pet-modal-preview {
+    padding: 12px 14px;
+  }
+}
+
 .account-profile-card-mobile {
   display: none;
 }

@@ -240,7 +240,7 @@ export default function MemberBenefits() {
                       <th>會員等級</th>
                       <th>年度消費門檻</th>
                       <th>點數回饋率</th>
-                      <th>黑卡專屬</th>
+                      <th>專屬優惠</th>
                     </tr>
                   </thead>
                   <tbody>

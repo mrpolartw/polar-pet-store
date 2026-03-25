@@ -1900,4 +1900,25 @@ html, body {
     font-size: 15px;
     max-width: 220px;
   }
+
+  .cart-preview-overlay {
+    position: fixed;
+    top: 78px;
+    left: 12px;
+    right: 12px;
+    width: auto !important;
+    max-width: none;
+    max-height: calc(100dvh - 90px);
+    padding: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cart-preview-overlay .cart-dropdown-content {
+    padding: 18px 16px 14px !important;
+  }
+
+  .cart-preview-overlay .cart-preview-items {
+    max-height: none !important;
+  }
 }
