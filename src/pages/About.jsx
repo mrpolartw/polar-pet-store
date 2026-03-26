@@ -1,10 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import SEOHead from '../components/common/SEOHead';
 import './About.css';
 
 const About = () => {
     return (
         <main className="about-page">
+            <SEOHead
+                title="關於我們"
+                description="認識 Mr.Polar 極地熊的品牌故事、創立理念與對寵物健康的堅持。"
+                canonicalUrl="/about"
+            />
             <section className="about-hero">
                 <div className="text-container">
                     <h1 className="headline-pro">北極先生是怎麼來的</h1>

@@ -112,12 +112,12 @@ export default function NotFound() {
 
       <section className="nf-quick-links">
         <div className="nf-quick-grid">
-          {QUICK_LINKS.map(({ icon: Icon, label, to }) => (
-            <Link key={to} to={to} className="nf-quick-card">
+          {QUICK_LINKS.map((item) => (
+            <Link key={item.to} to={item.to} className="nf-quick-card">
               <div className="nf-quick-icon">
-                <Icon size={22} />
+                <item.icon size={22} />
               </div>
-              <span className="nf-quick-label">{label}</span>
+              <span className="nf-quick-label">{item.label}</span>
             </Link>
           ))}
         </div>

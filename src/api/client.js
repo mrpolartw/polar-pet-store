@@ -84,7 +84,7 @@ async function request(method, path, body, options = {}) {
   }
 
   if (import.meta.env.DEV) {
-    console.log(`[API] ${method} ${path}`, body || '');
+    console.warn(`[API] ${method} ${path}`, body || '')
   }
 
   try {

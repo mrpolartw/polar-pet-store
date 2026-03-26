@@ -87,3 +87,83 @@ a {
 ul {
   list-style: none;
 }
+
+/* ===== 全域 RWD 修正 ===== */
+
+/* 防止任何元素超出螢幕寬度 */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* 防止橫向捲軸 */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* 所有圖片 RWD */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 全域按鈕 RWD 修正 */
+button, .btn-blue, .btn-outline, .btn-ghost {
+  white-space: nowrap;
+  min-height: 44px;       /* iOS 最小點擊目標 */
+  touch-action: manipulation;
+}
+
+/* 防止 iOS 縮放輸入框 */
+input, select, textarea {
+  font-size: 16px;
+}
+
+@media (max-width: 640px) {
+
+  /* 表格 RWD */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 長文字截斷 */
+  .text-truncate-mobile {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.cart-icon-btn {
+  width: 28px;
+  height: 28px;
+  overflow: visible;
+}
+
+.cart-icon-btn svg {
+  display: block;
+}
+
+/* 購物袋 Badge */
+.cart-badge {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: var( --color-brand-coffee );
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  border: 1.5px solid #f8f5ef;
+  box-shadow: 0 1px 3px rgba(0, 49, 83, 0.2);
+  transform: translate(2%, 50%);
+}

@@ -15,6 +15,8 @@ import {
   UserRound,
   X,
 } from 'lucide-react'
+import SEOHead from '../components/common/SEOHead'
+import { CONFIG } from '../constants/config'
 import { useAuth } from '../context/useAuth'
 import LogoImg from '../png/LOGO.png'
 import './Auth/Auth.css'
@@ -36,8 +38,7 @@ const IDENTITY_OPTIONS = [
   { key: 'other', label: '其他', icon: FileText },
 ]
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024
-const MAX_FILES = 3
+const maxAttachmentFileSize = CONFIG.MAX_FILE_SIZE_MB * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
 
 const slideVariants = {
@@ -138,9 +139,12 @@ const Contact = () => {
       return
     }
 
-    const invalidSize = files.find((file) => file.size > MAX_FILE_SIZE)
+    const invalidSize = files.find((file) => file.size > maxAttachmentFileSize)
     if (invalidSize) {
-      setErrors((prev) => ({ ...prev, attachments: '單一附件再小一點會更順利，請控制在 10MB 內' }))
+      setErrors((prev) => ({
+        ...prev,
+        attachments: `單一附件再小一點會更順利，請控制在 ${CONFIG.MAX_FILE_SIZE_MB}MB 內`,
+      }))
       return
     }
 
@@ -158,10 +162,10 @@ const Contact = () => {
         if (!exists) merged.push(file)
       })
 
-      if (merged.length > MAX_FILES) {
+      if (merged.length > CONFIG.MAX_UPLOAD_FILES) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          attachments: `附件先上傳 ${MAX_FILES} 個就好，我們比較好開始處理`,
+          attachments: `附件先上傳 ${CONFIG.MAX_UPLOAD_FILES} 個就好，我們比較好開始處理`,
         }))
         return prev
       }
@@ -269,6 +273,10 @@ const Contact = () => {
 
   return (
     <main className="auth-page contact-page">
+      <SEOHead
+        title="聯絡我們"
+        description="聯絡 Mr.Polar 北極先生客服、合作或媒體窗口，留下需求與聯絡方式，我們會盡快與你回覆。"
+      />
       <div className="auth-brand-panel">
         <div className="auth-brand-logo">
           <Link to="/">
@@ -627,7 +635,9 @@ const Contact = () => {
                           </div>
 
                           <h3>把檔案拖進來，或點這裡選擇</h3>
-                          <p>JPG · PNG · PDF，每個不超過 10MB，最多 3 個</p>
+                          <p>
+                            JPG · PNG · PDF，每個不超過 {CONFIG.MAX_FILE_SIZE_MB}MB，最多 {CONFIG.MAX_UPLOAD_FILES} 個
+                          </p>
 
                           <button
                             type="button"

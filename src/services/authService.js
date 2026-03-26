@@ -1,6 +1,10 @@
 import { mockAuthHandlers } from '../mocks/mockHandlers';
 
-const USE_MOCK = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK === 'true';
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+
+if (USE_MOCK && import.meta.env.PROD) {
+  console.error('⛔ [authService] MOCK MODE IS ACTIVE IN PRODUCTION! Set VITE_USE_MOCK=false')
+}
 
 /**
  * Authenticate a customer with email and password.

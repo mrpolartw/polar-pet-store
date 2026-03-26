@@ -773,13 +773,20 @@
   display: none;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   padding: 14px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(0, 49, 83, 0.08);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(18px);
+  overflow: hidden;
+}
+
+.pdp-sticky-copy {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .pdp-sticky-copy strong,
@@ -801,12 +808,20 @@
 .pdp-sticky-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pdp-sticky-secondary,
+.pdp-sticky-primary {
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
 }
 
 .pdp-sticky-secondary {
-  width: 48px;
-  padding: 0;
+  width: auto;
+  padding: 0 16px;
 }
 
 .pdp-sticky-primary {
@@ -887,5 +902,25 @@
 
   .pdp-sticky-bar {
     display: flex;
+  }
+}
+
+@media (max-width: 640px) {
+  .pdp-sticky-actions {
+    gap: 8px;
+  }
+
+  .pdp-sticky-secondary,
+  .pdp-sticky-primary {
+    padding: 0 14px;
+    height: 44px;
+    min-height: 44px;
+    font-size: 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .pdp-sticky-copy strong {
+    font-size: 16px;
   }
 }

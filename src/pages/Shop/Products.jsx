@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import React, { startTransition, useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   Check,
   ChevronDown,
@@ -13,8 +13,10 @@ import {
   Star,
   X,
 } from 'lucide-react'
+import SEOHead from '../../components/common/SEOHead'
 import { useCart } from '../../context/useCart'
 import { formatPrice } from '../../utils/formatters'
+import analytics from '../../utils/analytics'
 import {
   CATEGORIES,
   PET_TYPES,
@@ -27,6 +29,16 @@ import {
 import './Products.css'
 
 const PER_PAGE = 12
+const getValidFilterKey = (value, options) => (
+  options.some((item) => item.key === value) ? value : 'all'
+)
+const CATEGORY_SEO_DESCRIPTION = {
+  all: '探索 Mr.Polar 極地熊全系列寵物食品，包含腸道保健、體重管理、情緒舒緩等機能零食。',
+  food: '瀏覽 Mr.Polar 北極先生主食系列，從營養密度、適口性到日常消化照護，替毛孩建立更穩定的飲食節奏。',
+  snacks: '查看 Mr.Polar 北極先生零食系列，兼顧適口性、互動獎勵與日常補給，讓毛孩吃得開心也更有節奏。',
+  health: '探索 Mr.Polar 北極先生保健系列，從腸胃、關節到日常營養補充，幫助毛孩維持更穩定的健康表現。',
+  supplies: '瀏覽 Mr.Polar 北極先生用品系列，從餵食到日常照護配件，一次整理更實用也更安心的生活提案。',
+}
 
 function StarRating({ rating }) {
   return (
@@ -253,16 +265,35 @@ function FilterPanel({
 }
 
 export default function Products() {
+  const [searchParams] = useSearchParams()
+  const categoryParam = getValidFilterKey(searchParams.get('category'), CATEGORIES)
+  const petTypeParam = getValidFilterKey(searchParams.get('petType'), PET_TYPES)
+  const priceRangeParam = getValidFilterKey(searchParams.get('priceRange'), PRICE_RANGES)
+  const sortByParam = getValidFilterKey(searchParams.get('sortBy'), SORT_OPTIONS)
+  const productFilterParam = getValidFilterKey(searchParams.get('productFilter'), PRODUCT_FILTERS)
+  const searchParam = searchParams.get('search')?.trim() || ''
   const { addToCart } = useCart()
-  const [category, setCategory] = useState('all')
-  const [petType, setPetType] = useState('all')
-  const [priceRange, setPriceRange] = useState('all')
-  const [sortBy, setSortBy] = useState('default')
-  const [productFilter, setProductFilter] = useState('all')
+  const [category, setCategory] = useState(() => categoryParam)
+  const [petType, setPetType] = useState(() => petTypeParam)
+  const [priceRange, setPriceRange] = useState(() => priceRangeParam)
+  const [sortBy, setSortBy] = useState(() => sortByParam)
+  const [productFilter, setProductFilter] = useState(() => productFilterParam)
   const [page, setPage] = useState(1)
   const [viewMode, setViewMode] = useState('grid')
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => searchParam)
   const [filterOpen, setFilterOpen] = useState(false)
+
+  useEffect(() => {
+    startTransition(() => {
+      setCategory(categoryParam)
+      setPetType(petTypeParam)
+      setPriceRange(priceRangeParam)
+      setSortBy(sortByParam)
+      setProductFilter(productFilterParam)
+      setSearch(searchParam)
+      setPage(1)
+    })
+  }, [categoryParam, petTypeParam, priceRangeParam, sortByParam, productFilterParam, searchParam])
 
   const handleAddToCart = useCallback((product) => {
     addToCart(createCartPayload(product, product.variants[0], 1))
@@ -318,7 +349,7 @@ export default function Products() {
 
   const totalPages = Math.ceil(filteredProducts.length / PER_PAGE)
   const paginatedList = filteredProducts.slice((page - 1) * PER_PAGE, page * PER_PAGE)
-  const resetPage = () => setPage(1)
+  const resetPage = useCallback(() => setPage(1), [])
 
   const activeFilters = useMemo(() => {
     const filters = []
@@ -364,7 +395,7 @@ export default function Products() {
     }
 
     return filters
-  }, [category, petType, priceRange, productFilter, search])
+  }, [category, petType, priceRange, productFilter, resetPage, search])
 
   const clearAllFilters = () => {
     setCategory('all')
@@ -381,9 +412,21 @@ export default function Products() {
     if (page >= totalPages - 3) return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
     return [1, '...', page - 1, page, page + 1, '...', totalPages]
   }
+  const activeCategory = CATEGORIES.find((item) => item.key === category)
+  const seoTitle = activeCategory ? '所有商品' : '所有商品'
+  const seoDescription = CATEGORY_SEO_DESCRIPTION.all
+
+  useEffect(() => {
+    analytics.viewItemList(filteredProducts, activeCategory?.label ?? '全部商品')
+  }, [filteredProducts, activeCategory])
 
   return (
     <main className="products-page">
+      <SEOHead
+        title={seoTitle}
+        description={seoDescription}
+        canonicalUrl="/products"
+      />
       <div className="checkout-header-simple">
         <h1 className="headline-pro">為牠找到對的那一款</h1>
       </div>

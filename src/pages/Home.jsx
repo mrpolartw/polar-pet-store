@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import HeroCarousel from '../components/HeroCarousel';
 import ExpandableCard from '../components/ExpandableCard';
 import ImageWithFallback from '../components/common/ImageWithFallback';
+import SEOHead from '../components/common/SEOHead';
 import { useScrollReveal } from '../hooks/useScrollReveal';
 import Counter from '../components/common/Counter';
 import jointSvg from '../png/joint.svg';
@@ -67,6 +68,11 @@ const Home = () => {
 
     return (
         <main style={{ overflow: 'hidden' }}>
+            <SEOHead
+                title="寵物健康食品首席"
+                description="北極先生，台灣優質寵物首席健康食品。天然食材、獸醫推薦、飼主合作共同設計、開發、打造最符合生活，給毛孩只給他需要的。"
+                canonicalUrl="/"
+            />
             {/* ══════════════════════════════════════
                 § 1  HERO — 輪播英雄區
             ══════════════════════════════════════ */}

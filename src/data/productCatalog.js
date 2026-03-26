@@ -541,6 +541,8 @@ const createReviews = (category) => reviewTemplates[category]
 const createProduct = (product) => {
   const defaults = categoryCopy[product.category]
   const gallery = product.gallery?.length ? product.gallery : [product.image, banner2, banner3, brainGutAxis]
+  const images = product.images?.length ? product.images : gallery
+  const primaryImage = product.image || images[0]
   const variants = product.variants?.length
     ? product.variants
     : [{ id: 'default', label: product.specs, price: product.price, description: '標準規格' }]
@@ -548,8 +550,10 @@ const createProduct = (product) => {
 
   return {
     ...product,
+    image: primaryImage,
+    images,
     slug,
-    gallery,
+    gallery: images,
     variants,
     shortDescription: product.shortDescription || '把品牌敘事、成分透明與日常實用性，整理成一頁就能完成決策的商品資訊。',
     trustBadges: product.trustBadges || defaults.trustBadges,

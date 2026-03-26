@@ -35,7 +35,9 @@ const loadMockSession = () => {
 const clearMockSession = () => {
   try {
     sessionStorage.removeItem(MOCK_SESSION_KEY)
-  } catch {}
+  } catch {
+    // sessionStorage 清除失敗時靜默略過
+  }
 }
 
 // 初始化時嘗試從 sessionStorage 讀取（處理頁面刷新情況）

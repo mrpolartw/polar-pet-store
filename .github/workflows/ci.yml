@@ -1,0 +1,54 @@
+name: CI — Mr.Polar Frontend
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality-check:
+    name: 品質檢查
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 取出程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 安裝依賴套件
+        run: npm ci
+
+      - name: ESLint 檢查
+        run: npm run lint
+
+      - name: Mock 設定檢查
+        run: npm run check:mock
+        env:
+          # CI 環境使用假設正式環境的 .env 設定
+          VITE_USE_MOCK: 'false'
+          VITE_API_BASE_URL: 'https://api.mrpolar.com.tw'
+          VITE_GA_ID: ${{ secrets.VITE_GA_ID }}
+
+      - name: Console.log 殘留掃描
+        run: npm run check:console
+
+      - name: Production Build 測試
+        run: npm run build
+        env:
+          VITE_USE_MOCK: 'false'
+          VITE_API_BASE_URL: 'https://api.mrpolar.com.tw'
+          VITE_GA_ID: ${{ secrets.VITE_GA_ID }}
+
+      - name: 上傳 Build 產物（供後續部署使用）
+        uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/main'
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7

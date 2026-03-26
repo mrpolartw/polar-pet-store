@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Truck,
   Store,
@@ -10,9 +10,12 @@ import {
   Building2,
   HeartHandshake,
   ShieldCheck,
+  UserPlus,
+  MessageCircle,
 } from 'lucide-react';
 
 import { ROUTES } from '../../constants/routes';
+import { useAuth } from '../../context/useAuth';
 import { useCart } from '../../context/useCart';
 import orderService from '../../services/orderService';
 import {
@@ -22,138 +25,180 @@ import {
   validateEmail,
   validateForm,
 } from '../../utils/validators';
+import { CONFIG } from '../../constants/config';
+import SEOHead from '../../components/common/SEOHead';
+import analytics from '../../utils/analytics'
+import { useCheckoutForm } from '../../modules/checkout/hooks/useCheckoutForm'
+import { usePromoCode }    from '../../modules/checkout/hooks/usePromoCode'
+import { useOrderSubmit }  from '../../modules/checkout/hooks/useOrderSubmit'
+
+void useNavigate;
+void orderService;
+void validateRequired;
+void validateName;
+void validatePhone;
+void validateEmail;
+void validateForm;
 
 const Checkout = () => {
-  const navigate = useNavigate();
-  const { cartItems, subtotal, clearCart } = useCart();
+  const { user } = useAuth()
+  const location = useLocation()
+  const { cartItems, subtotal } = useCart();
+  const { form, setField, getPayload } = useCheckoutForm()
+  const {
+    code: promoCode, setCode: setPromoCode,
+    apply: handleApplyPromo, remove: removePromo,
+    discount, isApplied: isPromoApplied,
+    isLoading: isPromoLoading, error: promoError,
+  } = usePromoCode()
+  const {
+    submit, isSubmitting, submitError, fieldErrors, setFieldErrors, setSubmitError,
+  } = useOrderSubmit()
+  const [agreed, setAgreed] = useState(false)
+  const initialCheckoutAnalyticsRef = useRef({ cartItems, subtotal })
 
-  const [shippingMethod, setShippingMethod] = useState('store');
-  const [paymentMethod, setPaymentMethod] = useState('credit');
-  const [sameAsBuyer, setSameAsBuyer] = useState(true);
-  const [buyerName, setBuyerName] = useState('');
-  const [buyerEmail, setBuyerEmail] = useState('');
-  const [buyerPhone, setBuyerPhone] = useState('');
-  const [recipientName, setRecipientName] = useState('');
-  const [recipientPhone, setRecipientPhone] = useState('');
+  useEffect(() => {
+    const {
+      cartItems: initialCartItems,
+      subtotal: initialSubtotal,
+    } = initialCheckoutAnalyticsRef.current
 
-  const [invoiceType, setInvoiceType] = useState('member');
-  const [invoiceMobile, setInvoiceMobile] = useState('');
-  const [invoiceTaxId, setInvoiceTaxId] = useState('');
-  const [invoiceCompany, setInvoiceCompany] = useState('');
-  const [invoiceDonateCode, setInvoiceDonateCode] = useState('');
+    if (initialCartItems.length > 0) {
+      analytics.beginCheckout(initialCartItems, initialSubtotal)
+    }
+  }, [])
 
-  const [promoCode, setPromoCode] = useState('');
-  const [isPromoApplied, setIsPromoApplied] = useState(false);
-  const [isPromoLoading, setIsPromoLoading] = useState(false);
-  const [promoError, setPromoError] = useState(null);
-  const [discount, setDiscount] = useState(0);
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-  const [fieldErrors, setFieldErrors] = useState({});
+  void removePromo;
 
   // TODO: [BACKEND] 金額最終須由後端計算，前端僅作顯示
-  const shippingFee = shippingMethod === 'store' ? 0 : 100;
-  const total = subtotal + shippingFee - discount;
-
-  const handleApplyPromo = async (e) => {
-    e.preventDefault();
-    if (!promoCode.trim()) return;
-
-    setIsPromoLoading(true);
-    setPromoError(null);
-
-    try {
-      // TODO: [BACKEND] orderService.validatePromoCode 需後端實作
-      // 後端實作後回傳 { valid: true, discountAmount: 200 }
-      const data = await orderService.validatePromoCode(promoCode);
-
-      if (!data || data.valid === false) {
-        throw new Error('優惠碼驗證需後端支援，目前無法使用');
-      }
-
-      setDiscount(data?.discountAmount ?? 0);
-      setIsPromoApplied(true);
-    } catch (err) {
-      setPromoError(err?.message || '優惠碼驗證需後端支援，目前無法使用');
-      setIsPromoApplied(false);
-      setDiscount(0);
-    } finally {
-      setIsPromoLoading(false);
-    }
-  };
+  const shippingFee = form.shippingMethod === 'store'
+    ? 0 : CONFIG.SHIPPING_FEE
+  const total = subtotal + shippingFee - discount
 
   const handleSubmitOrder = async (e) => {
-    e.preventDefault();
-    setSubmitError(null);
-    setIsSubmitting(true);
-
-    if (cartItems.length === 0) {
-      setSubmitError('購物車是空的，請先加入商品');
-      setIsSubmitting(false);
-      return;
+    e.preventDefault()
+    setSubmitError(null)
+    if (!agreed) {
+      setSubmitError('請先閱讀並同意服務條款與隱私政策')
+      const el = document.getElementById('agree-terms')
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
     }
-
-    const currentRecipientName = sameAsBuyer ? buyerName : recipientName;
-    const currentRecipientPhone = sameAsBuyer ? buyerPhone : recipientPhone;
-    const currentRecipientEmail = buyerEmail;
-
-    // 收件人資料前端基本驗證（後端仍需獨立驗證）
-    const { isValid, errors } = validateForm([
-      { field: 'recipientName', value: currentRecipientName, validator: validateName },
-      { field: 'recipientPhone', value: currentRecipientPhone, validator: validatePhone },
-      { field: 'recipientEmail', value: currentRecipientEmail, validator: validateEmail },
-    ]);
-
-    if (!isValid) {
-      setFieldErrors(errors);
-      setIsSubmitting(false);
-      const firstErrorKey = Object.keys(errors)[0];
-      const el = document.getElementById(firstErrorKey);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
-
-    setFieldErrors({});
-    void validateRequired;
-
-    const payload = {
-      shippingMethod,
-      paymentMethod,
-      invoiceType,
-      promoCode: isPromoApplied ? promoCode : null,
-      // TODO: [BACKEND] 收件人資料欄位請依後端 API 規格補充
-      // TODO: [BACKEND] 金額由後端計算，前端不傳遞 subtotal/total
-    };
-
-    try {
-      // TODO: [BACKEND] orderService.createOrder 需後端
-      //   POST /store/carts/:id/complete 實作
-      // 後端實作後回傳 { order: { id: 'PL-XXXX' } }
-      const data = await orderService.createOrder(payload);
-      const orderId = data?.order?.id ?? data?.id;
-
-      if (!orderId) {
-        throw new Error('訂單送出需後端支援，目前無法完成');
-      }
-
-      await clearCart();
-      navigate(
-        ROUTES.ORDER_CONFIRM.replace(':orderId', orderId),
-        { state: { order: data?.order ?? data } }
-      );
-    } catch (err) {
-      setSubmitError(err?.message || '訂單送出失敗，請稍後再試');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    const payload = getPayload(promoCode, isPromoApplied, subtotal, discount)
+    await submit(payload)
+  }
 
   return (
     <div className="checkout-page">
+      <SEOHead title="結帳" noIndex={true} />
       <div className="checkout-header-simple">
         <h1 className="headline-pro">安全結帳</h1>
       </div>
+
+      {/* 未登入提示 */}
+      {!user && (
+        <div style={{
+          maxWidth: 860,
+          margin: '0 auto 16px',
+          padding: '14px 18px',
+          background: 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)',
+          border: '1px solid #bfdbfe',
+          borderRadius: 14,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{
+              width: 34, height: 34, borderRadius: '50%',
+              background: '#003153', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <UserPlus size={16} color="#fff" />
+            </span>
+            <div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1d1d1f' }}>
+                登入 / 註冊會員，購物更划算
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: '#6e6e73', marginTop: 2 }}>
+                消費自動累積點數可折抵，並即時接收出貨、配送狀態通知
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/login"
+            state={{ from: location.pathname }}
+            style={{
+              padding: '8px 18px',
+              background: '#003153',
+              color: '#fff',
+              borderRadius: 980,
+              fontSize: 13,
+              fontWeight: 600,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            登入 / 註冊
+          </Link>
+        </div>
+      )}
+
+      {/* 已登入但未串接 LINE 提示 */}
+      {user && !user.lineLinked && (
+        <div style={{
+          maxWidth: 860,
+          margin: '0 auto 16px',
+          padding: '14px 18px',
+          background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
+          border: '1px solid #bbf7d0',
+          borderRadius: 14,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{
+              width: 34, height: 34, borderRadius: '50%',
+              background: '#06C755', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <MessageCircle size={16} color="#fff" />
+            </span>
+            <div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1d1d1f' }}>
+                加入 LINE 官方帳號，訂單資訊即時掌握
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: '#6e6e73', marginTop: 2 }}>
+                付款成功、出貨通知、物流動態，第一時間透過 LINE 推播給您
+              </p>
+            </div>
+          </div>
+          <a
+            href="https://lin.ee/THZqvZ5r"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              padding: '8px 18px',
+              background: '#06C755',
+              color: '#fff',
+              borderRadius: 980,
+              fontSize: 13,
+              fontWeight: 600,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            加入 LINE
+          </a>
+        </div>
+      )}
 
       <div className="checkout-layout">
         <div className="checkout-main">
@@ -161,22 +206,28 @@ const Checkout = () => {
             <h2 className="section-title">1. 選擇運送方式</h2>
             <div className="option-grid">
               <div
-                className={`option-card ${shippingMethod === 'store' ? 'active' : ''}`}
-                onClick={() => setShippingMethod('store')}
+                className={`option-card ${form.shippingMethod === 'store' ? 'active' : ''}`}
+                onClick={() => {
+                  setField('shippingMethod', 'store')
+                  analytics.addShippingInfo('store')
+                }}
               >
                 <Store size={32} strokeWidth={1.5} className="option-icon" />
                 <h3 className="option-title">超商取貨</h3>
                 <p className="option-desc">7-ELEVEN 交貨便</p>
-                {shippingMethod === 'store' && <CheckCircle2 className="check-icon" size={20} />}
+                {form.shippingMethod === 'store' && <CheckCircle2 className="check-icon" size={20} />}
               </div>
               <div
-                className={`option-card ${shippingMethod === 'home' ? 'active' : ''}`}
-                onClick={() => setShippingMethod('home')}
+                className={`option-card ${form.shippingMethod === 'home' ? 'active' : ''}`}
+                onClick={() => {
+                  setField('shippingMethod', 'home')
+                  analytics.addShippingInfo('home')
+                }}
               >
                 <Truck size={32} strokeWidth={1.5} className="option-icon" />
                 <h3 className="option-title">黑貓宅配</h3>
                 <p className="option-desc">常溫配送到府</p>
-                {shippingMethod === 'home' && <CheckCircle2 className="check-icon" size={20} />}
+                {form.shippingMethod === 'home' && <CheckCircle2 className="check-icon" size={20} />}
               </div>
             </div>
           </section>
@@ -188,19 +239,19 @@ const Checkout = () => {
               <h3 className="form-subtitle">購買人資訊</h3>
               <div className="form-row">
                 <input
-                  id={sameAsBuyer ? 'recipientName' : undefined}
+                  id={form.sameAsBuyer ? 'recipientName' : undefined}
                   type="text"
                   className="apple-input"
                   placeholder="購買人真實姓名"
-                  value={buyerName}
+                  value={form.buyerName}
                   onChange={(e) => {
-                    setBuyerName(e.target.value);
-                    if (sameAsBuyer) {
+                    setField('buyerName', e.target.value);
+                    if (form.sameAsBuyer) {
                       setFieldErrors((prev) => ({ ...prev, recipientName: '' }));
                     }
                   }}
                 />
-                {sameAsBuyer && fieldErrors.recipientName && (
+                {form.sameAsBuyer && fieldErrors.recipientName && (
                   <p style={{ fontSize: 12, color: '#e74c3c', marginTop: 4 }}>
                     {fieldErrors.recipientName}
                   </p>
@@ -213,9 +264,9 @@ const Checkout = () => {
                     type="email"
                     className="apple-input"
                     placeholder="電子郵件地址"
-                    value={buyerEmail}
+                    value={form.buyerEmail}
                     onChange={(e) => {
-                      setBuyerEmail(e.target.value);
+                      setField('buyerEmail', e.target.value);
                       setFieldErrors((prev) => ({ ...prev, recipientEmail: '' }));
                     }}
                   />
@@ -227,20 +278,20 @@ const Checkout = () => {
                 </div>
                 <div>
                   <input
-                    id={sameAsBuyer ? 'recipientPhone' : undefined}
+                    id={form.sameAsBuyer ? 'recipientPhone' : undefined}
                     type="tel"
                     className="apple-input"
                     placeholder="手機號碼（例：0912345678）"
                     maxLength={10}
-                    value={buyerPhone}
+                    value={form.buyerPhone}
                     onChange={(e) => {
-                      setBuyerPhone(e.target.value.replace(/\D/g, ''));
-                      if (sameAsBuyer) {
+                      setField('buyerPhone', e.target.value.replace(/\D/g, ''));
+                      if (form.sameAsBuyer) {
                         setFieldErrors((prev) => ({ ...prev, recipientPhone: '' }));
                       }
                     }}
                   />
-                  {sameAsBuyer && fieldErrors.recipientPhone && (
+                  {form.sameAsBuyer && fieldErrors.recipientPhone && (
                     <p style={{ fontSize: 12, color: '#e74c3c', marginTop: 4 }}>
                       {fieldErrors.recipientPhone}
                     </p>
@@ -253,13 +304,13 @@ const Checkout = () => {
               <input
                 type="checkbox"
                 id="sameAsBuyer"
-                checked={sameAsBuyer}
-                onChange={(e) => setSameAsBuyer(e.target.checked)}
+                checked={form.sameAsBuyer}
+                onChange={(e) => setField('sameAsBuyer', e.target.checked)}
               />
               <label htmlFor="sameAsBuyer">收件人資料與購買人相同</label>
             </div>
 
-            {!sameAsBuyer && (
+            {!form.sameAsBuyer && (
               <div className="form-group slide-down">
                 <h3 className="form-subtitle">收件人資訊</h3>
                 <div className="form-row half-half">
@@ -269,9 +320,9 @@ const Checkout = () => {
                       type="text"
                       className="apple-input"
                       placeholder="收件人真實姓名"
-                      value={recipientName}
+                      value={form.recipientName}
                       onChange={(e) => {
-                        setRecipientName(e.target.value);
+                        setField('recipientName', e.target.value);
                         setFieldErrors((prev) => ({ ...prev, recipientName: '' }));
                       }}
                     />
@@ -288,9 +339,9 @@ const Checkout = () => {
                       className="apple-input"
                       placeholder="收件人手機號碼"
                       maxLength={10}
-                      value={recipientPhone}
+                      value={form.recipientPhone}
                       onChange={(e) => {
-                        setRecipientPhone(e.target.value.replace(/\D/g, ''));
+                        setField('recipientPhone', e.target.value.replace(/\D/g, ''));
                         setFieldErrors((prev) => ({ ...prev, recipientPhone: '' }));
                       }}
                     />
@@ -306,7 +357,7 @@ const Checkout = () => {
 
             <div className="form-group" style={{ marginTop: '24px' }}>
               <h3 className="form-subtitle">配送細節</h3>
-              {shippingMethod === 'store' ? (
+              {form.shippingMethod === 'store' ? (
                 <div className="store-select-box">
                   <p>請選擇您要取件的 7-ELEVEN 門市，貨件送達將以簡訊通知。</p>
                   <button className="btn-blue btn-select-store">開啟電子地圖選擇門市</button>
@@ -343,44 +394,56 @@ const Checkout = () => {
             <h2 className="section-title">3. 選擇付款方式</h2>
             <div className="option-grid payment-grid">
               <div
-                className={`option-card ${paymentMethod === 'credit' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('credit')}
+                className={`option-card ${form.paymentMethod === 'credit' ? 'active' : ''}`}
+                onClick={() => {
+                  setField('paymentMethod', 'credit')
+                  analytics.addPaymentInfo('credit')
+                }}
               >
                 <CreditCard size={28} strokeWidth={1.5} className="option-icon" />
                 <h3 className="option-title">信用卡</h3>
                 <p className="option-desc">免跳轉 安全支付</p>
-                {paymentMethod === 'credit' && <CheckCircle2 className="check-icon" size={20} />}
+                {form.paymentMethod === 'credit' && <CheckCircle2 className="check-icon" size={20} />}
               </div>
               <div
-                className={`option-card ${paymentMethod === 'linepay' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('linepay')}
+                className={`option-card ${form.paymentMethod === 'linepay' ? 'active' : ''}`}
+                onClick={() => {
+                  setField('paymentMethod', 'linepay')
+                  analytics.addPaymentInfo('linepay')
+                }}
               >
                 <Smartphone size={28} strokeWidth={1.5} className="option-icon line-color" />
                 <h3 className="option-title">LINE Pay</h3>
                 <p className="option-desc">快速授權</p>
-                {paymentMethod === 'linepay' && <CheckCircle2 className="check-icon" size={20} />}
+                {form.paymentMethod === 'linepay' && <CheckCircle2 className="check-icon" size={20} />}
               </div>
               <div
-                className={`option-card ${paymentMethod === 'applepay' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('applepay')}
+                className={`option-card ${form.paymentMethod === 'applepay' ? 'active' : ''}`}
+                onClick={() => {
+                  setField('paymentMethod', 'applepay')
+                  analytics.addPaymentInfo('applepay')
+                }}
               >
                 <Smartphone size={28} strokeWidth={1.5} className="option-icon" />
                 <h3 className="option-title">Apple Pay</h3>
                 <p className="option-desc">快速驗證付款</p>
-                {paymentMethod === 'applepay' && <CheckCircle2 className="check-icon" size={20} />}
+                {form.paymentMethod === 'applepay' && <CheckCircle2 className="check-icon" size={20} />}
               </div>
               <div
-                className={`option-card ${paymentMethod === 'transfer' ? 'active' : ''}`}
-                onClick={() => setPaymentMethod('transfer')}
+                className={`option-card ${form.paymentMethod === 'transfer' ? 'active' : ''}`}
+                onClick={() => {
+                  setField('paymentMethod', 'transfer')
+                  analytics.addPaymentInfo('transfer')
+                }}
               >
                 <Store size={28} strokeWidth={1.5} className="option-icon" />
                 <h3 className="option-title">ATM 虛擬帳號</h3>
                 <p className="option-desc">轉帳付款</p>
-                {paymentMethod === 'transfer' && <CheckCircle2 className="check-icon" size={20} />}
+                {form.paymentMethod === 'transfer' && <CheckCircle2 className="check-icon" size={20} />}
               </div>
             </div>
 
-            {paymentMethod === 'credit' && import.meta.env.DEV && (
+            {form.paymentMethod === 'credit' && import.meta.env.DEV && (
               <div
                 style={{
                   background: '#fff7ed',
@@ -396,7 +459,7 @@ const Checkout = () => {
               </div>
             )}
 
-            {paymentMethod === 'credit' && (
+            {form.paymentMethod === 'credit' && (
               <div className="seamless-payment-box slide-down">
                 <div className="seamless-header">
                   <ShieldCheck size={18} color="#003153" />
@@ -434,8 +497,8 @@ const Checkout = () => {
               <div className="form-row">
                 <select
                   className="apple-input select-input"
-                  value={invoiceType}
-                  onChange={(e) => setInvoiceType(e.target.value)}
+                  value={form.invoiceType}
+                  onChange={(e) => setField('invoiceType', e.target.value)}
                 >
                   <option value="member">會員載具</option>
                   <option value="mobile">手機條碼載具</option>
@@ -444,7 +507,7 @@ const Checkout = () => {
                 </select>
               </div>
 
-              {invoiceType === 'mobile' && (
+              {form.invoiceType === 'mobile' && (
                 <div className="form-row slide-down">
                   <div className="input-with-icon">
                     <Smartphone className="input-icon" size={20} />
@@ -452,15 +515,15 @@ const Checkout = () => {
                       type="text"
                       className="apple-input with-icon"
                       placeholder="請輸入手機條碼（格式：/ABC1234）"
-                      value={invoiceMobile}
-                      onChange={(e) => setInvoiceMobile(e.target.value)}
+                      value={form.invoiceMobile}
+                      onChange={(e) => setField('invoiceMobile', e.target.value)}
                       maxLength={8}
                     />
                   </div>
                 </div>
               )}
 
-              {invoiceType === 'company' && (
+              {form.invoiceType === 'company' && (
                 <div className="form-row half-half slide-down">
                   <div className="input-with-icon">
                     <Building2 className="input-icon" size={20} />
@@ -468,8 +531,8 @@ const Checkout = () => {
                       type="text"
                       className="apple-input with-icon"
                       placeholder="統一編號（8 碼數字）"
-                      value={invoiceTaxId}
-                      onChange={(e) => setInvoiceTaxId(e.target.value)}
+                      value={form.invoiceTaxId}
+                      onChange={(e) => setField('invoiceTaxId', e.target.value)}
                       maxLength={8}
                     />
                   </div>
@@ -477,13 +540,13 @@ const Checkout = () => {
                     type="text"
                     className="apple-input"
                     placeholder="公司抬頭"
-                    value={invoiceCompany}
-                    onChange={(e) => setInvoiceCompany(e.target.value)}
+                    value={form.invoiceCompany}
+                    onChange={(e) => setField('invoiceCompany', e.target.value)}
                   />
                 </div>
               )}
 
-              {invoiceType === 'donate' && (
+              {form.invoiceType === 'donate' && (
                 <div className="form-row slide-down">
                   <div className="input-with-icon">
                     <HeartHandshake className="input-icon" size={20} />
@@ -491,8 +554,8 @@ const Checkout = () => {
                       type="text"
                       className="apple-input with-icon"
                       placeholder="請輸入機構捐贈碼"
-                      value={invoiceDonateCode}
-                      onChange={(e) => setInvoiceDonateCode(e.target.value)}
+                      value={form.invoiceDonateCode}
+                      onChange={(e) => setField('invoiceDonateCode', e.target.value)}
                     />
                   </div>
                 </div>
@@ -575,8 +638,13 @@ const Checkout = () => {
             </div>
 
             <div className="checkout-agreements">
-              <input type="checkbox" id="agree" defaultChecked />
-              <label htmlFor="agree">
+              <input
+                type="checkbox"
+                id="agree-terms"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+              />
+              <label htmlFor="agree-terms">
                 我已確認訂單無誤，並同意
                 <Link to={ROUTES.TERMS}>服務條款</Link>
                 {' '}與{' '}

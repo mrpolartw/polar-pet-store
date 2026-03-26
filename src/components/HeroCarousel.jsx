@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import banner1 from '../png/banner 1.png';
@@ -57,6 +57,32 @@ const HeroCarousel = () => {
     // 切換方向狀態，用於控制動畫進場退場方向
     const [direction, setDirection] = useState(0);
 
+    // Touch / Swipe 支援
+    const touchStartX = useRef(null);
+    const touchStartY = useRef(null);
+
+    const handleTouchStart = (e) => {
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e) => {
+        if (touchStartX.current === null) return;
+        const deltaX = touchStartX.current - e.changedTouches[0].clientX;
+        const deltaY = touchStartY.current - e.changedTouches[0].clientY;
+
+        // 只有橫向滑動幅度 > 縱向時才觸發換頁（避免干擾垂直捲動）
+        if (Math.abs(deltaX) < 40 || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+        if (deltaX > 0) {
+            nextSlide();
+        } else {
+            prevSlide();
+        }
+        touchStartX.current = null;
+        touchStartY.current = null;
+    };
+
     const nextSlide = () => {
         setDirection(1);
         setCurrentIndex((prev) => (prev + 1) % slides.length);
@@ -95,6 +121,8 @@ const HeroCarousel = () => {
             className="hero-carousel"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
         >
             <div className="carousel-inner" style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <AnimatePresence initial={false} custom={direction}>

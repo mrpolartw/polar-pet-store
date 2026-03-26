@@ -1,13 +1,70 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react'
+import React, { createContext, useCallback, useEffect, useState } from 'react'
 
+import { CONFIG } from '../constants/config'
 import cartService from '../services/cartService'
+import analytics from '../utils/analytics'
+import { cartStorage } from '../utils/storage'
+import { useToast } from './ToastContext'
 
 const CartContext = createContext(null)
 
+const clampCartQuantity = (quantity) => {
+  const normalizedQuantity = Number(quantity)
+
+  if (Number.isNaN(normalizedQuantity) || normalizedQuantity < 1) return 1
+
+  return Math.min(normalizedQuantity, CONFIG.MAX_CART_QUANTITY)
+}
+
+const normalizeCartItems = (items) => {
+  if (!Array.isArray(items)) return []
+
+  return items.map((item) => ({
+    ...item,
+    quantity: clampCartQuantity(item?.quantity),
+  }))
+}
+
 export const CartProvider = ({ children }) => {
-  const [cartItems, setCartItems] = useState([])
+  const toast = useToast()
+  const [cartItems, setCartItems] = useState(() => cartStorage.getItems())
   const [isCartLoading, setIsCartLoading] = useState(false)
   const [cartError, setCartError] = useState(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      cartStorage.setItems(cartItems)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [cartItems])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined
+
+    const handleStorage = (event) => {
+      try {
+        if (event.key !== CONFIG.CART_STORAGE_KEY) return
+
+        setCartItems(normalizeCartItems(cartStorage.getItems()))
+      } catch {
+        // fail silently
+      }
+    }
+
+    try {
+      window.addEventListener('storage', handleStorage)
+    } catch {
+      // fail silently
+    }
+
+    return () => {
+      try {
+        window.removeEventListener('storage', handleStorage)
+      } catch {
+        // fail silently
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const loadCart = async () => {
@@ -15,17 +72,22 @@ export const CartProvider = ({ children }) => {
       setCartError(null)
 
       try {
-        // TODO: [BACKEND] cartService.getCart() 需後端 GET /store/carts/:id 實作
-        // 後端實作後，回傳格式預期為 { cart: { items: [...] } }
+        const storedItems = normalizeCartItems(cartStorage.getItems())
+
+        if (storedItems.length > 0) {
+          setCartItems(storedItems)
+          return
+        }
+
         const data = await cartService.getCart()
-        setCartItems(data?.cart?.items ?? data?.items ?? [])
+        const nextItems = normalizeCartItems(data?.cart?.items ?? data?.items ?? [])
+
+        setCartItems(nextItems)
       } catch (err) {
-        // API 尚未實作時，維持空購物車（正常開發期行為）
-        setCartItems([])
         setCartError(err?.message ?? null)
 
         if (import.meta.env.DEV) {
-          console.warn('[Cart] getCart failed (後端尚未實作，購物車為空)')
+          console.warn('[Cart] getCart failed (falling back to local storage)')
         }
       } finally {
         setIsCartLoading(false)
@@ -36,39 +98,49 @@ export const CartProvider = ({ children }) => {
   }, [])
 
   const addToCart = useCallback(async (item) => {
-    const quantityToAdd = Number(item.quantity) > 0 ? Number(item.quantity) : 1
+    const quantityToAdd = clampCartQuantity(item.quantity)
 
     setCartError(null)
 
-    setCartItems(prev => {
-      const exists = prev.find(i => i.id === item.id)
+    setCartItems((prev) => {
+      const normalizedPrev = normalizeCartItems(prev)
+      const exists = normalizedPrev.find((cartItem) => cartItem.id === item.id)
 
       if (exists) {
-        return prev.map(i =>
-          i.id === item.id ? { ...i, quantity: i.quantity + quantityToAdd } : i
-        )
+        return normalizedPrev.map((cartItem) => (
+          cartItem.id === item.id
+            ? {
+                ...cartItem,
+                quantity: clampCartQuantity(Number(cartItem.quantity) + quantityToAdd),
+              }
+            : cartItem
+        ))
       }
 
-      return [...prev, { ...item, quantity: quantityToAdd }]
+      return [...normalizedPrev, { ...item, quantity: quantityToAdd }]
     })
+    toast.success('已加入購物車 🐾')
+
+    analytics.addToCart(item, quantityToAdd)
 
     try {
-      // TODO: [BACKEND] 後端實作後，改為呼叫 API 並用回傳結果更新 cartItems
-      // await cartService.addItem(item.variantId, quantityToAdd)
-      // const data = await cartService.getCart()
-      // setCartItems(data?.cart?.items ?? [])
+      // TODO: [BACKEND] await cartService.addItem(item.variantId, quantityToAdd)
     } catch (err) {
       setCartError(err?.message ?? null)
 
       if (import.meta.env.DEV) {
-        console.warn('[Cart] addItem API 尚未實作，使用本地狀態')
+        console.warn('[Cart] addItem API failed')
       }
     }
-  }, [])
+  }, [toast])
 
   const removeFromCart = useCallback(async (id) => {
+    const item = cartItems.find((cartItem) => cartItem.id === id)
     setCartError(null)
-    setCartItems(prev => prev.filter(i => i.id !== id))
+    setCartItems((prev) => normalizeCartItems(prev).filter((item) => item.id !== id))
+    toast.info('已從購物車移除')
+
+    analytics.removeFromCart(item, item?.quantity ?? 1)
 
     try {
       // TODO: [BACKEND] await cartService.removeItem(id)
@@ -76,16 +148,18 @@ export const CartProvider = ({ children }) => {
       setCartError(err?.message ?? null)
 
       if (import.meta.env.DEV) {
-        console.warn('[Cart] removeItem API 尚未實作，使用本地狀態')
+        console.warn('[Cart] removeItem API failed')
       }
     }
-  }, [])
+  }, [cartItems, toast])
 
   const updateQuantity = useCallback(async (id, quantity) => {
     setCartError(null)
-    setCartItems(prev =>
-      prev.map(i => (i.id === id ? { ...i, quantity: Number(quantity) } : i))
-    )
+    setCartItems((prev) => (
+      normalizeCartItems(prev).map((item) => (
+        item.id === id ? { ...item, quantity: clampCartQuantity(quantity) } : item
+      ))
+    ))
 
     try {
       // TODO: [BACKEND] await cartService.updateItem(id, quantity)
@@ -93,7 +167,7 @@ export const CartProvider = ({ children }) => {
       setCartError(err?.message ?? null)
 
       if (import.meta.env.DEV) {
-        console.warn('[Cart] updateItem API 尚未實作，使用本地狀態')
+        console.warn('[Cart] updateItem API failed')
       }
     }
   }, [])
@@ -101,13 +175,14 @@ export const CartProvider = ({ children }) => {
   const clearCart = useCallback(async () => {
     setCartError(null)
     setCartItems([])
-    // TODO: [BACKEND] 後端實作後逐一呼叫 cartService.removeItem() 或清空 cart
+
+    // TODO: [BACKEND] clear server cart when backend integration is ready
+    cartStorage.clear()
   }, [])
 
-  // TODO: [BACKEND] subtotal 應由後端計算並回傳，前端僅作顯示用途
   const subtotal = cartItems.reduce(
     (acc, item) => acc + (Number(item.price) || 0) * (Number(item.quantity) || 0),
-    0
+    0,
   )
   const itemCount = cartItems.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)
 

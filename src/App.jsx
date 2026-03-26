@@ -20,12 +20,17 @@ import LogoImg from './png/LOGO去背景.png';
 // --- Other Pages & Components ---
 import { ProtectedRoute, PublicRoute } from './guards';
 import { ROUTES } from './constants/routes';
-import { ErrorBoundary, PageLoader } from './components/common';
+import { CONFIG } from './constants/config'
+import { ErrorBoundary, PageLoader, CookieConsent } from './components/common';
 import CustomCursor from './components/CustomCursor';
+import analytics from './utils/analytics'
+import { storage } from './utils/storage'
 
 const Home = React.lazy(() => import('./pages/Home'));
 const About = React.lazy(() => import('./pages/About'));
 const Category = React.lazy(() => import('./pages/Category'));
+const Blog       = React.lazy(() => import('./pages/Blog/Blog'))
+const BlogDetail = React.lazy(() => import('./pages/Blog/BlogDetail'))
 const Contact = React.lazy(() => import('./pages/Contact'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy/PrivacyPolicy'));
 const MemberBenefits = React.lazy(() => import('./pages/MemberBenefits/MemberBenefits'));
@@ -36,6 +41,10 @@ const Unauthorized = React.lazy(() => import('./pages/Unauthorized'));
 const Login = React.lazy(() => import('./pages/Auth/Login'));
 const Register = React.lazy(() => import('./pages/Auth/Register'));
 const ForgotPassword = React.lazy(() => import('./pages/Auth/ForgotPassword'));
+const ServerError   = React.lazy(() => import('./pages/Error/ServerError'))
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword/ResetPassword'))
+const Founder          = React.lazy(() => import('./pages/Brand/Founder'))
+const QualityAssurance = React.lazy(() => import('./pages/Brand/QualityAssurance'))
 
 const Account = React.lazy(() => import('./pages/Account/Account'));
 
@@ -154,6 +163,10 @@ function AppContent() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    analytics.pageView(location.pathname, document.title)
+  }, [location.pathname]);
+
   // ----------------------------------------
   // 4. 事件處理函數 (Handlers)
   // ----------------------------------------
@@ -267,8 +280,8 @@ function AppContent() {
               {/* ── 購物袋按鈕 ── */}
               <div className="cart-item-wrapper" style={{ position: 'relative' }}>
                 <button
-                  className={`icon-btn ${isCartOpen ? 'active' : ''}`}
-                  aria-label="購物車"
+                  className={`icon-btn cart-icon-btn ${isCartOpen ? 'active' : ''}`}
+                  aria-label={`購物袋，共 ${itemCount} 件`}
                   style={{ position: 'relative' }}
                   onClick={() => {
                     setIsCartOpen(!isCartOpen);
@@ -277,25 +290,9 @@ function AppContent() {
                   }}
                   onMouseEnter={() => handleMouseEnterDropdown(null)}
                 >
-                  <ShoppingBag size={18} />
-                  {/* 購物袋數量角標 */}
+                  <ShoppingBag size={20} strokeWidth={1.8} />
                   {itemCount > 0 && (
-                    <span style={{
-                      position: 'absolute',
-                      top: -4,
-                      right: -4,
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      background: 'var(--color-brand-coffee)',
-                      color: 'white',
-                      fontSize: 10,
-                      fontWeight: 700,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      lineHeight: 1,
-                    }}>
+                    <span className="cart-badge">
                       {itemCount > 9 ? '9+' : itemCount}
                     </span>
                   )}
@@ -319,7 +316,7 @@ function AppContent() {
                           color: 'var(--color-text-dark)',
                           letterSpacing: '-0.01em',
                         }}>
-                          購物車
+                          購物袋
                         </span>
                         <Link
                           to="/cart"
@@ -342,7 +339,7 @@ function AppContent() {
                             e.currentTarget.style.background = 'var(--color-brand-blue)';
                           }}
                         >
-                          前往購物車
+                          前往購物袋
                         </Link>
                       </div>
 
@@ -353,7 +350,7 @@ function AppContent() {
                           color: 'var(--color-gray-dark)',
                           marginBottom: 12,
                         }}>
-                          購物車裡有 {itemCount} 件商品
+                          購物袋裡有 {itemCount} 件商品
                         </p>
                       )}
 
@@ -873,17 +870,17 @@ function AppContent() {
         {/* ── 核心頁面 ── */}
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
-        <Route path="/founder" element={<Category title="創辦人介紹" subtitle="認識 Mr.Polar 的初心與品牌起點" />} />
+        <Route path="founder" element={<Founder />} />
         <Route path="/design-philosophy" element={<Category title="設計理念" subtitle="以毛孩與飼主體驗為核心的品牌思維" />} />
         <Route path="/brand-promise" element={<Category title="品牌承諾" subtitle="從原料到服務，守住每一份信任" />} />
-        <Route path="/quality-assurance" element={<Category title="品質安心" subtitle="透明把關每一道品質與安全流程" />} />
+        <Route path="quality-assurance" element={<QualityAssurance />} />
         <Route path="/customer-feedback" element={<Category title="顧客回饋" subtitle="來自真實飼主與毛孩的使用分享" />} />
         <Route path="/order" element={<OrderQuery />} />
 
         {/* ── 購物流程 ── */}
         <Route path="/cart" element={<Cart />} />
-        <Route path={ROUTES.CHECKOUT} element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
-        <Route path={ROUTES.ORDER_CONFIRM} element={<ProtectedRoute><OrderConfirm /></ProtectedRoute>} />
+        <Route path={ROUTES.CHECKOUT} element={<Checkout />} />
+        <Route path={ROUTES.ORDER_CONFIRM} element={<OrderConfirm />} />
 
         {/* ── 會員系統 ── */}
         <Route path={ROUTES.ACCOUNT} element={<ProtectedRoute><Account /></ProtectedRoute>} />
@@ -904,10 +901,14 @@ function AppContent() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/member-benefits" element={<MemberBenefits />} />
         <Route path="/terms" element={<TermsOfService />} />
-        <Route path="/blog" element={<Category title="最新消息" subtitle="毛孩知識與品牌故事" />} />
+        <Route path="blog"          element={<Blog />} />
+        <Route path="blog/:slug"    element={<BlogDetail />} />
         <Route path="/faq" element={<Category title="常見問題" subtitle="服務條款與隱私政策" />} />
 
         <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/500"                    element={<ServerError />} />
+        <Route path="/reset-password"         element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/reset-password/:token"  element={<PublicRoute><ResetPassword /></PublicRoute>} />
 
         {/* ── 404 Fallback（放最後）── */}
         <Route path="*" element={<NotFound />} />
@@ -932,7 +933,7 @@ function AppContent() {
             <div className="footer-column">
               <h4>找我們說</h4>
               <ul>
-                <li><Link to="/cart">購物車</Link></li>
+                <li><Link to="/cart">購物袋</Link></li>
                 <li><Link to="/order">訂單查詢</Link></li>
                 <li><Link to="/faq">常見問題</Link></li>
                 <li><Link to="/contact">聯絡我們</Link></li>
@@ -962,6 +963,7 @@ function AppContent() {
           </div>
         </div>
       </footer>
+      <CookieConsent />
     </div>
     </ErrorBoundary>
   );
@@ -972,6 +974,14 @@ function AppContent() {
 // App Entry
 // ==========================================
 function App() {
+  useEffect(() => {
+    // 已同意 Cookie 的回訪使用者，直接初始化 GA
+    const consent = storage.get(CONFIG.COOKIE_CONSENT_KEY)
+    if (consent?.analytics) {
+      analytics.init()
+    }
+  }, [])
+
   return (
     <Router basename="/polar-pet-store">
       <AppContent />

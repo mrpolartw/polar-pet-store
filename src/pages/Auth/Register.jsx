@@ -1,5 +1,5 @@
 ﻿import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle, ChevronRight, ChevronLeft, Gift, Star, Package, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
@@ -10,9 +10,9 @@ import {
   validatePhone,
   validatePassword,
   validatePasswordConfirm,
-  validateRequired,
   validateName,
 } from '../../utils/validators'
+import analytics from '../../utils/analytics'
 const motion = Motion
 
 const getPasswordStrength = (pwd) => {
@@ -47,6 +47,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [errors, setErrors] = useState({})
+  const location = useLocation()
 
   // 多隻毛孩陣列
   const [pets, setPets] = useState([defaultPet()])
@@ -55,7 +56,7 @@ const Register = () => {
     name: '',
     phone: '',
     gender: '',
-    email: '',
+    email: location.state?.email ?? '',
     birthday: '',
     password: '',
     confirmPassword: '',
@@ -142,7 +143,10 @@ const Register = () => {
       birthday: form.birthday,
       pets,
     })
-    if (result.success) setStep(3)
+    if (result.success) {
+      analytics.signUp('email')
+      setStep(3)
+    }
   }
 
   const slideVariants = {

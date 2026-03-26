@@ -3,29 +3,37 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Package, Gift, Trash2 } from 'lucide-react'
 
 import { LoadingSpinner, EmptyState } from '../../components/common'
+import SEOHead from '../../components/common/SEOHead'
+import { CONFIG } from '../../constants/config'
 import { ROUTES } from '../../constants/routes'
 import { useCart } from '../../context/useCart'
 
 const Cart = () => {
   const navigate = useNavigate()
   const { cartItems, isCartLoading, removeFromCart, updateQuantity, subtotal } = useCart()
+  const quantityOptions = Array.from(
+    { length: CONFIG.MAX_CART_QUANTITY },
+    (_, index) => index + 1,
+  )
 
   const formatPrice = (price) => `NT$${price.toLocaleString()}`
-  const shippingFee = subtotal >= 1500 ? 0 : 100
+  const shippingFee =
+    subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD ? 0 : CONFIG.SHIPPING_FEE
   const total = subtotal + shippingFee
 
   return (
     <div className="cart-page">
+      <SEOHead title="購物袋" noIndex={true} />
       {isCartLoading ? (
         <LoadingSpinner
           size="large"
           fullPage={true}
-          label="載入購物車中..."
+          label="載入購物袋中..."
         />
       ) : cartItems.length === 0 ? (
         <EmptyState
           icon="🛒"
-          title="購物車是空的"
+          title="購物袋是空的"
           description="快去挑選適合毛孩的好物吧！"
           actionLabel="前往商品頁"
           onAction={() => navigate(ROUTES.PRODUCTS)}
@@ -34,12 +42,14 @@ const Cart = () => {
         <>
           <div className="cart-header">
             <h1 className="headline-regular">
-              購物車總金額
+              購物袋總金額
               <br className="mobile-only" />
               {formatPrice(total)}
             </h1>
             <p className="cart-shipping-promo">
-              {shippingFee === 0 ? '已享免運優惠' : `再差 ${formatPrice(1500 - subtotal)} 即可免運`}
+              {shippingFee === 0
+                ? '已享免運優惠'
+                : `再差 ${formatPrice(CONFIG.FREE_SHIPPING_THRESHOLD - subtotal)} 即可免運`}
             </p>
             <Link
               to="/checkout"
@@ -59,7 +69,7 @@ const Cart = () => {
                 <div className="item-content-col">
                   <div className="item-main-info">
                     <div className="item-details">
-                      <h3 className="item-title">{item.name}</h3>
+                      <h3 className="item-title text-truncate-mobile">{item.name}</h3>
                       <p className="item-specs">{item.specs}</p>
                     </div>
                     <div className="item-qty">
@@ -68,7 +78,7 @@ const Cart = () => {
                         onChange={(e) => updateQuantity(item.id, e.target.value)}
                         className="qty-select"
                       >
-                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                        {quantityOptions.map((num) => (
                           <option key={num} value={num}>
                             {num}
                           </option>

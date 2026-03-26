@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
+import SEOHead from '../../components/common/SEOHead'
 import { useCart } from '../../context/useCart'
 import {
   createCartPayload,
   getProductBySlug,
   getRelatedProducts,
 } from '../../data/productCatalog'
+import { buildProductSchema, buildBreadcrumbSchema } from '../../utils/schema'
+import analytics from '../../utils/analytics'
 import ProductBenefits from '../../components/product/ProductBenefits'
 import ProductFAQ from '../../components/product/ProductFAQ'
 import ProductFeedingGuide from '../../components/product/ProductFeedingGuide'
@@ -97,6 +100,12 @@ const ProductDetail = () => {
     window.scrollTo(0, 0)
   }, [slug])
 
+  useEffect(() => {
+    if (product) {
+      analytics.viewItem(product)
+    }
+  }, [product])
+
   if (!product) {
     return (
       <main className="pdp-page">
@@ -114,14 +123,30 @@ const ProductDetail = () => {
   const handleAddToCartItem = (targetProduct, variant, quantity) => {
     addToCart(createCartPayload(targetProduct, variant, quantity))
   }
-
   return (
-    <ProductDetailContent
-      key={slug}
-      product={product}
-      onAddToCartItem={handleAddToCartItem}
-      onBuyNowItem={handleAddToCartItem}
-    />
+    <>
+      <SEOHead
+        title={product?.name}
+        description={product?.description ?? product?.subtitle}
+        ogImage={product?.images?.[0] ?? product?.image}
+        ogType="product"
+        canonicalUrl={`/products/${product?.slug ?? product?.id}`}
+        schema={[
+          buildProductSchema(product),
+          buildBreadcrumbSchema([
+            { name: '首頁', url: '/' },
+            { name: '所有商品', url: '/products' },
+            { name: product?.name ?? '', url: `/products/${product?.slug ?? product?.id}` },
+          ]),
+        ]}
+      />
+      <ProductDetailContent
+        key={slug}
+        product={product}
+        onAddToCartItem={handleAddToCartItem}
+        onBuyNowItem={handleAddToCartItem}
+      />
+    </>
   )
 }
 

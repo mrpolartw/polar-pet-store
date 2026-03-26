@@ -4,6 +4,7 @@ import { Eye, EyeOff, AlertCircle, Package, Star, ShieldCheck } from 'lucide-rea
 import { useAuth } from '../../context/useAuth'
 import { ROUTES } from '../../constants/routes'
 import { validateEmail, validateRequired } from '../../utils/validators'
+import analytics from '../../utils/analytics'
 // 桌面版：LOGO.png（含淺色背景）
 import LogoDesktop from '../../png/LOGO.png'
 // 手機版：LOGO去背景.png（透明底，在淺色頁面直接顯示原色）
@@ -22,6 +23,8 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [errors, setErrors] = useState({})
+  const [notRegistered, setNotRegistered] = useState(false)
+  const [prefillEmail, setPrefillEmail] = useState('')
 
   const validate = () => {
     const e = {}
@@ -40,8 +43,26 @@ const Login = () => {
     setAuthError('')
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
+
     const result = await login(email, password)
+    if (!result.success) {
+      const isAccountNotFound =
+        result.message?.includes('找不到此帳號') ||
+        result.message?.includes('查無此帳號')
+
+      if (isAccountNotFound) {
+        setPrefillEmail(email)
+        setNotRegistered(true)
+      } else {
+        setNotRegistered(false)
+      }
+
+      return
+    }
+
+    setNotRegistered(false)
     if (result.success) {
+      analytics.login('email')
       const destination = location.state?.from || ROUTES.HOME
       navigate(destination, { replace: true })
     }  }
@@ -141,6 +162,39 @@ const Login = () => {
             </motion.div>
           )}
 
+          {notRegistered && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="auth-global-error"
+              style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertCircle size={16} />
+                <strong>此帳號尚未註冊</strong>
+              </div>
+              <p style={{ fontSize: 13, margin: 0, color: '#9a3412' }}>
+                找不到與 <strong>{prefillEmail}</strong> 相符的帳號，是否前往註冊？
+              </p>
+              <Link
+                to="/register"
+                state={{ email: prefillEmail }}
+                style={{
+                  background: '#003153',
+                  color: '#fff',
+                  padding: '8px 18px',
+                  borderRadius: 980,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                }}
+              >
+                前往註冊（自動帶入信箱）
+              </Link>
+            </motion.div>
+          )}
+
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
 
             {/* 電子郵件 */}
@@ -155,6 +209,7 @@ const Login = () => {
                 autoComplete="email"
                 onChange={e => {
                   setEmail(e.target.value)
+                  setNotRegistered(false)
                   setErrors(p => ({ ...p, email: '' }))
                 }}
               />

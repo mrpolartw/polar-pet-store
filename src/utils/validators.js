@@ -163,7 +163,7 @@ function validateMobileBarcode(barcode) {
     return null
   }
 
-  if (!/^\/[0-9A-Z.+\-]{7}$/.test(normalized)) {
+  if (!/^\/[0-9A-Z.+-]{7}$/.test(normalized)) {
     return '手機載具格式不正確（格式：/XXXXXXX）'
   }
 
