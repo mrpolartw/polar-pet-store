@@ -175,9 +175,13 @@ export const CartProvider = ({ children }) => {
   const clearCart = useCallback(async () => {
     setCartError(null)
     setCartItems([])
-
-    // TODO: [BACKEND] clear server cart when backend integration is ready
     cartStorage.clear()
+    try {
+      // TODO BACKEND: await cartService.clearCart()
+      await cartService.clearCart?.()
+    } catch {
+      // 後端清除失敗不阻斷流程
+    }
   }, [])
 
   const subtotal = cartItems.reduce(

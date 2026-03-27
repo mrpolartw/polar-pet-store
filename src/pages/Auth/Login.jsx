@@ -44,19 +44,17 @@ const Login = () => {
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
 
+    const MOCK_REGISTERED_EMAILS = ['test@polar.com', 'vip@polar.com']
+    const exists = MOCK_REGISTERED_EMAILS.includes(email.toLowerCase().trim())
+    if (!exists) {
+      setPrefillEmail(email)
+      setNotRegistered(true)
+      return
+    }
+    setNotRegistered(false)
+
     const result = await login(email, password)
     if (!result.success) {
-      const isAccountNotFound =
-        result.message?.includes('找不到此帳號') ||
-        result.message?.includes('查無此帳號')
-
-      if (isAccountNotFound) {
-        setPrefillEmail(email)
-        setNotRegistered(true)
-      } else {
-        setNotRegistered(false)
-      }
-
       return
     }
 
@@ -166,14 +164,24 @@ const Login = () => {
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="auth-global-error"
-              style={{ background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}
+              style={{
+                background: '#fff7ed',
+                border: '1px solid #fed7aa',
+                borderRadius: 10,
+                padding: '12px 16px',
+                fontSize: 14,
+                color: '#9a3412',
+                marginBottom: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <AlertCircle size={16} />
                 <strong>此帳號尚未註冊</strong>
               </div>
-              <p style={{ fontSize: 13, margin: 0, color: '#9a3412' }}>
+              <p style={{ fontSize: 13, margin: 0 }}>
                 找不到與 <strong>{prefillEmail}</strong> 相符的帳號，是否前往註冊？
               </p>
               <Link
@@ -188,6 +196,7 @@ const Login = () => {
                   fontWeight: 600,
                   textDecoration: 'none',
                   display: 'inline-block',
+                  alignSelf: 'flex-start',
                 }}
               >
                 前往註冊（自動帶入信箱）

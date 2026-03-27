@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react'
+import React, { createContext, useCallback, useEffect, useState } from 'react'
 
 import authService from '../services/authService'
 
@@ -12,15 +12,9 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // TODO: [BACKEND] 後端實作後，getMe() 會驗證現有 session/token
-        // 目前 authService.getMe() 為 TODO placeholder，會 throw error
-        // 所以 catch 到 error 時 setUser(null) 是正確行為
         const data = await authService.getMe()
         setUser(data?.customer ?? data ?? null)
       } catch {
-        if (import.meta.env.DEV) {
-          console.warn('[Auth] Session check failed (後端尚未實作，此為預期行為)')
-        }
         setUser(null)
       } finally {
         setIsLoading(false)
@@ -35,18 +29,18 @@ export const AuthProvider = ({ children }) => {
     setAuthError('')
 
     try {
-      // TODO: [BACKEND] authService.login 需後端 POST /store/auth 實作
+      // TODO: [BACKEND] authService.login -> POST /store/auth
       const data = await authService.login(email, password)
       const nextUser = data?.customer ?? data ?? null
 
       if (!nextUser) {
-        throw new Error('登入失敗，請稍後再試')
+        throw new Error('帳號或密碼錯誤，請重新確認')
       }
 
       setUser(nextUser)
       return { success: true }
     } catch (err) {
-      const message = err?.message || '登入失敗，請稍後再試'
+      const message = err?.message ?? '帳號或密碼錯誤，請重新確認'
       setAuthError(message)
       return { success: false, message }
     } finally {
@@ -59,7 +53,7 @@ export const AuthProvider = ({ children }) => {
     setAuthError('')
 
     try {
-      // TODO: [BACKEND] authService.register 需後端 POST /store/customers 實作
+      // TODO: [BACKEND] authService.register -> POST /store/customers
       const data = await authService.register(userData)
       const nextUser = data?.customer ?? data ?? null
 
@@ -70,7 +64,7 @@ export const AuthProvider = ({ children }) => {
       setUser(nextUser)
       return { success: true }
     } catch (err) {
-      const message = err?.message || '註冊失敗，請稍後再試'
+      const message = err?.message ?? '註冊失敗，請稍後再試'
       setAuthError(message)
       return { success: false, message }
     } finally {
@@ -80,14 +74,13 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      // TODO: [BACKEND] authService.logout 需後端清除 session
+      // TODO: [BACKEND] authService.logout -> clear session
       await authService.logout()
     } catch {
-      // logout 失敗仍清除前端狀態
+      // logout failure should not block local sign-out
     } finally {
       setUser(null)
       setAuthError('')
-      // TODO: [AUTH] 清除 sessionStorage token（後端串接後補上）
     }
   }, [])
 
@@ -95,13 +88,13 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true)
 
     try {
-      // TODO: [BACKEND] authService.updateProfile 需後端 POST /store/customers/me 實作
+      // TODO: [BACKEND] authService.updateProfile -> POST /store/customers/me
       const data = await authService.updateProfile(updates)
       const updated = data?.customer ?? data ?? updates
-      setUser(prev => ({ ...prev, ...updated }))
+      setUser((prev) => ({ ...prev, ...updated }))
       return { success: true }
     } catch (err) {
-      return { success: false, message: err?.message || '更新失敗，請稍後再試' }
+      return { success: false, message: err?.message ?? '個人資料更新失敗，請稍後再試' }
     } finally {
       setIsLoading(false)
     }
@@ -111,11 +104,11 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true)
 
     try {
-      // TODO: [BACKEND] authService.changePassword 需後端實作
+      // TODO: [BACKEND] authService.changePassword
       await authService.changePassword(oldPassword, newPassword)
       return { success: true }
     } catch (err) {
-      return { success: false, message: err?.message || '密碼變更失敗，請稍後再試' }
+      return { success: false, message: err?.message ?? '密碼更新失敗，請確認舊密碼是否正確' }
     } finally {
       setIsLoading(false)
     }

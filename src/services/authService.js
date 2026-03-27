@@ -16,6 +16,10 @@ if (USE_MOCK && import.meta.env.PROD) {
  */
 export const login = async (email, password) => {
   if (USE_MOCK) return mockAuthHandlers.login(email, password);
+  // TODO BACKEND 串接時，替換為：
+  // import apiClient from '../utils/apiClient'
+  // import API from '../constants/api'
+  // return apiClient.post(API.AUTH_LOGIN, { email, password })
   throw new Error('TODO: [BACKEND] authService.login - 需後端 API 串接');
 };
 

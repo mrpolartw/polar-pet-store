@@ -1,77 +1,75 @@
-/**
- * Fetch the current customer profile.
- *
- * @returns {never} This placeholder always throws until backend APIs are connected.
- * @throws {Error} Throws an unimplemented backend integration error.
- */
-export function getCustomerProfile() {
-  // TODO: [BACKEND] 串接會員資料 API。
-  throw new Error('TODO: [BACKEND] customerService.getCustomerProfile - 需後端 API 串接');
+import { mockCustomerHandlers } from '../mocks/mockHandlers'
+import authService from './authService'
+
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
+
+if (USE_MOCK && import.meta.env.PROD) {
+  console.error('⚠️ customerService: MOCK MODE IS ACTIVE IN PRODUCTION!')
 }
 
 /**
- * Update the current customer profile.
- *
- * @param {Object} data - Customer profile payload.
- * @returns {never} This placeholder always throws until backend APIs are connected.
- * @throws {Error} Throws an unimplemented backend integration error.
+ * 取得目前登入客戶的完整個人資料
+ * @returns {Promise<{customer: object}>}
  */
-export function updateCustomerProfile(data) {
-  void data;
-  // TODO: [BACKEND] 串接會員更新 API。
-  throw new Error('TODO: [BACKEND] customerService.updateCustomerProfile - 需後端 API 串接');
+export const getCustomerProfile = async () => {
+  if (USE_MOCK) return authService.getMe()
+  // TODO BACKEND: GET /store/customers/me
+  throw new Error('TODO BACKEND: customerService.getCustomerProfile')
 }
 
 /**
- * Fetch saved customer addresses.
- *
- * @returns {never} This placeholder always throws until backend APIs are connected.
- * @throws {Error} Throws an unimplemented backend integration error.
+ * 更新客戶個人資料
+ * @param {object} data - 更新欄位 (name, phone, birthday, gender)
+ * @returns {Promise<{customer: object}>}
  */
-export function getAddresses() {
-  // TODO: [BACKEND] 串接地址簿查詢 API。
-  throw new Error('TODO: [BACKEND] customerService.getAddresses - 需後端 API 串接');
+export const updateCustomerProfile = async (data) => {
+  if (USE_MOCK) return authService.updateProfile(data)
+  // TODO BACKEND: POST /store/customers/me
+  throw new Error('TODO BACKEND: customerService.updateCustomerProfile')
 }
 
 /**
- * Create a customer address.
- *
- * @param {Object} payload - Address payload.
- * @returns {never} This placeholder always throws until backend APIs are connected.
- * @throws {Error} Throws an unimplemented backend integration error.
+ * 取得客戶所有地址
+ * @returns {Promise<{addresses: object[]}>}
  */
-export function createAddress(payload) {
-  void payload;
-  // TODO: [BACKEND] 串接新增地址 API。
-  throw new Error('TODO: [BACKEND] customerService.createAddress - 需後端 API 串接');
+export const getAddresses = async () => {
+  if (USE_MOCK) return mockCustomerHandlers.getAddresses()
+  // TODO BACKEND: GET /store/customers/me/addresses
+  throw new Error('TODO BACKEND: customerService.getAddresses')
 }
 
 /**
- * Update a customer address.
- *
- * @param {string} addressId - Address identifier.
- * @param {Object} payload - Address payload.
- * @returns {never} This placeholder always throws until backend APIs are connected.
- * @throws {Error} Throws an unimplemented backend integration error.
+ * 新增地址
+ * @param {object} payload - 地址資料 (name, phone, city, district, address, type, label, isDefault)
+ * @returns {Promise<{address: object}>}
  */
-export function updateAddress(addressId, payload) {
-  void addressId;
-  void payload;
-  // TODO: [BACKEND] 串接更新地址 API。
-  throw new Error('TODO: [BACKEND] customerService.updateAddress - 需後端 API 串接');
+export const createAddress = async (payload) => {
+  if (USE_MOCK) return mockCustomerHandlers.createAddress(payload)
+  // TODO BACKEND: POST /store/customers/me/addresses
+  throw new Error('TODO BACKEND: customerService.createAddress')
 }
 
 /**
- * Delete a customer address.
- *
- * @param {string} addressId - Address identifier.
- * @returns {never} This placeholder always throws until backend APIs are connected.
- * @throws {Error} Throws an unimplemented backend integration error.
+ * 更新地址
+ * @param {string} addressId
+ * @param {object} payload
+ * @returns {Promise<{address: object}>}
  */
-export function deleteAddress(addressId) {
-  void addressId;
-  // TODO: [BACKEND] 串接刪除地址 API。
-  throw new Error('TODO: [BACKEND] customerService.deleteAddress - 需後端 API 串接');
+export const updateAddress = async (addressId, payload) => {
+  if (USE_MOCK) return mockCustomerHandlers.updateAddress(addressId, payload)
+  // TODO BACKEND: POST /store/customers/me/addresses/:addressId
+  throw new Error('TODO BACKEND: customerService.updateAddress')
+}
+
+/**
+ * 刪除地址
+ * @param {string} addressId
+ * @returns {Promise<{success: boolean}>}
+ */
+export const deleteAddress = async (addressId) => {
+  if (USE_MOCK) return mockCustomerHandlers.deleteAddress(addressId)
+  // TODO BACKEND: DELETE /store/customers/me/addresses/:addressId
+  throw new Error('TODO BACKEND: customerService.deleteAddress')
 }
 
 const customerService = {
@@ -81,6 +79,6 @@ const customerService = {
   createAddress,
   updateAddress,
   deleteAddress,
-};
+}
 
-export default customerService;
+export default customerService

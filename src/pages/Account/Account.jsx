@@ -2,11 +2,12 @@ import { Suspense, lazy } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
   User, Package, Heart, MapPin,
-  PawPrint, Shield,
+  PawPrint, RefreshCw, Shield,
 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
 import { useAccountTab } from '../../modules/account/hooks/useAccountTab'
 import { SEOHead, LoadingSpinner } from '../../components/common'
+import AccountSubscription from './tabs/AccountSubscription'
 import './Account.css'
 
 const AccountProfile = lazy(() => import('../../modules/account/components/AccountProfile'))
@@ -19,6 +20,7 @@ const AccountSecurity = lazy(() => import('../../modules/account/components/Acco
 const TAB_CONFIG = [
   { key: 'profile', label: '個人資料', icon: User, component: AccountProfile },
   { key: 'orders', label: '我的訂單', icon: Package, component: AccountOrders },
+  { key: 'subscription', label: '月訂管理', icon: RefreshCw, component: AccountSubscription },
   { key: 'favorites', label: '收藏商品', icon: Heart, component: AccountFavorites },
   { key: 'addresses', label: '地址管理', icon: MapPin, component: AccountAddresses },
   { key: 'pets', label: '我的毛孩', icon: PawPrint, component: AccountPets },

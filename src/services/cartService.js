@@ -3,7 +3,7 @@ import { mockCartHandlers } from '../mocks/mockHandlers';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 if (USE_MOCK && import.meta.env.PROD) {
-  console.error('⛔ [cartService] MOCK MODE IS ACTIVE IN PRODUCTION! Set VITE_USE_MOCK=false')
+  console.error('??[cartService] MOCK MODE IS ACTIVE IN PRODUCTION! Set VITE_USE_MOCK=false')
 }
 
 /**
@@ -14,7 +14,7 @@ if (USE_MOCK && import.meta.env.PROD) {
  */
 export const getCart = async () => {
   if (USE_MOCK) return mockCartHandlers.getCart();
-  throw new Error('TODO: [BACKEND] cartService.getCart - 需後端 API 串接');
+  throw new Error('TODO: [BACKEND] cartService.getCart - ?敺垢 API 銝脫');
 };
 
 /**
@@ -27,7 +27,7 @@ export const getCart = async () => {
  */
 export const addItem = async (variantId, quantity) => {
   if (USE_MOCK) return mockCartHandlers.addItem(variantId, quantity);
-  throw new Error('TODO: [BACKEND] cartService.addItem - 需後端 API 串接');
+  throw new Error('TODO: [BACKEND] cartService.addItem - ?敺垢 API 銝脫');
 };
 
 /**
@@ -39,7 +39,7 @@ export const addItem = async (variantId, quantity) => {
  */
 export const removeItem = async (lineItemId) => {
   if (USE_MOCK) return mockCartHandlers.removeItem(lineItemId);
-  throw new Error('TODO: [BACKEND] cartService.removeItem - 需後端 API 串接');
+  throw new Error('TODO: [BACKEND] cartService.removeItem - ?敺垢 API 銝脫');
 };
 
 /**
@@ -52,7 +52,18 @@ export const removeItem = async (lineItemId) => {
  */
 export const updateItem = async (lineItemId, quantity) => {
   if (USE_MOCK) return mockCartHandlers.updateItem(lineItemId, quantity);
-  throw new Error('TODO: [BACKEND] cartService.updateItem - 需後端 API 串接');
+  throw new Error('TODO: [BACKEND] cartService.updateItem - ?敺垢 API 銝脫');
+};
+
+/**
+ * Clear the current cart.
+ *
+ * @returns {Promise<unknown>} Cart clear result from mock or backend.
+ * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
+ */
+export const clearCart = async () => {
+  if (USE_MOCK) return mockCartHandlers.clearCart();
+  throw new Error('TODO: [BACKEND] cartService.clearCart - ?敺垢 API 銝脫');
 };
 
 /**
@@ -64,7 +75,7 @@ export const updateItem = async (lineItemId, quantity) => {
  */
 export const applyPromoCode = async (code) => {
   if (USE_MOCK) return mockCartHandlers.applyPromoCode(code);
-  throw new Error('TODO: [BACKEND] cartService.applyPromoCode - 需後端 API 串接');
+  throw new Error('TODO: [BACKEND] cartService.applyPromoCode - ?敺垢 API 銝脫');
 };
 
 /**
@@ -75,7 +86,7 @@ export const applyPromoCode = async (code) => {
  */
 export const removePromoCode = async () => {
   if (USE_MOCK) return mockCartHandlers.removePromoCode();
-  throw new Error('TODO: [BACKEND] cartService.removePromoCode - 需後端 API 串接');
+  throw new Error('TODO: [BACKEND] cartService.removePromoCode - ?敺垢 API 銝脫');
 };
 
 export default {
@@ -83,6 +94,7 @@ export default {
   addItem,
   removeItem,
   updateItem,
+  clearCart,
   applyPromoCode,
   removePromoCode,
 };

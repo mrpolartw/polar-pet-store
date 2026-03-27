@@ -21,7 +21,8 @@ import LogoImg from './png/LOGO去背景.png';
 import { ProtectedRoute, PublicRoute } from './guards';
 import { ROUTES } from './constants/routes';
 import { CONFIG } from './constants/config'
-import { ErrorBoundary, PageLoader, CookieConsent } from './components/common';
+import { PageLoader, CookieConsent } from './components/common';
+import ErrorBoundary from './components/common/ErrorBoundary/ErrorBoundary'
 import CustomCursor from './components/CustomCursor';
 import analytics from './utils/analytics'
 import { storage } from './utils/storage'
@@ -588,12 +589,12 @@ function AppContent() {
                               </Link>
                             </li>
                             <li>
-                              <Link to="/orders" onClick={() => setIsUserMenuOpen(false)}>
+                              <Link to="/account#orders" onClick={() => setIsUserMenuOpen(false)}>
                                 我的訂單
                               </Link>
                             </li>
                             <li>
-                              <Link to="/favorites" onClick={() => setIsUserMenuOpen(false)}>
+                              <Link to="/account#favorites" onClick={() => setIsUserMenuOpen(false)}>
                                 收藏清單
                               </Link>
                             </li>
@@ -984,7 +985,9 @@ function App() {
 
   return (
     <Router basename="/polar-pet-store">
-      <AppContent />
+      <ErrorBoundary>
+        <AppContent />
+      </ErrorBoundary>
     </Router>
   );
 }

@@ -138,6 +138,7 @@ const Register = () => {
     const result = await register({
       name: form.name,
       email: form.email,
+      password: form.password,
       phone: form.phone,
       gender: form.gender,
       birthday: form.birthday,

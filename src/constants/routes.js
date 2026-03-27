@@ -20,6 +20,7 @@ export const ROUTES = {
   ACCOUNT: '/account',
   ORDERS: '/orders',
   FAVORITES: '/favorites',
+  SUBSCRIPTION: '/account',
   ORDER_QUERY: '/order',
   ORDER_CONFIRM: '/order-confirm/:orderId',
   CART: '/cart',

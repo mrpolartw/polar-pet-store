@@ -63,7 +63,7 @@ const ForgotPassword = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!email.trim) { setError('請輸入電子郵件'); return }
+    if (!email.trim()) { setError('請輸入電子郵件'); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError('請輸入有效的電子郵件格式'); return }
     if (isBlocked) return
 

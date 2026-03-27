@@ -1,6 +1,6 @@
 /**
- * @fileoverview Mock API 處理函式
- * @description 模擬後端 API 行為，僅在 VITE_USE_MOCK=true 時使用
+ * @fileoverview Mock API handlers
+ * @description 在 VITE_USE_MOCK=true 時模擬後端 API 行為
  */
 
 import {
@@ -19,7 +19,7 @@ const saveMockSession = (user) => {
   try {
     sessionStorage.setItem(MOCK_SESSION_KEY, JSON.stringify(user))
   } catch {
-    // sessionStorage 不可用時靜默失敗
+    // sessionStorage 存取失敗時靜默略過
   }
 }
 
@@ -40,7 +40,6 @@ const clearMockSession = () => {
   }
 }
 
-// 初始化時嘗試從 sessionStorage 讀取（處理頁面刷新情況）
 let currentUser = loadMockSession()
 
 export const mockAuthHandlers = {
@@ -101,7 +100,7 @@ export const mockAuthHandlers = {
     const user = currentUser || loadMockSession()
 
     if (!user) {
-      throw { status: 401, message: '未登入' }
+      throw { status: 401, message: '尚未登入' }
     }
 
     currentUser = user
@@ -134,7 +133,7 @@ export const mockAuthHandlers = {
     const user = MOCK_USERS.find((candidate) => candidate.email === email)
 
     if (!user) {
-      throw { status: 404, message: '找不到此 Email 的帳號' }
+      throw { status: 404, message: '找不到此 Email 帳號' }
     }
 
     return { success: true }
@@ -167,6 +166,11 @@ export const mockCartHandlers = {
     return { success: true }
   },
 
+  clearCart: async () => {
+    await delay(300)
+    return { success: true }
+  },
+
   applyPromoCode: async (code) => {
     await delay()
     const promo = MOCK_PROMO_CODES[String(code).toUpperCase()]
@@ -189,10 +193,8 @@ export const mockOrderHandlers = {
     await delay(1000)
 
     if (payload.paymentMethod === 'transfer') {
-      // ATM 轉帳：模擬成功
+      throw { status: 422, message: '測試環境暫不支援 ATM 付款，請改選信用卡或 LINE Pay' }
     }
-
-    // throw { status: 500, message: '伺服器忙碌中，請稍後再試（模擬失敗）' }
 
     const orderId = `PL-${Date.now().toString().slice(-8)}`
     const newOrder = {
@@ -212,7 +214,7 @@ export const mockOrderHandlers = {
     const order = MOCK_ORDERS[orderId]
 
     if (!order) {
-      throw { status: 404, message: `找不到訂單 ${orderId}` }
+      throw { status: 404, message: `找不到訂單：${orderId}` }
     }
 
     return { order }
@@ -232,5 +234,53 @@ export const mockOrderHandlers = {
     }
 
     return promo
+  },
+}
+
+export const mockCustomerHandlers = {
+  getAddresses: async () => {
+    await delay(400)
+    const user = currentUser || loadMockSession()
+    if (!user) throw { status: 401, message: '請先登入' }
+    return { addresses: user.addresses ?? [] }
+  },
+
+  createAddress: async (payload) => {
+    await delay(500)
+    const user = currentUser || loadMockSession()
+    if (!user) throw { status: 401, message: '請先登入' }
+    const newAddr = {
+      id: `addr-${Date.now()}`,
+      ...payload,
+      isDefault: (user.addresses ?? []).length === 0,
+    }
+    const updated = { ...user, addresses: [...(user.addresses ?? []), newAddr] }
+    currentUser = updated
+    saveMockSession(updated)
+    return { address: newAddr }
+  },
+
+  updateAddress: async (addressId, payload) => {
+    await delay(500)
+    const user = currentUser || loadMockSession()
+    if (!user) throw { status: 401, message: '請先登入' }
+    const addresses = (user.addresses ?? []).map(a =>
+      a.id === addressId ? { ...a, ...payload } : a
+    )
+    const updated = { ...user, addresses }
+    currentUser = updated
+    saveMockSession(updated)
+    return { address: addresses.find(a => a.id === addressId) }
+  },
+
+  deleteAddress: async (addressId) => {
+    await delay(400)
+    const user = currentUser || loadMockSession()
+    if (!user) throw { status: 401, message: '請先登入' }
+    const addresses = (user.addresses ?? []).filter(a => a.id !== addressId)
+    const updated = { ...user, addresses }
+    currentUser = updated
+    saveMockSession(updated)
+    return { success: true }
   },
 }

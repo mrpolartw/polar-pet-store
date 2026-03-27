@@ -8,6 +8,7 @@ const VALID_TABS = [
   'addresses',
   'pets',
   'security',
+  'subscription',
 ]
 
 const DEFAULT_TAB = 'profile'
