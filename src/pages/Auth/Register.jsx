@@ -1,11 +1,18 @@
-import React, { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+﻿import React, { useState } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion as Motion, AnimatePresence } from 'framer-motion'
 import { Eye, EyeOff, AlertCircle, ChevronRight, ChevronLeft, Gift, Star, Package, Plus, Trash2 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
 import LogoImg from '../../png/LOGO.png'
 import './Auth.css'
-
+import {
+  validateEmail,
+  validatePhone,
+  validatePassword,
+  validatePasswordConfirm,
+  validateName,
+} from '../../utils/validators'
+import analytics from '../../utils/analytics'
 const motion = Motion
 
 const getPasswordStrength = (pwd) => {
@@ -40,6 +47,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [errors, setErrors] = useState({})
+  const location = useLocation()
 
   // 多隻毛孩陣列
   const [pets, setPets] = useState([defaultPet()])
@@ -48,7 +56,7 @@ const Register = () => {
     name: '',
     phone: '',
     gender: '',
-    email: '',
+    email: location.state?.email ?? '',
     birthday: '',
     password: '',
     confirmPassword: '',
@@ -80,11 +88,16 @@ const Register = () => {
 
   const validateStep0 = () => {
     const e = {}
-    if (!form.name.trim()) e.name = '請填寫姓名'
-    if (!form.phone.trim()) e.phone = '請填寫手機號碼'
-    else if (!/^09\d{8}$/.test(form.phone)) e.phone = '手機號碼格式不正確（09 開頭共 10 碼）'
-    if (!form.email.trim()) e.email = '請填寫電子郵件'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = '電子郵件格式不正確'
+
+    const nameError = validateName(form.name)
+    if (nameError) e.name = nameError
+
+    const emailError = validateEmail(form.email)
+    if (emailError) e.email = emailError
+
+    const phoneError = validatePhone(form.phone)
+    if (phoneError) e.phone = phoneError
+
     return e
   }
 
@@ -100,11 +113,15 @@ const Register = () => {
 
   const validateStep2 = () => {
     const e = {}
-    if (!form.password) e.password = '請設定密碼'
-    else if (form.password.length < 8) e.password = '密碼至少 8 個字元'
-    if (!form.confirmPassword) e.confirmPassword = '請再次輸入密碼'
-    else if (form.password !== form.confirmPassword) e.confirmPassword = '兩次輸入的密碼不一致'
-    if (!form.agreeTerms) e.agreeTerms = '請勾選同意服務條款'
+
+    const passwordError = validatePassword(form.password)
+    if (passwordError) e.password = passwordError
+
+    const confirmError = validatePasswordConfirm(form.password, form.confirmPassword)
+    if (confirmError) e.confirmPassword = confirmError
+
+    if (!form.agreeTerms) e.agreeTerms = '請勾選並同意服務條款與隱私政策'
+
     return e
   }
 
@@ -127,7 +144,10 @@ const Register = () => {
       birthday: form.birthday,
       pets,
     })
-    if (result.success) setStep(3)
+    if (result.success) {
+      analytics.signUp('email')
+      setStep(3)
+    }
   }
 
   const slideVariants = {
@@ -142,7 +162,9 @@ const Register = () => {
       {/* ── 左側品牌面板 ── */}
       <div className="auth-brand-panel">
         <div className="auth-brand-logo">
-          <img src={LogoImg} alt="Mr. Polar" style={{ width: 200, height: 'auto', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.25)' }} />
+          <Link to="/">
+            <img src={LogoImg} alt="Mr. Polar" style={{ height: 'auto', width: 293, maxWidth: '100%', display: 'block', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.25)' }} />
+          </Link>
         </div>
         <div className="auth-brand-content">
           <h2>加入 Polar<br />毛孩的最佳選擇</h2>
@@ -169,7 +191,9 @@ const Register = () => {
         <div className="auth-form-container">
 
           <div className="auth-mobile-logo">
-            <Link to="/"><img src={LogoImg} alt="Polar" /></Link>
+            <Link to="/">
+              <img src={LogoImg} alt="Mr. Polar" style={{ height: 'auto', width: 293, maxWidth: '100%', display: 'block' }} />
+            </Link>
           </div>
 
           {/* 步驟指示器 */}
@@ -386,7 +410,7 @@ const Register = () => {
                 <div className="auth-terms">
                   <input type="checkbox" id="reg-agree" checked={form.agreeTerms} onChange={e => setField('agreeTerms', e.target.checked)} />
                   <label htmlFor="reg-agree">
-                    我已閱讀並同意 <Link to="/faq">服務條款</Link> 及 <Link to="/faq">隱私政策</Link>，並確認年滿 18 歲。
+                    我已閱讀並同意 <Link to="/terms">服務條款</Link> 及 <Link to="/privacy">隱私政策</Link>，並確認年滿 18 歲。
                   </label>
                 </div>
                 {errors.agreeTerms && <p className="auth-field-error" style={{ marginTop: -16, marginBottom: 12 }}><AlertCircle size={12} />{errors.agreeTerms}</p>}
@@ -429,3 +453,4 @@ const Register = () => {
 }
 
 export default Register
+

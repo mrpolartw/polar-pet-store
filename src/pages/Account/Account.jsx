@@ -1,123 +1,44 @@
-import React, { useState } from 'react'
-import { Navigate, Link, useNavigate, useLocation } from 'react-router-dom'
-import { motion as Motion, AnimatePresence } from 'framer-motion'
+import { Suspense, lazy } from 'react'
+import { Navigate } from 'react-router-dom'
 import {
-  User, ShoppingBag, Heart, MapPin, ShieldCheck,
-  LogOut, ChevronRight, Check, Plus, Edit2, Trash2,
-  Package, Truck, CheckCircle, XCircle, PawPrint, CreditCard,
-  Store, X, Lock,
+  User, Package, Heart, MapPin,
+  PawPrint, RefreshCw, Shield,
 } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
 import { getMemberTier } from '../../context/authUtils'
 import { sdk } from '../../lib/medusa'
+import { useAccountTab } from '../../modules/account/hooks/useAccountTab'
+import { SEOHead, LoadingSpinner } from '../../components/common'
+import AccountSubscription from './tabs/AccountSubscription'
 import './Account.css'
 
-const motion = Motion
+const AccountProfile = lazy(() => import('../../modules/account/components/AccountProfile'))
+const AccountOrders = lazy(() => import('../../modules/account/components/AccountOrders'))
+const AccountFavorites = lazy(() => import('../../modules/account/components/AccountFavorites'))
+const AccountAddresses = lazy(() => import('../../modules/account/components/AccountAddresses'))
+const AccountPets = lazy(() => import('../../modules/account/components/AccountPets'))
+const AccountSecurity = lazy(() => import('../../modules/account/components/AccountSecurity'))
 
-
-// ─────────────────────────────────────────────
-// 常數 & Mock 資料
-// ─────────────────────────────────────────────
-const MOCK_ORDERS = [
-  {
-    id: 'PL2026-0314', date: '2026-03-10', status: 'delivered', statusLabel: '已送達', total: 3560,
-    items: [
-      { name: 'Polar 主食罐', img: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=200' },
-      { name: 'Polar 益生菌', img: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&q=80&w=200' },
-    ],
-  },
-  {
-    id: 'PL2026-0298', date: '2026-02-28', status: 'processing', statusLabel: '處理中', total: 1280,
-    items: [
-      { name: 'Polar 主食罐', img: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=200' },
-    ],
-  },
-  {
-    id: 'PL2026-0271', date: '2026-02-10', status: 'shipping', statusLabel: '配送中', total: 2130,
-    items: [
-      { name: 'Polar 零食', img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=200' },
-      { name: 'Polar 主食罐', img: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=200' },
-    ],
-  },
+const TAB_CONFIG = [
+  { key: 'profile', label: '個人資料', icon: User, component: AccountProfile },
+  { key: 'orders', label: '我的訂單', icon: Package, component: AccountOrders },
+  { key: 'subscription', label: '月訂管理', icon: RefreshCw, component: AccountSubscription },
+  { key: 'favorites', label: '收藏商品', icon: Heart, component: AccountFavorites },
+  { key: 'addresses', label: '地址管理', icon: MapPin, component: AccountAddresses },
+  { key: 'pets', label: '我的毛孩', icon: PawPrint, component: AccountPets },
+  { key: 'security', label: '帳號安全', icon: Shield, component: AccountSecurity },
 ]
 
-const MOCK_FAVORITES = [
-  { id: 1, name: 'Polar 主食罐 - 鮮鮭魚', price: 1280, img: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=300' },
-  { id: 2, name: 'Polar 益生菌化毛膏',     price: 850,  img: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&q=80&w=300' },
-  { id: 3, name: 'Polar 凍乾零食 - 雞肉', price: 460,  img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=300' },
-]
+export default function Account() {
+  const { user } = useAuth()
+  const { activeTab, switchTab } = useAccountTab()
 
-const MOCK_CARDS = [
-  { id: 1, brand: 'Visa',       last4: '4242', expiry: '12/27', holderName: 'WANG XIAOMING', isDefault: true },
-  { id: 2, brand: 'Mastercard', last4: '8888', expiry: '08/26', holderName: 'WANG XIAOMING', isDefault: false },
-]
+  if (!user) return <Navigate to="/login" replace />
 
-const TW_CITIES = [
-  '台北市','新北市','桃園市','台中市','台南市','高雄市',
-  '基隆市','新竹市','嘉義市','新竹縣','苗栗縣','彰化縣',
-  '南投縣','雲林縣','嘉義縣','屏東縣','宜蘭縣','花蓮縣',
-  '台東縣','澎湖縣','金門縣','連江縣',
-]
+  const ActiveComponent = TAB_CONFIG.find(
+    (tab) => tab.key === activeTab,
+  )?.component ?? AccountProfile
 
-const EMPTY_ADDRESS_FORM = {
-  type: 'home', label: '', name: '', phone: '',
-  city: '', district: '', address: '',
-  isDefault: false, storeName: '', storeId: '',
-}
-
-const EMPTY_CARD_FORM = {
-  cardNumberRaw: '', holderName: '', expiryRaw: '', cvv: '', isDefault: false,
-}
-
-// ✅ 毛孩表單預設值
-const EMPTY_PET_FORM = {
-  petName: '', petGender: '', petType: '',
-  petBreed: '', petAge: '', petWeight: '', petBirthday: '',
-}
-
-const TABS = [
-  { key: 'profile',   label: '個人資料',   icon: User,        path: '/account' },
-  { key: 'orders',    label: '我的訂單',   icon: ShoppingBag, path: '/orders' },
-  { key: 'favorites', label: '收藏清單',   icon: Heart,       path: '/favorites' },
-  { key: 'addresses', label: '地址管理',   icon: MapPin,      path: '/account' },
-  { key: 'cards',     label: '信用卡管理', icon: CreditCard,  path: '/account' },
-  { key: 'security',  label: '帳號安全',   icon: ShieldCheck, path: '/account' },
-]
-
-// ── 毛孩類型對應 Emoji ──
-const PET_EMOJI = { cat: '🐱', dog: '🐶',other: '🐾' }
-const PET_TYPE_LABEL = { cat: '貓咪', dog: '狗狗',other: '其他' }
-const PET_GENDER_LABEL = { male: '男生', female: '女生' }
-
-
-// ─────────────────────────────────────────────
-// 工具函式（信用卡）
-// ─────────────────────────────────────────────
-const detectCardBrand = (num) => {
-  const n = num.replace(/\s/g, '')
-  if (/^4/.test(n))        return 'Visa'
-  if (/^5[1-5]/.test(n))   return 'Mastercard'
-  if (/^3[47]/.test(n))    return 'Amex'
-  if (/^35/.test(n))       return 'JCB'
-  return ''
-}
-const displayCardNumber = (raw) => raw.replace(/(.{4})/g, '$1 ').trim()
-const displayExpiry     = (raw) => raw.length > 2 ? `${raw.slice(0, 2)}/${raw.slice(2)}` : raw
-const parseExpiryRaw    = (fmt = '') => fmt.replace(/\D/g, '')
-
-
-// ─────────────────────────────────────────────
-// 小型子元件
-// ─────────────────────────────────────────────
-const BRAND_STYLES = {
-  Visa:       { bg: '#1a1f71', color: '#fff', text: 'VISA' },
-  Mastercard: { bg: 'linear-gradient(135deg,#eb001b,#f79e1b)', color: '#fff', text: 'MC' },
-  Amex:       { bg: '#007bc1', color: '#fff', text: 'AMEX' },
-  JCB:        { bg: '#003087', color: '#fff', text: 'JCB' },
-}
-
-const CardBrandBadge = ({ brand, size = 'sm' }) => {
-  const s = BRAND_STYLES[brand] || { bg: '#6b7280', color: '#fff', text: brand || '???' }
   return (
     <span style={{
       background: s.bg, color: s.color,
@@ -1204,55 +1125,60 @@ const Account = () => {
       />
 
       <div className="account-mobile-tabs">
-        {TABS.map(tab => (
-          <button key={tab.key}
-            className={`account-mobile-tab ${activeTab === tab.key ? 'active' : ''}`}
-            onClick={() => handleNavClick(tab)}>
-            {tab.label}
+        {TAB_CONFIG.map(({ key, label }) => (
+          <button
+            key={key}
+            className={`account-mobile-tab ${activeTab === key ? 'active' : ''}`}
+            onClick={() => switchTab(key)}
+          >
+            {label}
           </button>
         ))}
       </div>
 
+      <div className="account-profile-card account-profile-card-mobile">
+        <div className="account-avatar">
+          {user?.avatar
+            ? <img src={user.avatar} alt={user.name} />
+            : <span>{user?.name?.[0] ?? '?'}</span>}
+        </div>
+        <div className="account-user-name">{user?.name}</div>
+        <div className="account-user-email">{user?.email}</div>
+      </div>
+
       <div className="account-layout">
-        <div className="account-sidebar">
+        <aside className="account-sidebar">
           <div className="account-profile-card">
             <div className="account-avatar">
-              {user?.avatar ? <img src={user.avatar} alt={user.name} /> : getInitials(user?.name)}
+              {user?.avatar
+                ? <img src={user.avatar} alt={user.name} />
+                : <span>{user?.name?.[0] ?? '?'}</span>}
             </div>
             <div className="account-user-name">{user?.name}</div>
             <div className="account-user-email">{user?.email}</div>
-            <div className="account-tier-badge" style={{ color: tier.color, backgroundColor: tier.bg }}>⭐ {tier.label}</div>
-            <div className="account-points-row">
-              <span>我的點數</span>
-              <span className="account-points-value">{(user?.points || 0).toLocaleString()}</span>
-            </div>
           </div>
-          <div className="account-nav">
-            {TABS.map(({ key, label, icon: Icon, path }) => (
-              <button key={key}
-                className={`account-nav-item ${activeTab === key ? 'active' : ''}`}
-                onClick={() => handleNavClick({ key, label, icon: Icon, path })}>
-                <Icon size={16} className="account-nav-icon" />
-                {label}
-                {activeTab === key && <ChevronRight size={14} style={{ marginLeft: 'auto', color: 'var(--color-brand-blue)' }} />}
+
+          <nav className="account-nav">
+            {TAB_CONFIG.map((tab) => (
+              <button
+                key={tab.key}
+                className={`account-nav-item ${activeTab === tab.key ? 'active' : ''}`}
+                onClick={() => switchTab(tab.key)}
+                aria-current={activeTab === tab.key ? 'page' : undefined}
+              >
+                <tab.icon size={18} strokeWidth={1.5} />
+                <span>{tab.label}</span>
               </button>
             ))}
-            <button className="account-nav-item logout-btn" onClick={handleLogout}>
-              <LogOut size={16} className="account-nav-icon" />登出帳號
-            </button>
-          </div>
-        </div>
+          </nav>
+        </aside>
 
         <div className="account-content">
-          <AnimatePresence mode="wait">{renderContent()}</AnimatePresence>
+          <Suspense fallback={<LoadingSpinner size="large" />}>
+            <ActiveComponent />
+          </Suspense>
         </div>
       </div>
-
-      <AnimatePresence>
-        {toast && <Toast key="toast" message={toast} />}
-      </AnimatePresence>
-    </div>
+    </main>
   )
 }
-
-export default Account

@@ -1,19 +1,25 @@
-import React from 'react';
- // 復用通用內頁佈局樣式
+import { useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 
-const Category = ({ title, subtitle }) => {
-    return (
-        <main className="about-page" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', textAlign: 'center' }}>
-            <div className="text-container" style={{ padding: '0 20px' }}>
-                <h1 className="headline-pro">{title}</h1>
-                <p className="subhead-pro" style={{ marginTop: '24px' }}>{subtitle}</p>
-                <p className="description-pro" style={{ marginTop: '32px' }}>全新產品線即將推出，敬請期待。</p>
-                <div className="btns-wrapper" style={{ marginTop: '40px' }}>
-                    <button className="btn-blue">返回首頁</button>
-                </div>
-            </div>
-        </main>
-    );
-};
+import { LoadingSpinner } from '../components/common'
+import { ROUTES } from '../constants/routes'
 
-export default Category;
+const ROUTE_TO_CATEGORY = {
+  '/main-food': 'food',
+  '/snacks': 'snacks',
+  '/health': 'health',
+  '/joints': 'health',
+}
+
+export default function Category() {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  useEffect(() => {
+    const categoryKey = ROUTE_TO_CATEGORY[location.pathname] || 'all'
+
+    navigate(`${ROUTES.PRODUCTS}?category=${categoryKey}`, { replace: true })
+  }, [location.pathname, navigate])
+
+  return <LoadingSpinner size="large" fullPage={true} label="載入中..." />
+}

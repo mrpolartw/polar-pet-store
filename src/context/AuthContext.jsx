@@ -1,6 +1,9 @@
 import React, { createContext, useState, useEffect } from 'react'
 import { sdk } from '../lib/medusa'
 
+
+import authService from '../services/authService'
+
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
@@ -26,6 +29,15 @@ export const AuthProvider = ({ children }) => {
       } catch {
         // Session 已過期，清除登入標記
         localStorage.removeItem('polar_logged_in')
+  const [isLoading, setIsLoading] = useState(true)
+  const [authError, setAuthError] = useState('')
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const data = await authService.getMe()
+        setUser(data?.customer ?? data ?? null)
+      } catch {
         setUser(null)
       } finally {
         setIsLoading(false)
@@ -65,8 +77,14 @@ export const AuthProvider = ({ children }) => {
   // 登入：使用 Medusa Customer Auth API
   // ──────────────────────────────────────────────
   const login = async (email, password) => {
+
+    checkSession()
+  }, [])
+
+  const login = useCallback(async (email, password) => {
     setIsLoading(true)
     setAuthError('')
+
     try {
       // Step 1：取得登入 Token
       const token = await sdk.auth.login('customer', 'emailpass', {
@@ -96,7 +114,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   // ──────────────────────────────────────────────
   // 註冊：使用 Medusa Customer Register API
@@ -104,6 +122,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     setIsLoading(true)
     setAuthError('')
+
     try {
       const { email, password, name, phone } = userData
       const nameParts = name?.split(' ') || []
@@ -145,7 +164,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, []
 
   // ──────────────────────────────────────────────
   // 登出：清除 Medusa Session

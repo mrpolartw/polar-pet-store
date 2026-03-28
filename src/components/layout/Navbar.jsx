@@ -18,7 +18,7 @@ const Navbar = () => {
           <div className="nav-logo">
             <a href="/">
               {/* 請確認這裡的圖片路徑是你專案中正確的 Logo 路徑 */}
-              <img src="/polar-logo.png" alt="Mr. Polar" /> 
+              <img src="/polar-logo.png" alt="Mr.Polar 北極先生" /> 
             </a>
           </div>
 

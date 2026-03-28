@@ -3,15 +3,18 @@ import { motion } from 'framer-motion'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff, AlertCircle, Package, Star, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../context/useAuth'
-
+import { ROUTES } from '../../constants/routes'
+import { validateEmail, validateRequired } from '../../utils/validators'
+import analytics from '../../utils/analytics'
 // 桌面版：LOGO.png（含淺色背景）
 import LogoDesktop from '../../png/LOGO.png'
 // 手機版：LOGO去背景.png（透明底，在淺色頁面直接顯示原色）
 import LogoMobile from '../../png/LOGO去背景.png'
 
 import './Auth.css'
-
+import { motion as Motion, AnimatePresence } from "framer-motion"
 const Login = () => {
+  const motion = Motion
   const navigate = useNavigate()
   const location = useLocation()
   const { login, isLoading, authError, setAuthError } = useAuth()
@@ -21,15 +24,18 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [errors, setErrors] = useState({})
-
-  const from = location.state?.from || '/account'
+  const [notRegistered, setNotRegistered] = useState(false)
+  const [prefillEmail, setPrefillEmail] = useState('')
 
   const validate = () => {
     const e = {}
-    if (!email.trim()) e.email = '請填寫電子郵件'
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = '電子郵件格式不正確'
-    if (!password) e.password = '請填寫密碼'
-    else if (password.length < 6) e.password = '密碼至少 6 個字元'
+
+    const emailError = validateEmail(email)
+    if (emailError) e.email = emailError
+
+    const passwordError = validateRequired(password, '密碼')
+    if (passwordError) e.password = passwordError
+
     return e
   }
 
@@ -38,9 +44,27 @@ const Login = () => {
     setAuthError('')
     const errs = validate()
     if (Object.keys(errs).length > 0) { setErrors(errs); return }
+
+    const MOCK_REGISTERED_EMAILS = ['test@polar.com', 'vip@polar.com']
+    const exists = MOCK_REGISTERED_EMAILS.includes(email.toLowerCase().trim())
+    if (!exists) {
+      setPrefillEmail(email)
+      setNotRegistered(true)
+      return
+    }
+    setNotRegistered(false)
+
     const result = await login(email, password)
-    if (result.success) navigate(from, { replace: true })
-  }
+    if (!result.success) {
+      return
+    }
+
+    setNotRegistered(false)
+    if (result.success) {
+      analytics.login('email')
+      const destination = location.state?.from || ROUTES.HOME
+      navigate(destination, { replace: true })
+    }  }
 
   const fadeUp = {
     initial: { opacity: 0, y: 24 },
@@ -137,6 +161,50 @@ const Login = () => {
             </motion.div>
           )}
 
+          {notRegistered && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                background: '#fff7ed',
+                border: '1px solid #fed7aa',
+                borderRadius: 10,
+                padding: '12px 16px',
+                fontSize: 14,
+                color: '#9a3412',
+                marginBottom: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <AlertCircle size={16} />
+                <strong>此帳號尚未註冊</strong>
+              </div>
+              <p style={{ fontSize: 13, margin: 0 }}>
+                找不到與 <strong>{prefillEmail}</strong> 相符的帳號，是否前往註冊？
+              </p>
+              <Link
+                to="/register"
+                state={{ email: prefillEmail }}
+                style={{
+                  background: '#003153',
+                  color: '#fff',
+                  padding: '8px 18px',
+                  borderRadius: 980,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                  alignSelf: 'flex-start',
+                }}
+              >
+                前往註冊（自動帶入信箱）
+              </Link>
+            </motion.div>
+          )}
+
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
 
             {/* 電子郵件 */}
@@ -151,6 +219,7 @@ const Login = () => {
                 autoComplete="email"
                 onChange={e => {
                   setEmail(e.target.value)
+                  setNotRegistered(false)
                   setErrors(p => ({ ...p, email: '' }))
                 }}
               />
@@ -264,3 +333,4 @@ const Login = () => {
 }
 
 export default Login
+

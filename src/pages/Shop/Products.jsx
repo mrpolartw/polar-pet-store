@@ -5,310 +5,567 @@ import {
 } from 'lucide-react';
 import { useCart } from '../../context/useCart';
 import { sdk } from '../../lib/medusa';
+import React, { startTransition, useCallback, useEffect, useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import {
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Grid3X3,
+  LayoutList,
+  Search,
+  ShoppingCart,
+  SlidersHorizontal,
+  Star,
+  X,
+} from 'lucide-react'
+import SEOHead from '../../components/common/SEOHead'
+import { useCart } from '../../context/useCart'
+import { formatPrice } from '../../utils/formatters'
+import analytics from '../../utils/analytics'
+import {
+  CATEGORIES,
+  PET_TYPES,
+  PRICE_RANGES,
+  PRODUCT_CATALOG,
+  PRODUCT_FILTERS,
+  SORT_OPTIONS,
+  createCartPayload,
+} from '../../data/productCatalog'
 import './Products.css'
 
-
-// ─────────────────────────────────────────────
-// 常數定義
-// ─────────────────────────────────────────────
-const CATEGORIES = [
-    { key: 'all', label: '全部商品' },
-    { key: 'food', label: '主食糧' },
-    { key: 'snacks', label: '零食點心' },
-    { key: 'health', label: '保健品' },
-    { key: 'supplies', label: '生活用品' },
-];
-
-
-const PET_TYPES = [
-    { key: 'all', label: '全部' },
-    { key: 'cat', label: '貓咪' },
-    { key: 'dog', label: '狗狗' },
-];
-
-
-const PRICE_RANGES = [
-    { key: 'all', label: '全部價格', min: 0, max: Infinity },
-    { key: 'under500', label: 'NT$500 以下', min: 0, max: 499 },
-    { key: '500-1000', label: 'NT$500–1,000', min: 500, max: 1000 },
-    { key: '1000-2000', label: 'NT$1,000–2,000', min: 1001, max: 2000 },
-    { key: 'over2000', label: 'NT$2,000 以上', min: 2001, max: Infinity },
-];
-
-
-const SORT_OPTIONS = [
-    { key: 'default', label: '預設排序' },
-    { key: 'newest', label: '最新上架' },
-    { key: 'popular', label: '熱門商品' },
-    { key: 'price-asc', label: '價格：低至高' },
-    { key: 'price-desc', label: '價格：高至低' },
-];
-
-
-// ── 新增：商品狀態篩選（取代每頁筆數選單）──
-const PRODUCT_FILTERS = [
-    { key: 'all',        label: '全部商品' },
-    { key: 'bestseller', label: '熱銷商品' },
-    { key: 'discount',   label: '優惠商品' },
-    { key: 'bundle',     label: '組合商品' },
-    { key: 'new',        label: '全新上市' },
-];
-
-// 每頁顯示筆數（固定值，不再提供 UI 選擇）
-const PER_PAGE = 12;
-
-
-// ─────────────────────────────────────────────
-// Mock 商品資料
-// ─────────────────────────────────────────────
-const IMGS = {
-    cat1: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&q=80&w=400',
-    cat2: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&q=80&w=400',
-    cat3: 'https://images.unsplash.com/photo-1533743983669-94fa5c4338ec?auto=format&fit=crop&q=80&w=400',
-    dog1: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=400',
-    dog2: 'https://images.unsplash.com/photo-1587300003388-59208cc962cb?auto=format&fit=crop&q=80&w=400',
-    dog3: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=400',
-    sup1: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&q=80&w=400',
-    sup2: 'https://images.unsplash.com/photo-1601758174114-e711c0cbaa69?auto=format&fit=crop&q=80&w=400',
-};
-
-
-const MOCK_PRODUCTS = [
-    { id: 1,  name: 'Polar 頂級鮭魚主食糧',   category: 'food',     petType: 'cat', price: 890,  originalPrice: null, specs: '成貓配方 / 1.5kg',        rating: 4.9, reviewCount: 236, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.cat1 },
-    { id: 2,  name: 'Polar 凍乾雞肉主食糧',   category: 'food',     petType: 'cat', price: 1280, originalPrice: 1580, specs: '全齡貓配方 / 1.2kg',       rating: 4.7, reviewCount: 118, isBestseller: false, isNew: true,  isBundle: false, image: IMGS.cat2 },
-    { id: 3,  name: 'Polar 深海鮪魚主食糧',   category: 'food',     petType: 'cat', price: 750,  originalPrice: null, specs: '幼貓配方 / 1.0kg',        rating: 4.6, reviewCount: 89,  isBestseller: false, isNew: false, isBundle: false, image: IMGS.cat3 },
-    { id: 4,  name: 'Polar 農場羊肉主食糧',   category: 'food',     petType: 'dog', price: 1050, originalPrice: null, specs: '成犬配方 / 2.0kg',        rating: 4.8, reviewCount: 163, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.dog1 },
-    { id: 5,  name: 'Polar 草飼牛肉主食糧',   category: 'food',     petType: 'dog', price: 1380, originalPrice: 1680, specs: '大型犬配方 / 3.0kg',      rating: 4.9, reviewCount: 201, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.dog2 },
-    { id: 6,  name: 'Polar 幼犬啟蒙主食糧',   category: 'food',     petType: 'dog', price: 920,  originalPrice: null, specs: '幼犬配方 / 1.5kg',        rating: 4.5, reviewCount: 72,  isBestseller: false, isNew: true,  isBundle: false, image: IMGS.dog3 },
-    { id: 7,  name: 'Polar 凍乾鮭魚零食',     category: 'snacks',   petType: 'cat', price: 360,  originalPrice: null, specs: '貓咪專用 / 50g',          rating: 4.9, reviewCount: 312, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.cat3 },
-    { id: 8,  name: 'Polar 雞肉潔牙骨',       category: 'snacks',   petType: 'dog', price: 480,  originalPrice: 580,  specs: '中小型犬 / 10入',         rating: 4.7, reviewCount: 187, isBestseller: false, isNew: false, isBundle: false, image: IMGS.dog1 },
-    { id: 9,  name: 'Polar 貓咪肉泥條',       category: 'snacks',   petType: 'cat', price: 290,  originalPrice: null, specs: '綜合口味 / 12入',         rating: 4.8, reviewCount: 256, isBestseller: true,  isNew: false, isBundle: true,  image: IMGS.cat1 },
-    { id: 10, name: 'Polar 犬用起司餅乾',     category: 'snacks',   petType: 'dog', price: 320,  originalPrice: null, specs: '全齡犬 / 200g',           rating: 4.6, reviewCount: 94,  isBestseller: false, isNew: true,  isBundle: false, image: IMGS.dog2 },
-    { id: 11, name: 'Polar 貓咪鮪魚慕斯',     category: 'snacks',   petType: 'cat', price: 420,  originalPrice: 520,  specs: '成貓 / 80g × 6',         rating: 4.7, reviewCount: 143, isBestseller: false, isNew: false, isBundle: true,  image: IMGS.cat2 },
-    { id: 12, name: 'Polar 犬用肉乾禮盒',     category: 'snacks',   petType: 'dog', price: 780,  originalPrice: 980,  specs: '全口味 / 禮盒裝',         rating: 4.9, reviewCount: 67,  isBestseller: false, isNew: true,  isBundle: true,  image: IMGS.dog3 },
-    { id: 13, name: 'Polar Joint 關節保健',   category: 'health',   petType: 'dog', price: 1290, originalPrice: null, specs: '大型犬 / 60顆',           rating: 4.9, reviewCount: 198, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.sup1 },
-    { id: 14, name: 'Polar 深海魚油膠囊',     category: 'health',   petType: 'cat', price: 480,  originalPrice: null, specs: '全齡貓 / 90顆',           rating: 4.8, reviewCount: 142, isBestseller: false, isNew: false, isBundle: false, image: IMGS.sup2 },
-    { id: 15, name: 'Polar 益生菌腸保健',     category: 'health',   petType: 'cat', price: 990,  originalPrice: 1180, specs: '成貓配方 / 30包',         rating: 4.7, reviewCount: 86,  isBestseller: false, isNew: false, isBundle: true,  image: IMGS.cat3 },
-    { id: 16, name: 'Polar 毛髮光澤保健品',   category: 'health',   petType: 'dog', price: 860,  originalPrice: null, specs: '成犬 / 60錠',             rating: 4.6, reviewCount: 73,  isBestseller: false, isNew: true,  isBundle: false, image: IMGS.dog1 },
-    { id: 17, name: 'Polar 犬用口腔保健',     category: 'health',   petType: 'dog', price: 650,  originalPrice: null, specs: '全齡犬 / 噴劑 100ml',     rating: 4.5, reviewCount: 55,  isBestseller: false, isNew: false, isBundle: false, image: IMGS.dog2 },
-    { id: 18, name: 'Polar 貓咪泌尿保健',     category: 'health',   petType: 'cat', price: 1150, originalPrice: 1380, specs: '成貓 / 粉末劑 90g',       rating: 4.8, reviewCount: 112, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.sup1 },
-    { id: 19, name: 'Polar 陶瓷自動飲水機',   category: 'supplies', petType: 'cat', price: 1680, originalPrice: null, specs: '2.5L / 靜音設計',         rating: 4.9, reviewCount: 224, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.sup2 },
-    { id: 20, name: 'Polar 不鏽鋼慢食碗',     category: 'supplies', petType: 'dog', price: 520,  originalPrice: 680,  specs: 'L 號 / 霧面黑',           rating: 4.7, reviewCount: 98,  isBestseller: false, isNew: false, isBundle: false, image: IMGS.dog3 },
-    { id: 21, name: 'Polar 貓咪麻繩抓板',     category: 'supplies', petType: 'cat', price: 890,  originalPrice: null, specs: '麻繩材質 / 三件組',       rating: 4.6, reviewCount: 77,  isBestseller: false, isNew: true,  isBundle: true,  image: IMGS.cat1 },
-    { id: 22, name: 'Polar 航空規格提籠',     category: 'supplies', petType: 'cat', price: 2200, originalPrice: 2800, specs: '航空規格 / 酒紅色',       rating: 4.8, reviewCount: 163, isBestseller: true,  isNew: false, isBundle: false, image: IMGS.sup1 },
-    { id: 23, name: 'Polar 皮革犬用牽繩',     category: 'supplies', petType: 'dog', price: 740,  originalPrice: null, specs: '皮革材質 / 深棕色',       rating: 4.7, reviewCount: 89,  isBestseller: false, isNew: false, isBundle: false, image: IMGS.dog1 },
-    { id: 24, name: 'Polar 寵物清潔濕紙巾',   category: 'supplies', petType: 'cat', price: 280,  originalPrice: null, specs: '貓犬通用 / 80抽',         rating: 4.5, reviewCount: 45,  isBestseller: false, isNew: true,  isBundle: false, image: IMGS.cat2 },
-];
-
-
-// ─────────────────────────────────────────────
-// 工具元件
-// ─────────────────────────────────────────────
-const formatPrice = (p) => `NT$${Number(p).toLocaleString()}`;
-
+const PER_PAGE = 12
+const getValidFilterKey = (value, options) => (
+  options.some((item) => item.key === value) ? value : 'all'
+)
+const CATEGORY_SEO_DESCRIPTION = {
+  all: '探索 Mr.Polar 極地熊全系列寵物食品，包含腸道保健、體重管理、情緒舒緩等機能零食。',
+  food: '瀏覽 Mr.Polar 北極先生主食系列，從營養密度、適口性到日常消化照護，替毛孩建立更穩定的飲食節奏。',
+  snacks: '查看 Mr.Polar 北極先生零食系列，兼顧適口性、互動獎勵與日常補給，讓毛孩吃得開心也更有節奏。',
+  health: '探索 Mr.Polar 北極先生保健系列，從腸胃、關節到日常營養補充，幫助毛孩維持更穩定的健康表現。',
+  supplies: '瀏覽 Mr.Polar 北極先生用品系列，從餵食到日常照護配件，一次整理更實用也更安心的生活提案。',
+}
 
 function StarRating({ rating }) {
-    return (
-        <div className="prod-stars">
-            {[1, 2, 3, 4, 5].map((s) => (
-                <Star
-                    key={s}
-                    size={13}
-                    className={s <= Math.round(rating) ? 'star-filled' : 'star-empty'}
-                />
-            ))}
-            <span className="prod-rating-num">{rating.toFixed(1)}</span>
-        </div>
-    );
+  return (
+    <div className="prod-stars">
+      {[1, 2, 3, 4, 5].map((value) => (
+        <Star
+          key={value}
+          size={13}
+          className={value <= Math.round(rating) ? 'star-filled' : 'star-empty'}
+        />
+      ))}
+      <span className="prod-rating-num">{rating.toFixed(1)}</span>
+    </div>
+  )
 }
 
-
-// ─────────────────────────────────────────────
-// ProductCard
-// ─────────────────────────────────────────────
 function ProductCard({ product, viewMode, onAddToCart }) {
-    const [isAdded, setIsAdded] = useState(false);
+  const [isAdded, setIsAdded] = useState(false)
 
-    const handleAddClick = () => {
-        onAddToCart(product);
-        setIsAdded(true);
-        setTimeout(() => setIsAdded(false), 1800);
-    };
+  const handleAddClick = () => {
+    onAddToCart(product)
+    setIsAdded(true)
+    setTimeout(() => setIsAdded(false), 1800)
+  }
 
-    const discountPct = product.originalPrice
-        ? Math.round((1 - product.price / product.originalPrice) * 100)
-        : null;
-    const catLabel = CATEGORIES.find((c) => c.key === product.category);
-    const petLabel = PET_TYPES.find((p) => p.key === product.petType);
+  const discountPct = product.originalPrice
+    ? Math.round((1 - product.price / product.originalPrice) * 100)
+    : null
+  const catLabel = CATEGORIES.find((item) => item.key === product.category)
+  const petLabel = PET_TYPES.find((item) => item.key === product.petType)
 
-    if (viewMode === 'list') {
-        return (
-            <div className="prod-card-list">
-                <div className="prod-card-list-img-wrap">
-                    <img src={product.image} alt={product.name} className="prod-card-list-img" />
-                    {discountPct && <span className="prod-badge discount">-{discountPct}%</span>}
-                </div>
-                <div className="prod-card-list-body">
-                    <div className="prod-card-list-top">
-                        <div className="prod-meta-row">
-                            <span className="prod-cat-badge">{catLabel?.label}</span>
-                            <span className="prod-pet-badge">{petLabel?.label}</span>
-                            {product.isBestseller && <span className="prod-badge bestseller">熱銷</span>}
-                            {product.isNew && <span className="prod-badge new-item">新品</span>}
-                            {product.isBundle && <span className="prod-badge new-item">組合</span>}
-                        </div>
-                        <h3 className="prod-name">{product.name}</h3>
-                        <p className="prod-specs">{product.specs}</p>
-                        <StarRating rating={product.rating} />
-                        <span className="prod-review-count">（{product.reviewCount} 則評價）</span>
-                    </div>
-                    <div className="prod-card-list-bottom">
-                        <div className="prod-price-block">
-                            <span className="prod-price">{formatPrice(product.price)}</span>
-                            {product.originalPrice && (
-                                <span className="prod-original-price">{formatPrice(product.originalPrice)}</span>
-                            )}
-                        </div>
-                        <button
-                            className={`btn-blue prod-add-btn ${isAdded ? 'added' : ''}`}
-                            onClick={handleAddClick}
-                        >
-                            {isAdded ? <><Check size={16} /> 已加入</> : <><ShoppingCart size={16} /> 加入購物車</>}
-                        </button>
-                    </div>
-                </div>
+  if (viewMode === 'list') {
+    return (
+      <div className="prod-card-list">
+        <Link to={`/products/${product.slug}`} className="prod-card-list-img-link">
+          <div className="prod-card-list-img-wrap">
+            <img src={product.image} alt={product.name} className="prod-card-list-img" />
+            {discountPct && <span className="prod-badge discount">-{discountPct}%</span>}
+          </div>
+        </Link>
+        <div className="prod-card-list-body">
+          <div className="prod-card-list-top">
+            <div className="prod-meta-row">
+              <span className="prod-cat-badge">{catLabel?.label}</span>
+              <span className="prod-pet-badge">{petLabel?.label}</span>
+              {product.isBestseller && <span className="prod-badge bestseller">熱銷</span>}
+              {product.isNew && <span className="prod-badge new-item">新品</span>}
+              {product.isBundle && <span className="prod-badge new-item">組合</span>}
             </div>
-        );
+            <Link to={`/products/${product.slug}`} className="prod-name-link">
+              <h3 className="prod-name">{product.name}</h3>
+            </Link>
+            <p className="prod-specs">{product.specs}</p>
+            <p className="prod-usp">{product.usp}</p>
+            <div className="prod-rating-row">
+              <StarRating rating={product.rating} />
+              <span className="prod-review-count">{product.reviewCount} 則評價</span>
+            </div>
+          </div>
+          <div className="prod-card-list-bottom">
+            <div className="prod-price-block">
+              <span className="prod-price">{formatPrice(product.price)}</span>
+              {product.originalPrice && (
+                <span className="prod-original-price">{formatPrice(product.originalPrice)}</span>
+              )}
+            </div>
+            <div className="prod-card-actions">
+              <Link to={`/products/${product.slug}`} className="prod-detail-link">
+                看看這款
+              </Link>
+              <button
+                type="button"
+                className={`btn-blue prod-add-btn ${isAdded ? 'added' : ''}`}
+                onClick={handleAddClick}
+              >
+                {isAdded ? <><Check size={16} /> 已加入</> : <><ShoppingCart size={16} /> 加入購物車</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="prod-card">
+      <Link to={`/products/${product.slug}`} className="prod-card-img-link">
+        <div className="prod-card-img-wrap">
+          <img src={product.image} alt={product.name} className="prod-card-img" />
+          <div className="prod-card-badges">
+            {product.isBestseller && <span className="prod-badge bestseller">熱銷</span>}
+            {product.isNew && <span className="prod-badge new-item">新品</span>}
+            {product.isBundle && <span className="prod-badge new-item">組合</span>}
+            {discountPct && <span className="prod-badge discount">-{discountPct}%</span>}
+          </div>
+          <div className="prod-card-hover-overlay">
+            <button
+              type="button"
+              className={`prod-quick-add ${isAdded ? 'added' : ''}`}
+              onClick={(event) => {
+                event.preventDefault()
+                handleAddClick()
+              }}
+            >
+              {isAdded ? <><Check size={16} /> 已加入</> : <><ShoppingCart size={16} /> 加入購物車</>}
+            </button>
+          </div>
+        </div>
+      </Link>
+      <div className="prod-card-body">
+        <div className="prod-meta-row">
+          <span className="prod-cat-badge">{catLabel?.label}</span>
+          <span className="prod-pet-badge">{petLabel?.label}</span>
+        </div>
+        <Link to={`/products/${product.slug}`} className="prod-name-link">
+          <h3 className="prod-name">{product.name}</h3>
+        </Link>
+        <p className="prod-specs">{product.specs}</p>
+        <p className="prod-usp">{product.usp}</p>
+        <div className="prod-rating-row">
+          <StarRating rating={product.rating} />
+          <span className="prod-review-count">{product.reviewCount}</span>
+        </div>
+        <div className="prod-price-row">
+          <span className="prod-price">{formatPrice(product.price)}</span>
+          {product.originalPrice && (
+            <span className="prod-original-price">{formatPrice(product.originalPrice)}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FilterPanel({
+  search,
+  setSearch,
+  category,
+  setCategory,
+  petType,
+  setPetType,
+  priceRange,
+  setPriceRange,
+  activeFilters,
+  clearAllFilters,
+  resetPage,
+}) {
+  return (
+    <div className="prod-filter-content">
+      <div className="prod-filter-search">
+        <Search size={16} className="prod-filter-search-icon" />
+        <input
+          type="text"
+          placeholder="找毛孩要的..."
+          className="prod-filter-search-input"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value)
+            resetPage()
+          }}
+        />
+        {search && (
+          <button className="prod-filter-search-clear" onClick={() => { setSearch(''); resetPage() }}>
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      <div className="prod-filter-group">
+        <h4 className="prod-filter-group-title">商品分類</h4>
+        <div className="prod-filter-cat-list">
+          {CATEGORIES.map((item) => (
+            <button
+              key={item.key}
+              className={`prod-filter-cat-btn ${category === item.key ? 'active' : ''}`}
+              onClick={() => { setCategory(item.key); resetPage() }}
+            >
+              <span>{item.label}</span>
+              {category === item.key && <Check size={14} className="prod-filter-check" />}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="prod-filter-group">
+        <h4 className="prod-filter-group-title">適用毛孩</h4>
+        <div className="prod-filter-pet-row">
+          {PET_TYPES.map((item) => (
+            <button
+              key={item.key}
+              className={`prod-filter-pet-btn ${petType === item.key ? 'active' : ''}`}
+              onClick={() => { setPetType(item.key); resetPage() }}
+            >
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="prod-filter-group">
+        <h4 className="prod-filter-group-title">價格區間</h4>
+        <div className="prod-filter-price-list">
+          {PRICE_RANGES.map((item) => (
+            <label key={item.key} className={`prod-filter-price-item ${priceRange === item.key ? 'active' : ''}`}>
+              <input
+                type="radio"
+                name="priceRange"
+                checked={priceRange === item.key}
+                onChange={() => { setPriceRange(item.key); resetPage() }}
+              />
+              {item.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {activeFilters.length > 0 && (
+        <button className="prod-filter-clear-all" onClick={clearAllFilters}>
+          <X size={14} /> 清除條件
+        </button>
+      )}
+    </div>
+  )
+}
+
+export default function Products() {
+  const [searchParams] = useSearchParams()
+  const categoryParam = getValidFilterKey(searchParams.get('category'), CATEGORIES)
+  const petTypeParam = getValidFilterKey(searchParams.get('petType'), PET_TYPES)
+  const priceRangeParam = getValidFilterKey(searchParams.get('priceRange'), PRICE_RANGES)
+  const sortByParam = getValidFilterKey(searchParams.get('sortBy'), SORT_OPTIONS)
+  const productFilterParam = getValidFilterKey(searchParams.get('productFilter'), PRODUCT_FILTERS)
+  const searchParam = searchParams.get('search')?.trim() || ''
+  const { addToCart } = useCart()
+  const [category, setCategory] = useState(() => categoryParam)
+  const [petType, setPetType] = useState(() => petTypeParam)
+  const [priceRange, setPriceRange] = useState(() => priceRangeParam)
+  const [sortBy, setSortBy] = useState(() => sortByParam)
+  const [productFilter, setProductFilter] = useState(() => productFilterParam)
+  const [page, setPage] = useState(1)
+  const [viewMode, setViewMode] = useState('grid')
+  const [search, setSearch] = useState(() => searchParam)
+  const [filterOpen, setFilterOpen] = useState(false)
+
+  useEffect(() => {
+    startTransition(() => {
+      setCategory(categoryParam)
+      setPetType(petTypeParam)
+      setPriceRange(priceRangeParam)
+      setSortBy(sortByParam)
+      setProductFilter(productFilterParam)
+      setSearch(searchParam)
+      setPage(1)
+    })
+  }, [categoryParam, petTypeParam, priceRangeParam, sortByParam, productFilterParam, searchParam])
+
+  const handleAddToCart = useCallback((product) => {
+    addToCart(createCartPayload(product, product.variants[0], 1))
+  }, [addToCart])
+
+  const filteredProducts = useMemo(() => {
+    const activePriceRange = PRICE_RANGES.find((item) => item.key === priceRange)
+
+    let list = PRODUCT_CATALOG.filter((product) => {
+      if (category !== 'all' && product.category !== category) return false
+      if (petType !== 'all' && product.petType !== petType) return false
+      if (product.price < activePriceRange.min || product.price > activePriceRange.max) return false
+
+      if (search.trim()) {
+        const query = search.trim().toLowerCase()
+        if (
+          !product.name.toLowerCase().includes(query)
+          && !product.specs.toLowerCase().includes(query)
+          && !product.usp.toLowerCase().includes(query)
+        ) {
+          return false
+        }
+      }
+
+      if (productFilter === 'bestseller' && !product.isBestseller) return false
+      if (productFilter === 'discount' && !product.originalPrice) return false
+      if (productFilter === 'bundle' && !product.isBundle) return false
+      if (productFilter === 'new' && !product.isNew) return false
+
+      return true
+    })
+
+    switch (sortBy) {
+      case 'newest':
+        list = list.filter((product) => product.isNew).concat(list.filter((product) => !product.isNew))
+        break
+      case 'popular':
+        list = [...list].sort((left, right) => right.reviewCount - left.reviewCount)
+        break
+      case 'price-asc':
+        list = [...list].sort((left, right) => left.price - right.price)
+        break
+      case 'price-desc':
+        list = [...list].sort((left, right) => right.price - left.price)
+        break
+      default:
+        list = [...list].sort((left, right) => Number(right.isBestseller) - Number(left.isBestseller))
+        break
     }
 
-    return (
-        <div className="prod-card">
-            <div className="prod-card-img-wrap">
-                <img src={product.image} alt={product.name} className="prod-card-img" />
-                <div className="prod-card-badges">
-                    {product.isBestseller && <span className="prod-badge bestseller">熱銷</span>}
-                    {product.isNew && <span className="prod-badge new-item">新品</span>}
-                    {product.isBundle && <span className="prod-badge new-item">組合</span>}
-                    {discountPct && <span className="prod-badge discount">-{discountPct}%</span>}
-                </div>
-                <div className="prod-card-hover-overlay">
-                    <button
-                        className={`prod-quick-add ${isAdded ? 'added' : ''}`}
-                        onClick={handleAddClick}
-                    >
-                        {isAdded ? <><Check size={16} /> 已加入</> : <><ShoppingCart size={16} /> 加入購物車</>}
-                    </button>
-                </div>
-            </div>
-            <div className="prod-card-body">
-                <div className="prod-meta-row">
-                    <span className="prod-cat-badge">{catLabel?.label}</span>
-                    <span className="prod-pet-badge">{petLabel?.label}</span>
-                </div>
-                <h3 className="prod-name">{product.name}</h3>
-                <p className="prod-specs">{product.specs}</p>
-                <div className="prod-rating-row">
-                    <StarRating rating={product.rating} />
-                    <span className="prod-review-count">{product.reviewCount}</span>
-                </div>
-                <div className="prod-price-row">
-                    <span className="prod-price">{formatPrice(product.price)}</span>
-                    {product.originalPrice && (
-                        <span className="prod-original-price">{formatPrice(product.originalPrice)}</span>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-}
+    return list
+  }, [category, petType, priceRange, sortBy, search, productFilter])
 
+  const totalPages = Math.ceil(filteredProducts.length / PER_PAGE)
+  const paginatedList = filteredProducts.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+  const resetPage = useCallback(() => setPage(1), [])
 
-// ─────────────────────────────────────────────
-// FilterPanel
-// ─────────────────────────────────────────────
-function FilterPanel({
-    search, setSearch, category, setCategory, petType, setPetType,
-    priceRange, setPriceRange, activeFilters, clearAllFilters, resetPage
-}) {
-    return (
-        <div className="prod-filter-content">
-            {/* 搜尋 */}
-            <div className="prod-filter-search">
-                <Search size={16} className="prod-filter-search-icon" />
-                <input
-                    type="text"
-                    placeholder="搜尋商品..."
-                    className="prod-filter-search-input"
-                    value={search}
-                    onChange={(e) => { setSearch(e.target.value); resetPage(); }}
-                />
-                {search && (
-                    <button className="prod-filter-search-clear" onClick={() => { setSearch(''); resetPage(); }}>
-                        <X size={14} />
-                    </button>
-                )}
+  const activeFilters = useMemo(() => {
+    const filters = []
+
+    if (category !== 'all') {
+      filters.push({
+        key: 'category',
+        label: CATEGORIES.find((item) => item.key === category)?.label,
+        clear: () => { setCategory('all'); resetPage() },
+      })
+    }
+
+    if (petType !== 'all') {
+      filters.push({
+        key: 'petType',
+        label: PET_TYPES.find((item) => item.key === petType)?.label,
+        clear: () => { setPetType('all'); resetPage() },
+      })
+    }
+
+    if (priceRange !== 'all') {
+      filters.push({
+        key: 'priceRange',
+        label: PRICE_RANGES.find((item) => item.key === priceRange)?.label,
+        clear: () => { setPriceRange('all'); resetPage() },
+      })
+    }
+
+    if (productFilter !== 'all') {
+      filters.push({
+        key: 'productFilter',
+        label: PRODUCT_FILTERS.find((item) => item.key === productFilter)?.label,
+        clear: () => { setProductFilter('all'); resetPage() },
+      })
+    }
+
+    if (search.trim()) {
+      filters.push({
+        key: 'search',
+        label: `"${search}"`,
+        clear: () => { setSearch(''); resetPage() },
+      })
+    }
+
+    return filters
+  }, [category, petType, priceRange, productFilter, resetPage, search])
+
+  const clearAllFilters = () => {
+    setCategory('all')
+    setPetType('all')
+    setPriceRange('all')
+    setProductFilter('all')
+    setSearch('')
+    resetPage()
+  }
+
+  const getPageNumbers = () => {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, index) => index + 1)
+    if (page <= 4) return [1, 2, 3, 4, 5, '...', totalPages]
+    if (page >= totalPages - 3) return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+    return [1, '...', page - 1, page, page + 1, '...', totalPages]
+  }
+  const activeCategory = CATEGORIES.find((item) => item.key === category)
+  const seoTitle = activeCategory ? '所有商品' : '所有商品'
+  const seoDescription = CATEGORY_SEO_DESCRIPTION.all
+
+  useEffect(() => {
+    analytics.viewItemList(filteredProducts, activeCategory?.label ?? '全部商品')
+  }, [filteredProducts, activeCategory])
+
+  return (
+    <main className="products-page">
+      <SEOHead
+        title={seoTitle}
+        description={seoDescription}
+        canonicalUrl="/products"
+      />
+      <div className="checkout-header-simple">
+        <h1 className="headline-pro">為牠找到對的那一款</h1>
+      </div>
+
+      <div className="products-layout">
+        <aside className="products-sidebar">
+          <div className="prod-sidebar-card">
+            <div className="prod-sidebar-title">
+              <SlidersHorizontal size={16} style={{ marginRight: 8 }} />
+              找你要的
             </div>
+            <FilterPanel
+              search={search}
+              setSearch={setSearch}
+              category={category}
+              setCategory={setCategory}
+              petType={petType}
+              setPetType={setPetType}
+              priceRange={priceRange}
+              setPriceRange={setPriceRange}
+              activeFilters={activeFilters}
+              clearAllFilters={clearAllFilters}
+              resetPage={resetPage}
+            />
+          </div>
+        </aside>
 
-            {/* 分類 */}
-            <div className="prod-filter-group">
-                <h4 className="prod-filter-group-title">商品分類</h4>
-                <div className="prod-filter-cat-list">
-                    {CATEGORIES.map((c) => (
-                        <button
-                            key={c.key}
-                            className={`prod-filter-cat-btn ${category === c.key ? 'active' : ''}`}
-                            onClick={() => { setCategory(c.key); resetPage(); }}
-                        >
-                            <span>{c.label}</span>
-                            {category === c.key && <Check size={14} className="prod-filter-check" />}
-                        </button>
-                    ))}
-                </div>
-            </div>
+        <div className="products-main">
+          <div className="prod-toolbar">
+            <div className="prod-toolbar-left">
+              <button
+                className="prod-view-btn"
+                type="button"
+                onClick={() => setFilterOpen(true)}
+                aria-label="開啟篩選"
+                title="開啟篩選"
+              >
+                <SlidersHorizontal size={18} />
+              </button>
 
-            {/* 寵物類型 */}
-            <div className="prod-filter-group">
-                <h4 className="prod-filter-group-title">寵物類型</h4>
-                <div className="prod-filter-pet-row">
-                    {PET_TYPES.map((p) => (
-                        <button
-                            key={p.key}
-                            className={`prod-filter-pet-btn ${petType === p.key ? 'active' : ''}`}
-                            onClick={() => { setPetType(p.key); resetPage(); }}
-                        >
-                            <span>{p.label}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
+              <div className="prod-select-wrap">
+                <select className="prod-select" value={sortBy} onChange={(event) => { setSortBy(event.target.value); resetPage() }}>
+                  {SORT_OPTIONS.map((option) => (
+                    <option key={option.key} value={option.key}>{option.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="prod-select-arrow" />
+              </div>
 
-            {/* 價格區間 */}
-            <div className="prod-filter-group">
-                <h4 className="prod-filter-group-title">價格區間</h4>
-                <div className="prod-filter-price-list">
-                    {PRICE_RANGES.map((r) => (
-                        <label key={r.key} className={`prod-filter-price-item ${priceRange === r.key ? 'active' : ''}`}>
-                            <input
-                                type="radio"
-                                name="priceRange"
-                                checked={priceRange === r.key}
-                                onChange={() => { setPriceRange(r.key); resetPage(); }}
-                            />
-                            {r.label}
-                        </label>
-                    ))}
-                </div>
-            </div>
+              <div className="prod-select-wrap">
+                <select className="prod-select" value={productFilter} onChange={(event) => { setProductFilter(event.target.value); resetPage() }}>
+                  {PRODUCT_FILTERS.map((option) => (
+                    <option key={option.key} value={option.key}>{option.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="prod-select-arrow" />
+              </div>
 
-            {/* 清除所有篩選 */}
-            {activeFilters.length > 0 && (
-                <button className="prod-filter-clear-all" onClick={clearAllFilters}>
-                    <X size={14} /> 清除所有篩選
+              <div className="prod-view-toggle">
+                <button className={`prod-view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')} title="格狀顯示">
+                  <Grid3X3 size={18} />
                 </button>
-            )}
+                <button className={`prod-view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} title="列表顯示">
+                  <LayoutList size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="prod-toolbar-right">
+              <span className="prod-result-count">
+                共 <strong>{filteredProducts.length}</strong> 項商品
+              </span>
+            </div>
+          </div>
+
+          {activeFilters.length > 0 && (
+            <div className="prod-active-filters">
+              {activeFilters.map((filter) => (
+                <span key={filter.key} className="prod-filter-chip">
+                  {filter.label}
+                  <button onClick={filter.clear}><X size={12} /></button>
+                </span>
+              ))}
+              <button className="prod-filter-chip-clear" onClick={clearAllFilters}>清除條件</button>
+            </div>
+          )}
+
+          {paginatedList.length > 0 ? (
+            <div className={viewMode === 'grid' ? 'prod-grid' : 'prod-list'}>
+              {paginatedList.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  viewMode={viewMode}
+                  onAddToCart={handleAddToCart}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="prod-empty">
+              <span className="prod-empty-icon">🔎</span>
+              <h3>這個條件找不到商品</h3>
+              <p>換個篩選條件試試，或直接告訴我們你在找什麼。</p>
+              <button className="btn-blue" style={{ padding: '12px 28px', borderRadius: 980, marginTop: 8 }} onClick={clearAllFilters}>
+                清除條件
+              </button>
+            </div>
+          )}
+
+          {totalPages > 1 && (
+            <div className="prod-pagination">
+              <button className="prod-page-btn arrow" disabled={page === 1} onClick={() => setPage(page - 1)}>
+                <ChevronLeft size={18} />
+              </button>
+
+              {getPageNumbers().map((pageNumber, index) => (
+                pageNumber === '...'
+                  ? <span key={`dot-${index}`} className="prod-page-dots">⋯</span>
+                  : (
+                    <button key={pageNumber} className={`prod-page-btn ${page === pageNumber ? 'active' : ''}`} onClick={() => setPage(pageNumber)}>
+                      {pageNumber}
+                    </button>
+                  )
+              ))}
+
+              <button className="prod-page-btn arrow" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+                <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
         </div>
-    );
-}
+      </div>
 
 
 // ─────────────────────────────────────────────
@@ -455,153 +712,36 @@ export default function Products() {
         <main className="products-page">
             <div className="checkout-header-simple">
                 <h1 className="headline-pro">全部商品</h1>
+      {filterOpen && (
+        <div className="prod-filter-drawer-overlay" onClick={() => setFilterOpen(false)}>
+          <div className="prod-filter-drawer" onClick={(event) => event.stopPropagation()}>
+            <div className="prod-filter-drawer-header">
+              <h3>找你要的</h3>
+              <button onClick={() => setFilterOpen(false)}><X size={20} /></button>
             </div>
-            <div className="products-layout">
-                {/* ── 桌面 Sidebar ── */}
-
-                {/* ── 主內容 ── */}
-                <div className="products-main">
-                    {/* ── Toolbar ── */}
-                    <div className="prod-toolbar">
-                        <div className="prod-toolbar-left">
-                            <button
-                                className="prod-view-btn"
-                                type="button"
-                                onClick={() => setFilterOpen(true)}
-                                aria-label="Open filters"
-                                title="Open filters"
-                            >
-                                <SlidersHorizontal size={18} />
-                            </button>
-                            {/* 排序 */}
-                            <div className="prod-select-wrap">
-                                <select className="prod-select" value={sortBy} onChange={(e) => { setSortBy(e.target.value); resetPage(); }}>
-                                    {SORT_OPTIONS.map((o) => (
-                                        <option key={o.key} value={o.key}>{o.label}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={14} className="prod-select-arrow" />
-                            </div>
-
-                            {/* 商品狀態篩選（取代每頁筆數） */}
-                            <div className="prod-select-wrap">
-                                <select
-                                    className="prod-select"
-                                    value={productFilter}
-                                    onChange={(e) => { setProductFilter(e.target.value); resetPage(); }}
-                                >
-                                    {PRODUCT_FILTERS.map((f) => (
-                                        <option key={f.key} value={f.key}>{f.label}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={14} className="prod-select-arrow" />
-                            </div>
-
-                            {/* 格狀 / 列表切換 */}
-                            <div className="prod-view-toggle">
-                                <button className={`prod-view-btn ${viewMode === 'grid' ? 'active' : ''}`} onClick={() => setViewMode('grid')} title="格狀顯示">
-                                    <Grid3X3 size={18} />
-                                </button>
-                                <button className={`prod-view-btn ${viewMode === 'list' ? 'active' : ''}`} onClick={() => setViewMode('list')} title="列表顯示">
-                                    <LayoutList size={18} />
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="prod-toolbar-right">
-                            <span className="prod-result-count">
-                                共 <strong>{filteredProducts.length}</strong> 件商品
-                            </span>
-                        </div>
-                    </div>
-
-                    {/* ── 已套用篩選標籤 ── */}
-                    {activeFilters.length > 0 && (
-                        <div className="prod-active-filters">
-                            {activeFilters.map((f) => (
-                                <span key={f.key} className="prod-filter-chip">
-                                    {f.label}
-                                    <button onClick={f.clear}><X size={12} /></button>
-                                </span>
-                            ))}
-                            <button className="prod-filter-chip-clear" onClick={clearAllFilters}>清除全部</button>
-                        </div>
-                    )}
-
-                    {/* ── 商品列表 ── */}
-                    {paginatedList.length > 0 ? (
-                        <div className={viewMode === 'grid' ? 'prod-grid' : 'prod-list'}>
-                            {paginatedList.map((product) => (
-                                <ProductCard
-                                    key={product.id}
-                                    product={product}
-                                    viewMode={viewMode}
-                                    onAddToCart={handleAddToCart}
-                                />
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="prod-empty">
-                            <span className="prod-empty-icon">🔍</span>
-                            <h3>找不到符合條件的商品</h3>
-                            <p>請嘗試調整篩選條件</p>
-                            <button className="btn-blue" style={{ padding: '12px 28px', borderRadius: 980, marginTop: 8 }} onClick={clearAllFilters}>
-                                清除所有篩選
-                            </button>
-                        </div>
-                    )}
-
-                    {/* ── 分頁 ── */}
-                    {totalPages > 1 && (
-                        <div className="prod-pagination">
-                            <button className="prod-page-btn arrow" disabled={page === 1} onClick={() => setPage(page - 1)}>
-                                <ChevronLeft size={18} />
-                            </button>
-
-                            {getPageNumbers().map((p, i) =>
-                                p === '...'
-                                    ? <span key={`dot-${i}`} className="prod-page-dots">···</span>
-                                    : (
-                                        <button key={p} className={`prod-page-btn ${page === p ? 'active' : ''}`} onClick={() => setPage(p)}>
-                                            {p}
-                                        </button>
-                                    )
-                            )}
-
-                            <button className="prod-page-btn arrow" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
-                                <ChevronRight size={18} />
-                            </button>
-                        </div>
-                    )}
-                </div>
+            <div className="prod-filter-drawer-body">
+              <FilterPanel
+                search={search}
+                setSearch={setSearch}
+                category={category}
+                setCategory={setCategory}
+                petType={petType}
+                setPetType={setPetType}
+                priceRange={priceRange}
+                setPriceRange={setPriceRange}
+                activeFilters={activeFilters}
+                clearAllFilters={clearAllFilters}
+                resetPage={resetPage}
+              />
             </div>
-
-            {/* ── 行動版篩選抽屜 ── */}
-            {filterOpen && (
-                <div className="prod-filter-drawer-overlay" onClick={() => setFilterOpen(false)}>
-                    <div className="prod-filter-drawer" onClick={(e) => e.stopPropagation()}>
-                        <div className="prod-filter-drawer-header">
-                            <h3>篩選條件</h3>
-                            <button onClick={() => setFilterOpen(false)}><X size={20} /></button>
-                        </div>
-                        <div className="prod-filter-drawer-body">
-                            <FilterPanel
-                                search={search} setSearch={setSearch}
-                                category={category} setCategory={setCategory}
-                                petType={petType} setPetType={setPetType}
-                                priceRange={priceRange} setPriceRange={setPriceRange}
-                                activeFilters={activeFilters} clearAllFilters={clearAllFilters}
-                                resetPage={resetPage}
-                            />
-                        </div>
-                        <div className="prod-filter-drawer-footer">
-                            <button className="btn-blue" style={{ width: '100%', padding: '16px', borderRadius: 12, fontSize: 16 }} onClick={() => setFilterOpen(false)}>
-                                查看 {filteredProducts.length} 件商品
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </main>
-    );
+            <div className="prod-filter-drawer-footer">
+              <button className="btn-blue" style={{ width: '100%', padding: '16px', borderRadius: 12, fontSize: 16 }} onClick={() => setFilterOpen(false)}>
+                看看 {filteredProducts.length} 款
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  )
 }

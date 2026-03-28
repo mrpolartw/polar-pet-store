@@ -166,8 +166,61 @@ export const CartProvider = ({ children }) => {
     localStorage.removeItem(GUEST_CART_KEY)
   }
 
-  const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0)
-  const itemCount = cartItems.reduce((acc, item) => acc + item.quantity, 0)
+  const removeFromCart = useCallback(async (id) => {
+    const item = cartItems.find((cartItem) => cartItem.id === id)
+    setCartError(null)
+    setCartItems((prev) => normalizeCartItems(prev).filter((item) => item.id !== id))
+    toast.info('已從購物車移除')
+
+    analytics.removeFromCart(item, item?.quantity ?? 1)
+
+    try {
+      // TODO: [BACKEND] await cartService.removeItem(id)
+    } catch (err) {
+      setCartError(err?.message ?? null)
+
+      if (import.meta.env.DEV) {
+        console.warn('[Cart] removeItem API failed')
+      }
+    }
+  }, [cartItems, toast])
+
+  const updateQuantity = useCallback(async (id, quantity) => {
+    setCartError(null)
+    setCartItems((prev) => (
+      normalizeCartItems(prev).map((item) => (
+        item.id === id ? { ...item, quantity: clampCartQuantity(quantity) } : item
+      ))
+    ))
+
+    try {
+      // TODO: [BACKEND] await cartService.updateItem(id, quantity)
+    } catch (err) {
+      setCartError(err?.message ?? null)
+
+      if (import.meta.env.DEV) {
+        console.warn('[Cart] updateItem API failed')
+      }
+    }
+  }, [])
+
+  const clearCart = useCallback(async () => {
+    setCartError(null)
+    setCartItems([])
+    cartStorage.clear()
+    try {
+      // TODO BACKEND: await cartService.clearCart()
+      await cartService.clearCart?.()
+    } catch {
+      // 後端清除失敗不阻斷流程
+    }
+  }, [])
+
+  const subtotal = cartItems.reduce(
+    (acc, item) => acc + (Number(item.price) || 0) * (Number(item.quantity) || 0),
+    0,
+  )
+  const itemCount = cartItems.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)
 
   return (
     <CartContext.Provider

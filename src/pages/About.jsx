@@ -1,44 +1,87 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import SEOHead from '../components/common/SEOHead';
 import './About.css';
 
 const About = () => {
     return (
         <main className="about-page">
+            <SEOHead
+                title="關於我們"
+                description="認識 Mr.Polar 極地熊的品牌故事、創立理念與對寵物健康的堅持。"
+                canonicalUrl="/about"
+            />
             <section className="about-hero">
                 <div className="text-container">
-                    <h1 className="headline-pro">關於 Polar</h1>
-                    <p className="subhead-pro">出於愛，所以我們追求極致。</p>
+                    <h1 className="headline-pro">北極先生是怎麼來的</h1>
+                    <p className="subhead-pro">一包肉泥的背後，是我們對毛孩認真的態度。</p>
                 </div>
             </section>
 
             <section className="about-story">
                 <div className="story-content">
-                    <h2 className="headline-regular" style={{ marginBottom: '24px' }}>一段始於挑嘴的旅程</h2>
+                    <h2 className="headline-regular" style={{ marginBottom: '24px' }}>為什麼是北極熊？</h2>
                     <p className="description-pro" style={{ textAlign: 'left', maxWidth: '800px' }}>
-                        2021年，創辦人的黃金獵犬 Polar 開始出現嚴重的腸胃敏感與挑食問題。在嘗試了市面上超過 50 種頂級飼料後，我們發現，真正的問題在於「高度加工」與「不透明的肉源」。
+                        北極熊是地球上最大的陸地食肉動物。但牠吃的每一口，都是自己獵來的。天然、直接、沒有多餘的。我們想做的食物，就是這樣。
                     </p>
                     <p className="description-pro" style={{ textAlign: 'left', maxWidth: '800px' }}>
-                        於是，我們集結了獸醫、動物營養學家以及生鮮食材供應商，決定從零開始，打造一款我們自己敢天天餵食的終極主食。這就是 Polar 的誕生。
+                        選擇北極，是因為那是地球上最需要被守護的地方。乾淨、純粹、不被打擾。我們希望毛孩吃進去的每一樣東西，也是這樣。
+                    </p>
+                </div>
+            </section>
+
+            <section className="about-story" style={{ backgroundColor: 'var(--color-bg-white)' }}>
+                <div className="story-content">
+                    <h2 className="headline-regular" style={{ marginBottom: '24px' }}>我們在做的事</h2>
+                    <p className="description-pro" style={{ textAlign: 'left', maxWidth: '800px' }}>
+                        不是只賣食物。是陪著每一個毛孩家庭，找到最適合牠的那一樣東西。
                     </p>
                 </div>
             </section>
 
             <section className="about-values">
-                <div className="values-grid">
-                    <div className="value-item">
-                        <span className="value-icon">🌿</span>
-                        <h3>與自然同行</h3>
-                        <p>我們採用 100% 永續農場來源的放牧肉品，拒絕工廠化密集養殖，把尊重生命的理念落實於生產線。</p>
+                <div style={{ maxWidth: '1024px', width: '100%' }}>
+                    <div className="story-content" style={{ margin: '0 auto 48px', textAlign: 'center' }}>
+                        <h2 className="headline-regular" style={{ marginBottom: '20px' }}>背後的人</h2>
+                        <p className="description-pro" style={{ maxWidth: '720px', margin: '0 auto', color: 'var(--color-gray-dark)' }}>
+                            我們不是站得很遠的品牌。是你養毛孩這條路上，願意一直陪你一起想的人。
+                        </p>
                     </div>
-                    <div className="value-item">
-                        <span className="value-icon">🔍</span>
-                        <h3>極限透明</h3>
-                        <p>我們相信透明是最好的防護。從農場到碗裡，所有成分履歷我們毫無保留地對消費者公開。</p>
+                    <div className="values-grid">
+                        <div className="value-item">
+                            <span className="value-icon">🌿</span>
+                            <h3>成分看得懂</h3>
+                            <p>每一樣食材，你在廚房裡就認得出來。沒有複雜的化學名稱，只有真正的食物。</p>
+                        </div>
+                        <div className="value-item">
+                            <span className="value-icon">💚</span>
+                            <h3>吃得剛好</h3>
+                            <p>低熱量、低鈉。不是為了噱頭，是因為這樣對毛孩的身體才是真的好。</p>
+                        </div>
+                        <div className="value-item">
+                            <span className="value-icon">🐾</span>
+                            <h3>我們自己也會用</h3>
+                            <p>每一款產品，我們都用自己對毛孩的標準去做。不確定的，我們不放。</p>
+                        </div>
+                        <div className="value-item">
+                            <span className="value-icon">🤍</span>
+                            <h3>不只是賣東西</h3>
+                            <p>我們想成為你養毛孩這條路上，一直都在的那個存在。</p>
+                        </div>
                     </div>
-                    <div className="value-item">
-                        <span className="value-icon">🔬</span>
-                        <h3>科研實證</h3>
-                        <p>拒絕沒有科學根據的玄學偏方。每一份配方皆經過嚴謹的雙盲測試與長期血液學追蹤，確認真正對寵物有益。</p>
+                </div>
+            </section>
+
+            <section className="about-story" style={{ backgroundColor: 'var(--color-bg-white)' }}>
+                <div className="story-content" style={{ textAlign: 'center' }}>
+                    <h2 className="headline-regular" style={{ marginBottom: '20px' }}>準備好了嗎？</h2>
+                    <p className="description-pro" style={{ maxWidth: '720px', margin: '0 auto' }}>
+                        從第一款開始，找到毛孩最喜歡的那個。
+                    </p>
+                    <div className="btns-wrapper" style={{ justifyContent: 'center', marginTop: '32px' }}>
+                        <Link to="/products">
+                            <button className="btn-blue">幫毛孩找一款</button>
+                        </Link>
                     </div>
                 </div>
             </section>

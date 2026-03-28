@@ -501,13 +501,13 @@ html, body {
 
 .nav-overlay-slider {
   display: flex;
-  width: 200%;
+  width: 400%;
   height: 100%;
   transition: transform var(--transition-smooth);
 }
 
 .nav-overlay-panel {
-  width: 50%;
+  width: 25%;
   height: 100%;
   padding: 0 24px;
   overflow-y: auto;
@@ -1141,6 +1141,7 @@ html, body {
 .item-details {
   flex: 1;
   padding-right: 20px;
+  min-width: 0;
 }
 
 .item-title {
@@ -1149,6 +1150,7 @@ html, body {
   color: var(--color-text-dark);
   margin-bottom: 8px;
   line-height: 1.3;
+  max-width: 100%;
 }
 
 .item-specs {
@@ -1343,6 +1345,33 @@ html, body {
 /* =========================================
    結帳頁面專屬樣式 (Checkout Page - Advanced Taiwan E-com Standard)
    ========================================= */
+
+@media (max-width: 640px) {
+  .item-content-col,
+  .item-main-info,
+  .item-details {
+    min-width: 0;
+  }
+
+  .item-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .summary-actions {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .btn-checkout-large {
+    width: 100%;
+    max-width: none;
+    display: flex !important;
+    justify-content: center;
+  }
+}
 
 .checkout-page {
   max-width: 1100px;
@@ -1678,6 +1707,7 @@ html, body {
 
 .preview-info {
   flex: 1;
+  min-width: 0;
 }
 
 .preview-info h4 {
@@ -1686,11 +1716,17 @@ html, body {
   margin-bottom: 4px;
   color: #1d1d1f;
   line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .preview-info p {
   font-size: 13px;
   color: #8A7E71;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .preview-item span {
@@ -1716,6 +1752,7 @@ html, body {
 
 .promo-input-group input {
   flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   font-size: 15px;
@@ -1827,5 +1864,110 @@ html, body {
   }
   .stats-header h2.headline-regular {
     font-size: 28px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .checkout-sidebar,
+  .summary-sticky-card,
+  .preview-item {
+    min-width: 0;
+  }
+
+  .summary-sticky-card {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-container {
+    padding-top: 68px;
+  }
+
+  .navbar-apple {
+    height: 68px;
+  }
+
+  .navbar-container {
+    padding: 0 12px;
+  }
+
+  .nav-logo img {
+    height: 48px;
+  }
+
+  .nav-actions {
+    gap: 10px;
+  }
+
+  .icon-btn,
+  .hamburger-btn {
+    font-size: 18px;
+  }
+
+  .nav-login-btn {
+    padding: 6px 14px !important;
+    font-size: 12px !important;
+  }
+
+  .section-stats,
+  .section-features {
+    padding: 64px 16px;
+  }
+
+  .stats-header {
+    margin-bottom: 40px;
+    max-width: 320px;
+  }
+
+  .stats-header .kicker {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .stats-header h2.headline-regular {
+    font-size: 24px !important;
+    line-height: 1.25;
+    margin-bottom: 12px;
+  }
+
+  .stats-header .description-pro {
+    font-size: 15px;
+    line-height: 1.75;
+    max-width: 320px;
+  }
+
+  .stats-container {
+    gap: 28px;
+  }
+
+  .stat-number {
+    font-size: clamp(42px, 16vw, 56px);
+  }
+
+  .stat-desc {
+    font-size: 15px;
+    max-width: 220px;
+  }
+
+  .cart-preview-overlay {
+    position: fixed;
+    top: 78px;
+    left: 12px;
+    right: 12px;
+    width: auto !important;
+    max-width: none;
+    max-height: calc(100dvh - 90px);
+    padding: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cart-preview-overlay .cart-dropdown-content {
+    padding: 18px 16px 14px !important;
+  }
+
+  .cart-preview-overlay .cart-preview-items {
+    max-height: none !important;
   }
 }
