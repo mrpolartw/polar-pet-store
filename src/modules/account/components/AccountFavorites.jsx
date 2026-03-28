@@ -11,29 +11,8 @@ const fadeUp = {
   transition: { duration: 0.4, ease: [0.25, 1, 0.5, 1] },
 }
 
-const MOCK_FAVORITES = [
-  {
-    id: 1,
-    name: 'Polar 凍乾主食 - 雞肉配方',
-    price: 1280,
-    img: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=300',
-  },
-  {
-    id: 2,
-    name: 'Polar 腸道保健點心',
-    price: 850,
-    img: 'https://images.unsplash.com/photo-1530281700549-e82e7bf110d6?auto=format&fit=crop&q=80&w=300',
-  },
-  {
-    id: 3,
-    name: 'Polar 關節機能零食 - 魚肉',
-    price: 460,
-    img: 'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?auto=format&fit=crop&q=80&w=300',
-  },
-]
-
 export default function AccountFavorites() {
-  const [favorites, setFavorites] = useState(MOCK_FAVORITES)
+  const [favorites, setFavorites] = useState([])
 
   return (
     <motion.div key="favorites" {...fadeUp}>

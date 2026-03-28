@@ -4,12 +4,12 @@ import { Camera, User } from 'lucide-react'
 import { CONFIG } from '../../../constants/config'
 import { useAuth } from '../../../context/useAuth'
 import { useToast } from '../../../context/ToastContext'
+import { getMemberTier } from '../../../context/authUtils'
+import { MEMBER_TIER_THRESHOLD } from '../../../utils/constants'
 
 const SUPPORTED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_AVATAR_FILE_SIZE = CONFIG.MAX_AVATAR_SIZE ?? 5 * 1024 * 1024
 const MAX_AVATAR_SIZE_MB = Math.round(MAX_AVATAR_FILE_SIZE / 1024 / 1024)
-const mockAnnualSpend = 1100
-const nextTierAmount = 10000
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -17,11 +17,11 @@ const fadeUp = {
   transition: { duration: 0.4, ease: [0.25, 1, 0.5, 1] },
 }
 
-const getAnnualSpendTier = (annualSpend) => {
-  if (annualSpend >= 100000) return { label: 'Polar Diamond', color: '#003153', bg: '#EBF2F8' }
-  if (annualSpend >= 50000) return { label: 'Polar Gold', color: '#8B5A2B', bg: '#FDF3E3' }
-  if (annualSpend >= 10000) return { label: 'Polar Silver', color: '#6B7280', bg: '#F3F4F6' }
-  return { label: 'Polar Member', color: '#8A7E71', bg: '#F3EFE6' }
+const getNextTierPoints = (points) => {
+  if (points >= MEMBER_TIER_THRESHOLD.DIAMOND) return null
+  if (points >= MEMBER_TIER_THRESHOLD.GOLD) return MEMBER_TIER_THRESHOLD.DIAMOND
+  if (points >= MEMBER_TIER_THRESHOLD.SILVER) return MEMBER_TIER_THRESHOLD.GOLD
+  return MEMBER_TIER_THRESHOLD.SILVER
 }
 
 const getInitials = (name) => (name ? name.slice(0, 2).toUpperCase() : 'PL')
@@ -75,9 +75,11 @@ export default function AccountProfile() {
     gender: user?.gender || '',
   })
 
-  const tier = getAnnualSpendTier(mockAnnualSpend)
-  const progressPct = Math.min((mockAnnualSpend / nextTierAmount) * 100, 100)
-  const remainingToNextTier = Math.max(nextTierAmount - mockAnnualSpend, 0)
+  const points = user?.points || 0
+  const tier = getMemberTier(points)
+  const nextTierPoints = getNextTierPoints(points)
+  const progressPct = nextTierPoints ? Math.min((points / nextTierPoints) * 100, 100) : 100
+  const remainingToNextTier = nextTierPoints ? Math.max(nextTierPoints - points, 0) : 0
 
   const handleUpdateProfile = async () => {
     try {
@@ -152,11 +154,13 @@ export default function AccountProfile() {
         <div className="tier-progress-label">
           <span>
             <strong style={{ color: 'var(--color-brand-coffee)' }}>
-              NT$ {mockAnnualSpend.toLocaleString()}
+              {points.toLocaleString()} 點
             </strong>
           </span>
           <span>
-            距離下一個會員等級還差 {remainingToNextTier.toLocaleString()} 元
+            {nextTierPoints
+              ? `距離下一個會員等級還差 ${remainingToNextTier.toLocaleString()} 點`
+              : '已達最高會員等級 🎉'}
           </span>
         </div>
         <div className="tier-progress-bar">

@@ -645,8 +645,7 @@ export default function Products() {
     const filteredProducts = useMemo(() => {
         const pr = PRICE_RANGES.find((r) => r.key === priceRange);
         
-        // 如果 API 有抓到商品就用 API 的，否則回退到假資料展示
-        const baseDataset = medusaProducts.length > 0 ? medusaProducts : MOCK_PRODUCTS;
+        const baseDataset = medusaProducts;
 
         let list = baseDataset.filter((p) => {
             if (category !== 'all' && p.category !== category) return false;

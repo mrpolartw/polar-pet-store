@@ -6,7 +6,7 @@ import {
   CheckCircle, Clock, X,
 } from 'lucide-react'
 import { EmptyState } from '../../../components/common'
-import ROUTES from '../../../constants/routes'
+import { ROUTES } from '../../../constants/routes'
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -14,35 +14,6 @@ const fadeUp = {
   transition: { duration: 0.4, ease: [0.25, 1, 0.5, 1] },
 }
 
-// Mock 月訂資料 — TODO BACKEND: subscriptionService.getSubscriptions()
-const MOCK_SUBSCRIPTIONS = [
-  {
-    id: 'sub-001',
-    orderId: 'PL-20260023',
-    productName: 'Polar 腸胃保健狗糧 2.5kg',
-    productImage: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&q=80&w=300',
-    specs: '2.5kg',
-    quantity: 1,
-    frequency: '每月',
-    nextPayment: '2026-04-15',
-    price: 1380,
-    status: 'active',
-    discount: 0.9,
-  },
-  {
-    id: 'sub-002',
-    orderId: 'PL-20260045',
-    productName: 'Polar 關節軟骨咀嚼錠 60顆',
-    productImage: 'https://images.unsplash.com/photo-1548681528-6a5c45b66b42?auto=format&fit=crop&q=80&w=300',
-    specs: '60顆',
-    quantity: 2,
-    frequency: '每周',
-    nextPayment: '2026-03-30',
-    price: 1290,
-    status: 'paused',
-    discount: 0.9,
-  },
-]
 
 const STATUS_CONFIG = {
   active: { label: '訂閱中', color: '#059669', bg: '#f0fdf4', border: '#bbf7d0', icon: CheckCircle },
@@ -176,7 +147,7 @@ function CancelSubscriptionModal({
 }
 
 export default function AccountSubscription() {
-  const [subscriptions, setSubscriptions] = useState(MOCK_SUBSCRIPTIONS)
+  const [subscriptions, setSubscriptions] = useState([])
   const [cancelModal, setCancelModal] = useState(null)
   const [cancelInput, setCancelInput] = useState('')
   const [isDelaying, setIsDelaying] = useState(null)

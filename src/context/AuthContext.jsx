@@ -1,50 +1,12 @@
-import React, { createContext, useState, useEffect } from 'react'
+import { createContext, useState, useEffect, useCallback } from 'react'
 import { sdk } from '../lib/medusa'
-
-
-import authService from '../services/authService'
 
 const AuthContext = createContext(null)
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
-  const [isLoading, setIsLoading] = useState(true) // 初始化時要 true，等待 session 確認
-  const [authError, setAuthError] = useState('')
-
-  // ──────────────────────────────────────────────
-  // 初始化：從 Medusa 取得當前登入的會員資訊（如果有的話）
-  // ──────────────────────────────────────────────
-  useEffect(() => {
-    const wasLoggedIn = localStorage.getItem('polar_logged_in') === '1'
-    if (!wasLoggedIn) {
-      setIsLoading(false)
-      return
-    }
-    const fetchCurrentCustomer = async () => {
-      try {
-        const { customer } = await sdk.store.customer.retrieve()
-        if (customer) {
-          setUser(mapMedusaCustomer(customer))
-        }
-      } catch {
-        // Session 已過期，清除登入標記
-        localStorage.removeItem('polar_logged_in')
   const [isLoading, setIsLoading] = useState(true)
   const [authError, setAuthError] = useState('')
-
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const data = await authService.getMe()
-        setUser(data?.customer ?? data ?? null)
-      } catch {
-        setUser(null)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchCurrentCustomer()
-  }, [])
 
   // ──────────────────────────────────────────────
   // 工具：將 Medusa Customer 物件轉換成前台格式
@@ -74,30 +36,44 @@ export const AuthProvider = ({ children }) => {
   })
 
   // ──────────────────────────────────────────────
-  // 登入：使用 Medusa Customer Auth API
+  // 初始化：從 Medusa 取得當前登入的會員資訊
   // ──────────────────────────────────────────────
-  const login = async (email, password) => {
-
-    checkSession()
+  useEffect(() => {
+    const wasLoggedIn = localStorage.getItem('polar_logged_in') === '1'
+    if (!wasLoggedIn) {
+      setIsLoading(false)
+      return
+    }
+    const fetchCurrentCustomer = async () => {
+      try {
+        const { customer } = await sdk.store.customer.retrieve()
+        if (customer) {
+          setUser(mapMedusaCustomer(customer))
+        }
+      } catch {
+        localStorage.removeItem('polar_logged_in')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchCurrentCustomer()
   }, [])
 
+  // ──────────────────────────────────────────────
+  // 登入
+  // ──────────────────────────────────────────────
   const login = useCallback(async (email, password) => {
     setIsLoading(true)
     setAuthError('')
 
     try {
-      // Step 1：取得登入 Token
-      const token = await sdk.auth.login('customer', 'emailpass', {
-        email,
-        password,
-      })
+      const token = await sdk.auth.login('customer', 'emailpass', { email, password })
 
       if (!token) {
         setAuthError('帳號或密碼不正確，請再試一次')
         return { success: false }
       }
 
-      // Step 2：取得完整會員資料
       const { customer } = await sdk.store.customer.retrieve()
       setUser(mapMedusaCustomer(customer))
       localStorage.setItem('polar_logged_in', '1')
@@ -117,7 +93,7 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   // ──────────────────────────────────────────────
-  // 註冊：使用 Medusa Customer Register API
+  // 註冊
   // ──────────────────────────────────────────────
   const register = async (userData) => {
     setIsLoading(true)
@@ -129,14 +105,8 @@ export const AuthProvider = ({ children }) => {
       const firstName = nameParts[0] || name || ''
       const lastName = nameParts.slice(1).join(' ') || ''
 
-      // Step 1：在 Auth 系統建立憑證（此步驟會回傳 token 並自動設定到 SDK）
-      await sdk.auth.register('customer', 'emailpass', {
-        email,
-        password,
-      })
+      await sdk.auth.register('customer', 'emailpass', { email, password })
 
-      // Step 2：用 register 回傳的 token，建立真正的 Customer 記錄
-      // ⚠️ Medusa v2 Auth register 只建立憑證，Customer 記錄要另外 create
       await sdk.store.customer.create({
         email,
         first_name: firstName,
@@ -144,10 +114,8 @@ export const AuthProvider = ({ children }) => {
         phone: phone || '',
       })
 
-      // Step 3：正式登入取得 session
       await sdk.auth.login('customer', 'emailpass', { email, password })
 
-      // Step 4：取得完整會員資料
       const { customer } = await sdk.store.customer.retrieve()
       setUser(mapMedusaCustomer(customer))
       localStorage.setItem('polar_logged_in', '1')
@@ -164,10 +132,10 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsLoading(false)
     }
-  }, []
+  }
 
   // ──────────────────────────────────────────────
-  // 登出：清除 Medusa Session
+  // 登出
   // ──────────────────────────────────────────────
   const logout = async () => {
     try {
@@ -216,8 +184,8 @@ export const AuthProvider = ({ children }) => {
       const payload = {
         metadata: {
           ...(user.metadata || {}),
-          pets: newPets
-        }
+          pets: newPets,
+        },
       }
       const { customer } = await sdk.store.customer.update(payload)
       setUser(mapMedusaCustomer(customer))
@@ -231,7 +199,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   // ──────────────────────────────────────────────
-  // 變更密碼（Medusa 需要先驗舊密碼）
+  // 變更密碼
   // ──────────────────────────────────────────────
   const changePassword = async (oldPassword, newPassword) => {
     setIsLoading(true)
@@ -239,7 +207,6 @@ export const AuthProvider = ({ children }) => {
       await sdk.auth.updateProvider('customer', 'emailpass', {
         email: user.email,
         password: newPassword,
-        // oldPassword, // 如果 Medusa 版本支援
       })
       return { success: true }
     } catch (err) {

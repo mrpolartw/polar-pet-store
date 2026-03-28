@@ -1,63 +1,32 @@
-import { mockOrderHandlers } from '../mocks/mockHandlers';
+import { sdk } from '../lib/medusa'
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
-
-if (USE_MOCK && import.meta.env.PROD) {
-  console.error('⛔ [orderService] MOCK MODE IS ACTIVE IN PRODUCTION! Set VITE_USE_MOCK=false')
+export const getOrders = async () => {
+  const { orders } = await sdk.store.order.list({
+    fields: '*items,*items.variant,*items.variant.product',
+  })
+  return { orders: orders || [] }
 }
 
-/**
- * Create a new order.
- *
- * @param {Object} payload - Order creation payload.
- * @returns {Promise<unknown>} Order payload from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
-export const createOrder = async (payload) => {
-  if (USE_MOCK) return mockOrderHandlers.createOrder(payload);
-  throw new Error('TODO: [BACKEND] orderService.createOrder - 需後端 API 串接');
-};
-
-/**
- * Fetch a single order by identifier.
- *
- * @param {string} orderId - Order identifier.
- * @returns {Promise<unknown>} Order payload from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
 export const getOrder = async (orderId) => {
-  if (USE_MOCK) return mockOrderHandlers.getOrder(orderId);
-  throw new Error('TODO: [BACKEND] orderService.getOrder - 需後端 API 串接');
-};
+  const { order } = await sdk.store.order.retrieve(orderId, {
+    fields: '*items,*items.variant,*items.variant.product',
+  })
+  return { order }
+}
 
-/**
- * Fetch the current customer's order history.
- *
- * @param {Object} [params] - Optional query params reserved for backend integration.
- * @returns {Promise<unknown>} Order list payload from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
-export const getOrders = async (params) => {
-  void params;
-  if (USE_MOCK) return mockOrderHandlers.getOrders();
-  throw new Error('TODO: [BACKEND] orderService.getOrders - 需後端 API 串接');
-};
+export const createOrder = async (payload) => {
+  const { order } = await sdk.store.cart.complete(payload.cartId)
+  return { order }
+}
 
-/**
- * Validate a promo code before order submission.
- *
- * @param {string} code - Promo code.
- * @returns {Promise<unknown>} Promo code result from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
 export const validatePromoCode = async (code) => {
-  if (USE_MOCK) return mockOrderHandlers.validatePromoCode(code);
-  throw new Error('TODO: [BACKEND] orderService.validatePromoCode - 需後端 API 串接');
-};
+  void code
+  throw new Error('促銷代碼功能尚未開放')
+}
 
 export default {
   createOrder,
   getOrder,
   getOrders,
   validatePromoCode,
-};
+}
