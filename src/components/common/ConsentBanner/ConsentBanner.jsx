@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { storage } from '../../../utils/storage'
 import { analytics } from '../../../utils/analytics'
 import { CONFIG } from '../../../constants/config'
-import './CookieConsent.css'
+import './ConsentBanner.css'
 
 function buildConsent(analytics, marketing) {
   return {
@@ -15,7 +15,7 @@ function buildConsent(analytics, marketing) {
   }
 }
 
-export default function CookieConsent() {
+export default function ConsentBanner() {
   const [visible, setVisible] = useState(() => {
     const saved = storage.get(CONFIG.COOKIE_CONSENT_KEY)
     return !saved

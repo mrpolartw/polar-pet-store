@@ -21,7 +21,7 @@ import LogoImg from './png/LOGO去背景.png';
 import { ProtectedRoute, PublicRoute } from './guards';
 import { ROUTES } from './constants/routes';
 import { CONFIG } from './constants/config'
-import { PageLoader, CookieConsent } from './components/common';
+import { PageLoader, ConsentBanner } from './components/common';
 import ErrorBoundary from './components/common/ErrorBoundary/ErrorBoundary'
 import CustomCursor from './components/CustomCursor';
 import analytics from './utils/analytics'
@@ -964,7 +964,7 @@ function AppContent() {
           </div>
         </div>
       </footer>
-      <CookieConsent />
+      <ConsentBanner />
     </div>
     </ErrorBoundary>
   );
