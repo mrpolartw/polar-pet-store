@@ -1,6 +1,6 @@
 # MrPolarStore 前台開發進度
 
-> 最後更新：2026-03-29（已修復商品價格顯示、PayUni 金流集成）
+> 最後更新：2026-03-29（已修復配送地區選單、購物車建立異常、結帳完整流程）
 
 ---
 
@@ -165,6 +165,11 @@ gcloud run deploy polar-pet-store \
 ### 問題修復
 - ✅ 修復全白畫面：移除 React Router `basename="/polar-pet-store"` 以適配 Cloud Run 根目錄部署
 - ✅ 修復商品價格顯示異常（金額為0）：修正前端 `products.js` 以自動獲取 Region ID 並帶入 API，成功喚出被隱藏的定價陣列
+- ✅ 修復結帳流程異常：
+  - 新增 `taiwanDistricts.js` 完整 22 縣市行政區資料。
+  - 修正 `CartContext.jsx` 中 `ensureCart` 未帶 `region_id` 導致訂單無法建立的問題。
+  - 修正 `useOrderSubmit.js` 中嚴格檢查 `cartId` 導致提早失敗的問題。
+  - 補完 `orderService.js` 中的 `prepareCart` 流程：自動補齊 `shipping_address` 與 `shipping_method` 以符合 Medusa v2 `cart.complete()` 要求。
 
 ---
 

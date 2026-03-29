@@ -68,7 +68,13 @@ export const CartProvider = ({ children }) => {
   const ensureCart = async () => {
     if (medusaCart) return medusaCart
 
-    const { cart } = await sdk.store.cart.create({})
+    let region_id = undefined;
+    try {
+      const { regions } = await sdk.store.region.list({ limit: 1 });
+      if (regions?.length > 0) region_id = regions[0].id;
+    } catch(e) { console.warn('Failed to fetch regions', e); }
+
+    const { cart } = await sdk.store.cart.create({ region_id })
     localStorage.setItem(GUEST_CART_KEY, cart.id)
     setCartId(cart.id)
     setMedusaCart(cart)
@@ -183,6 +189,7 @@ export const CartProvider = ({ children }) => {
         removeFromCart,
         updateQuantity,
         clearCart,
+        ensureCart,
         subtotal,
         itemCount,
       }}

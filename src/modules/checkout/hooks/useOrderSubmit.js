@@ -18,7 +18,7 @@ const PAYUNI_METHODS = ['credit', 'linepay']
  */
 export function useOrderSubmit() {
   const navigate = useNavigate()
-  const { cartItems, cartId, clearCart } = useCart()
+  const { cartItems, ensureCart, clearCart } = useCart()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError,  setSubmitError]  = useState(null)
@@ -29,14 +29,23 @@ export function useOrderSubmit() {
       setSubmitError('購物車是空的，請先加入商品')
       return
     }
-    if (!cartId) {
-      setSubmitError('購物車狀態異常，請重新整理後再試')
-      return
-    }
 
     setIsSubmitting(true)
     setSubmitError(null)
     setFieldErrors({})
+
+    let currentCartId = null;
+    try {
+      const cart = await ensureCart();
+      if (!cart || !cart.id) {
+        throw new Error('購物車狀態異常，請重新整理後再試')
+      }
+      currentCartId = cart.id;
+    } catch(err) {
+      setSubmitError(err?.message || '購物車狀態異常，請重新整理後再試')
+      setIsSubmitting(false)
+      return
+    }
 
     const { isValid, errors } = validateForm([
       { field: 'recipientName',  value: payload.recipientName,  validator: validateName  },
@@ -54,8 +63,8 @@ export function useOrderSubmit() {
     }
 
     try {
-      // 1. 更新購物車 email 與 metadata（訂單查詢 / 點數計算使用），保留完整 payload
-      await orderService.prepareCart(cartId, {
+      // 1. 更新購物車 shipping addr, email 與 metadata（訂單查詢 / 點數計算使用），保留完整 payload
+      await orderService.prepareCart(currentCartId, {
         email:         payload.buyerEmail,
         buyerPhone:    payload.buyerPhone,
         paymentMethod: payload.paymentMethod,
@@ -63,7 +72,7 @@ export function useOrderSubmit() {
       })
 
       // 2. 完成購物車 → 建立 Medusa 訂單
-      const { order } = await orderService.createOrder(cartId)
+      const { order } = await orderService.createOrder(currentCartId)
       if (!order?.id) throw new Error('訂單建立失敗，請再試一次')
 
       // 3. 清空購物車（訂單已建立，不再需要）

@@ -18,6 +18,10 @@ const INITIAL_FORM = {
   storeId:        '',
   storeName:      '',
   deliveryNote:   '',
+  city:           '',
+  district:       '',
+  address:        '',
+  deliveryTime:   'any',
 }
 
 /**
@@ -54,6 +58,10 @@ export function useCheckoutForm(initialValues = {}) {
       storeId:        form.storeId,
       storeName:      form.storeName,
       deliveryNote:   form.deliveryNote,
+      city:           form.city,
+      district:       form.district,
+      address:        form.address,
+      deliveryTime:   form.deliveryTime,
       promoCode:      isPromoApplied ? promoCode : null,
       subtotal,
       shippingFee,

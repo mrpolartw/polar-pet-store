@@ -31,6 +31,7 @@ import analytics from '../../utils/analytics'
 import { useCheckoutForm } from '../../modules/checkout/hooks/useCheckoutForm'
 import { usePromoCode }    from '../../modules/checkout/hooks/usePromoCode'
 import { useOrderSubmit }  from '../../modules/checkout/hooks/useOrderSubmit'
+import { TAIWAN_DISTRICTS, CITIES } from '../../data/taiwanDistricts'
 
 const Checkout = () => {
   const { user } = useAuth()
@@ -357,21 +358,46 @@ const Checkout = () => {
               ) : (
                 <div className="slide-down">
                   <div className="form-row half-half">
-                    <select className="apple-input select-input">
+                    <select
+                      className="apple-input select-input"
+                      value={form.city}
+                      onChange={(e) => {
+                        setField('city', e.target.value)
+                        setField('district', '') // Reset district when city changes
+                      }}
+                    >
                       <option value="">選擇縣市</option>
-                      <option value="taipei">台北市</option>
-                      <option value="newtaipei">新北市</option>
+                      {CITIES.map(city => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
                     </select>
-                    <select className="apple-input select-input">
+                    <select
+                      className="apple-input select-input"
+                      value={form.district}
+                      onChange={(e) => setField('district', e.target.value)}
+                      disabled={!form.city}
+                    >
                       <option value="">選擇鄉鎮市區</option>
-                      <option value="daan">大安區</option>
+                      {form.city && TAIWAN_DISTRICTS[form.city]?.map(district => (
+                        <option key={district} value={district}>{district}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="form-row">
-                    <input type="text" className="apple-input" placeholder="完整街道與門牌號碼" />
+                    <input
+                      type="text"
+                      className="apple-input"
+                      placeholder="完整街道與門牌號碼"
+                      value={form.address}
+                      onChange={(e) => setField('address', e.target.value)}
+                    />
                   </div>
                   <div className="form-row">
-                    <select className="apple-input select-input">
+                    <select
+                      className="apple-input select-input"
+                      value={form.deliveryTime}
+                      onChange={(e) => setField('deliveryTime', e.target.value)}
+                    >
                       <option value="any">配送時段：不限</option>
                       <option value="morning">配送時段：13:00 前</option>
                       <option value="afternoon">配送時段：14:00 - 18:00</option>
