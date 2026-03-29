@@ -19,14 +19,15 @@ export const getOrder = async (orderId) => {
  * 必須在 createOrder 之前呼叫，讓 Medusa 訂單帶有聯絡資訊。
  *
  * @param {string} cartId
- * @param {{ email: string, buyerPhone: string, paymentMethod: string }} info
+ * @param {{ email: string, buyerPhone: string, paymentMethod: string, checkoutPayload: object }} info
  */
-export const prepareCart = async (cartId, { email, buyerPhone, paymentMethod }) => {
+export const prepareCart = async (cartId, { email, buyerPhone, paymentMethod, checkoutPayload }) => {
   await sdk.store.cart.update(cartId, {
     email,
     metadata: {
       buyer_phone:    buyerPhone,
       payment_method: paymentMethod,
+      checkout_info:  checkoutPayload,
     },
   })
 }

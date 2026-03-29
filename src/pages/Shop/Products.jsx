@@ -300,19 +300,20 @@ export default function Products() {
             (p) => p.slug === apiProduct.handle || p.id === parseInt(apiProduct.id)
           )
 
+          // 擷取正確的 TWD 價格（或系統預設計算價格）
+          const getVariantPrice = (v) => {
+            if (v.calculated_price) return v.calculated_price.calculated_amount;
+            if (Array.isArray(v.prices) && v.prices.length > 0) {
+              const twdPrice = v.prices.find(p => p.currency_code?.toLowerCase() === 'twd');
+              return twdPrice ? twdPrice.amount : v.prices[0].amount;
+            }
+            return v.price || 0;
+          };
+
           // 從 variants 提取最低價格
           let minPrice = 0
           if (apiProduct.variants?.length > 0) {
-            const prices = apiProduct.variants
-              .map((v) => {
-                // 嘗試從 prices 陣列提取價格
-                if (Array.isArray(v.prices) && v.prices.length > 0) {
-                  return v.prices[0].amount
-                }
-                // 或直接從 variant 的 price 字段
-                return v.price || 0
-              })
-              .filter((p) => p > 0)
+            const prices = apiProduct.variants.map(getVariantPrice).filter((p) => p > 0)
             minPrice = prices.length > 0 ? Math.min(...prices) : 0
           }
 
@@ -324,7 +325,7 @@ export default function Products() {
               variants: apiProduct.variants?.map((v) => ({
                 id: v.id,
                 label: v.title || '標準規格',
-                price: Array.isArray(v.prices) && v.prices.length > 0 ? v.prices[0].amount : (v.price || 0),
+                price: getVariantPrice(v),
                 description: '標準規格',
               })) || localProduct.variants,
             }
@@ -349,7 +350,7 @@ export default function Products() {
             variants: apiProduct.variants?.map((v) => ({
               id: v.id,
               label: v.title || '標準規格',
-              price: Array.isArray(v.prices) && v.prices.length > 0 ? v.prices[0].amount : (v.price || 0),
+              price: getVariantPrice(v),
               description: '標準規格',
             })) || [],
             gallery: [apiProduct.thumbnail || ''],

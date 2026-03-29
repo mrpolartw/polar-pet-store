@@ -54,11 +54,12 @@ export function useOrderSubmit() {
     }
 
     try {
-      // 1. 更新購物車 email 與 metadata（訂單查詢 / 點數計算使用）
+      // 1. 更新購物車 email 與 metadata（訂單查詢 / 點數計算使用），保留完整 payload
       await orderService.prepareCart(cartId, {
         email:         payload.buyerEmail,
         buyerPhone:    payload.buyerPhone,
         paymentMethod: payload.paymentMethod,
+        checkoutPayload: payload,
       })
 
       // 2. 完成購物車 → 建立 Medusa 訂單
