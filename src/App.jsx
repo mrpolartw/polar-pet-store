@@ -982,7 +982,7 @@ function App() {
   }, [])
 
   return (
-    <Router basename="/polar-pet-store">
+    <Router>
       <ErrorBoundary>
         <AppContent />
       </ErrorBoundary>
