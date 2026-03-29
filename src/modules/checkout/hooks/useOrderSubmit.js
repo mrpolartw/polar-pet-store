@@ -80,14 +80,22 @@ export function useOrderSubmit() {
 
       // 4a. 信用卡 / LINE Pay → 取得 PayUni 表單資料並跳轉付款頁
       if (PAYUNI_METHODS.includes(payload.paymentMethod)) {
-        const { form_action, fields } = await initiatePayuniPayment({
-          orderId:       order.id,
-          paymentMethod: payload.paymentMethod,
-        })
-        // 動態提交隱藏表單，瀏覽器跳轉至 PayUni UPP
-        submitPayuniForm(form_action, fields)
-        // 跳轉後以下程式碼不會執行
-        return
+        try {
+          const { form_action, fields } = await initiatePayuniPayment({
+            orderId:       order.id,
+            paymentMethod: payload.paymentMethod,
+          })
+          // 動態提交隱藏表單，瀏覽器跳轉至 PayUni UPP
+          submitPayuniForm(form_action, fields)
+          // 跳轉後以下程式碼不會執行
+          return
+        } catch (paymentErr) {
+          console.error('[Checkout] PayUni 初始化失敗:', paymentErr)
+          throw new Error(
+            paymentErr?.message ||
+            '支付流程初始化失敗，請檢查網路連線後重試'
+          )
+        }
       }
 
       // 4b. 其他付款方式（未來擴充）：直接導至訂單確認頁
@@ -103,7 +111,9 @@ export function useOrderSubmit() {
         { state: { order } }
       )
     } catch (err) {
-      setSubmitError(err?.message || '訂單送出失敗，請稍後再試')
+      console.error('[Checkout] 訂單提交失敗:', err)
+      const errorMsg = err?.message || '訂單送出失敗，請稍後再試'
+      setSubmitError(errorMsg)
     } finally {
       setIsSubmitting(false)
     }

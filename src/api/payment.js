@@ -8,25 +8,52 @@ const API_KEY  = import.meta.env.VITE_MEDUSA_API_KEY || ''
  * @returns {Promise<{ form_action: string, fields: Record<string, string> }>}
  */
 export async function initiatePayuniPayment({ orderId, paymentMethod }) {
-  const res = await fetch(`${BASE_URL}/store/payment/payuni/initiate`, {
-    method:      'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type':           'application/json',
-      'x-publishable-api-key':  API_KEY,
-    },
-    body: JSON.stringify({
-      order_id:       orderId,
-      payment_method: paymentMethod,
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || '付款初始化失敗，請稍後再試')
+  if (!BASE_URL) {
+    throw new Error('後端 API URL 未配置')
   }
 
-  return res.json()
+  if (!orderId || !paymentMethod) {
+    throw new Error('缺少必要參數：orderId 或 paymentMethod')
+  }
+
+  const url = `${BASE_URL}/store/payment/payuni/initiate`
+
+  try {
+    const res = await fetch(url, {
+      method:      'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type':           'application/json',
+        'x-publishable-api-key':  API_KEY,
+      },
+      body: JSON.stringify({
+        order_id:       orderId,
+        payment_method: paymentMethod,
+      }),
+    })
+
+    if (!res.ok) {
+      let errorMsg = '付款初始化失敗'
+      try {
+        const err = await res.json()
+        errorMsg = err.message || errorMsg
+      } catch {
+        errorMsg = `${errorMsg}（${res.status} ${res.statusText}）`
+      }
+      throw new Error(errorMsg)
+    }
+
+    return res.json()
+  } catch (err) {
+    console.error('[PaymentAPI] initiatePayuniPayment 錯誤:', err)
+
+    // 區分網路錯誤和其他錯誤
+    if (err instanceof TypeError) {
+      throw new Error('網路連線錯誤，請檢查網路後重試')
+    }
+
+    throw err
+  }
 }
 
 /**
