@@ -1,1 +1,0 @@
-import{u as s,a as o,r as n,R as r,j as c,b as l}from"./index-5KUD79lY.js";const i={"/main-food":"food","/snacks":"snacks","/health":"health","/joints":"health"};function f(){const a=s(),e=o();return n.useEffect(()=>{const t=i[e.pathname]||"all";a(`${r.PRODUCTS}?category=${t}`,{replace:!0})},[e.pathname,a]),c.jsx(l,{size:"large",fullPage:!0,label:"載入中..."})}export{f as default};
