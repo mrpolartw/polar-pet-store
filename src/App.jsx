@@ -10,11 +10,7 @@ import { useCart } from './context/useCart';
 import './App.css';
 import LogoImg from './png/LOGO去背景.png';
 
-// --- Shop Pages ---
-import Cart from './pages/Shop/Cart';
-import Checkout from './pages/Shop/Checkout';
-import OrderSuccess from './pages/Shop/OrderSuccess';
-// 訂單查詢頁面
+// --- Shop Pages (lazy loaded below) ---
 
 // --- Auth Pages ---
 
@@ -59,6 +55,7 @@ const Checkout = React.lazy(() => import('./pages/Shop/Checkout'));
 const OrderConfirm = React.lazy(() => import('./pages/Shop/OrderConfirm'));
 const OrderQuery = React.lazy(() => import('./pages/Shop/OrderQuery'));
 const ProductRegister = React.lazy(() => import('./pages/Shop/ProductRegister'));
+const OrderSuccess    = React.lazy(() => import('./pages/Shop/OrderSuccess'));
 
 
 // ==========================================
