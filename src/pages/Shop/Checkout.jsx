@@ -394,7 +394,7 @@ const Checkout = () => {
               >
                 <CreditCard size={28} strokeWidth={1.5} className="option-icon" />
                 <h3 className="option-title">信用卡</h3>
-                <p className="option-desc">免跳轉 安全支付</p>
+                <p className="option-desc">PayUni 安全結帳</p>
                 {form.paymentMethod === 'credit' && <CheckCircle2 className="check-icon" size={20} />}
               </div>
               <div
@@ -406,77 +406,32 @@ const Checkout = () => {
               >
                 <Smartphone size={28} strokeWidth={1.5} className="option-icon line-color" />
                 <h3 className="option-title">LINE Pay</h3>
-                <p className="option-desc">快速授權</p>
+                <p className="option-desc">PayUni 安全結帳</p>
                 {form.paymentMethod === 'linepay' && <CheckCircle2 className="check-icon" size={20} />}
-              </div>
-              <div
-                className={`option-card ${form.paymentMethod === 'applepay' ? 'active' : ''}`}
-                onClick={() => {
-                  setField('paymentMethod', 'applepay')
-                  analytics.addPaymentInfo('applepay')
-                }}
-              >
-                <Smartphone size={28} strokeWidth={1.5} className="option-icon" />
-                <h3 className="option-title">Apple Pay</h3>
-                <p className="option-desc">快速驗證付款</p>
-                {form.paymentMethod === 'applepay' && <CheckCircle2 className="check-icon" size={20} />}
-              </div>
-              <div
-                className={`option-card ${form.paymentMethod === 'transfer' ? 'active' : ''}`}
-                onClick={() => {
-                  setField('paymentMethod', 'transfer')
-                  analytics.addPaymentInfo('transfer')
-                }}
-              >
-                <Store size={28} strokeWidth={1.5} className="option-icon" />
-                <h3 className="option-title">ATM 虛擬帳號</h3>
-                <p className="option-desc">轉帳付款</p>
-                {form.paymentMethod === 'transfer' && <CheckCircle2 className="check-icon" size={20} />}
               </div>
             </div>
 
-            {form.paymentMethod === 'credit' && import.meta.env.DEV && (
+            {(form.paymentMethod === 'credit' || form.paymentMethod === 'linepay') && (
               <div
+                className="slide-down"
                 style={{
-                  background: '#fff7ed',
-                  border: '1px solid #fed7aa',
-                  borderRadius: 8,
-                  padding: '8px 14px',
-                  marginBottom: 12,
-                  fontSize: 12,
-                  color: '#9a3412',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '12px 16px',
+                  background: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  borderRadius: 10,
+                  marginTop: 12,
+                  fontSize: 13,
+                  color: '#0369a1',
                 }}
               >
-                ⚠️ 開發模式：信用卡欄位為 UI 佔位，上線前須替換為金流商 Hosted Fields
-              </div>
-            )}
-
-            {form.paymentMethod === 'credit' && (
-              <div className="seamless-payment-box slide-down">
-                <div className="seamless-header">
-                  <ShieldCheck size={18} color="#003153" />
-                  <span>PayUni 統一金流 256-bit 銀行級加密連線</span>
-                </div>
-                <div className="form-row">
-                  <input type="text" className="apple-input" placeholder="信用卡卡號" maxLength={19} />
-                </div>
-                <div className="form-row half-half">
-                  <input type="text" className="apple-input" placeholder="有效期限 (MM/YY)" maxLength={5} />
-                  <input type="text" className="apple-input" placeholder="安全碼 (CVC/CVV)" maxLength={3} />
-                </div>
-                <div className="installment-options">
-                  <h4 className="mini-title">分期期數</h4>
-                  <div className="form-row half-half">
-                    <label className="radio-card">
-                      <input type="radio" name="installment" defaultChecked />
-                      <span>一次付清</span>
-                    </label>
-                    <label className="radio-card">
-                      <input type="radio" name="installment" />
-                      <span>分 3 期 0 利率</span>
-                    </label>
-                  </div>
-                </div>
+                <ShieldCheck size={18} color="#0369a1" style={{ flexShrink: 0 }} />
+                <span>
+                  送出訂單後，您將被導向 <strong>PayUni 統一金流</strong> 安全付款頁面完成付款。
+                  卡號資訊由 PayUni 以 256-bit 加密處理，不經過本站伺服器。
+                </span>
               </div>
             )}
           </section>
