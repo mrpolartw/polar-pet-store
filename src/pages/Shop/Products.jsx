@@ -17,6 +17,7 @@ import SEOHead from '../../components/common/SEOHead'
 import { useCart } from '../../context/useCart'
 import { formatPrice } from '../../utils/formatters'
 import analytics from '../../utils/analytics'
+import { listProducts } from '../../api/products'
 import {
   CATEGORIES,
   PET_TYPES,
@@ -282,6 +283,108 @@ export default function Products() {
   const [viewMode, setViewMode] = useState('grid')
   const [search, setSearch] = useState(() => searchParam)
   const [filterOpen, setFilterOpen] = useState(false)
+  const [products, setProducts] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  // 從 Medusa API 獲取商品，與本地 productCatalog 合併
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setIsLoading(true)
+        const { products: apiProducts } = await listProducts({ limit: 100 })
+
+        // 為每個 API 商品建立標準格式，包含價格資訊
+        const mergedProducts = apiProducts.map((apiProduct) => {
+          // 優先使用本地 productCatalog 資料（包含評分、故事、營養等）
+          const localProduct = PRODUCT_CATALOG.find(
+            (p) => p.slug === apiProduct.handle || p.id === parseInt(apiProduct.id)
+          )
+
+          // 從 variants 提取最低價格
+          let minPrice = 0
+          if (apiProduct.variants?.length > 0) {
+            const prices = apiProduct.variants
+              .map((v) => {
+                // 嘗試從 prices 陣列提取價格
+                if (Array.isArray(v.prices) && v.prices.length > 0) {
+                  return v.prices[0].amount
+                }
+                // 或直接從 variant 的 price 字段
+                return v.price || 0
+              })
+              .filter((p) => p > 0)
+            minPrice = prices.length > 0 ? Math.min(...prices) : 0
+          }
+
+          // 如果有本地資料，保留本地的大部分內容，但用 API 的價格覆蓋
+          if (localProduct) {
+            return {
+              ...localProduct,
+              price: minPrice || localProduct.price,
+              variants: apiProduct.variants?.map((v) => ({
+                id: v.id,
+                label: v.title || '標準規格',
+                price: Array.isArray(v.prices) && v.prices.length > 0 ? v.prices[0].amount : (v.price || 0),
+                description: '標準規格',
+              })) || localProduct.variants,
+            }
+          }
+
+          // 如果沒有本地資料，用 API 資料建立基本商品
+          return {
+            id: apiProduct.id,
+            slug: apiProduct.handle,
+            name: apiProduct.title,
+            category: 'all',
+            petType: 'all',
+            price: minPrice,
+            specs: apiProduct.subtitle || '',
+            rating: 4.0,
+            reviewCount: 0,
+            isBestseller: false,
+            isNew: false,
+            isBundle: false,
+            image: apiProduct.thumbnail || '',
+            usp: apiProduct.description?.substring(0, 50) || '',
+            variants: apiProduct.variants?.map((v) => ({
+              id: v.id,
+              label: v.title || '標準規格',
+              price: Array.isArray(v.prices) && v.prices.length > 0 ? v.prices[0].amount : (v.price || 0),
+              description: '標準規格',
+            })) || [],
+            gallery: [apiProduct.thumbnail || ''],
+            shortDescription: apiProduct.description || '',
+            trustBadges: [],
+            storyBlocks: [],
+            ingredientsTitle: '',
+            ingredientsIntro: '',
+            ingredients: [],
+            exclusions: [],
+            sourceNote: '',
+            nutritionSectionTitle: '',
+            nutritionSectionIntro: '',
+            nutritionHighlights: [],
+            nutritionFacts: [],
+            suitability: [],
+            reviews: [],
+            reviewKeywords: [],
+            guide: {},
+            faqs: [],
+          }
+        })
+
+        setProducts(mergedProducts)
+      } catch (err) {
+        console.error('Failed to fetch products:', err)
+        // 如果 API 失敗，退回到本地 productCatalog
+        setProducts(PRODUCT_CATALOG)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchProducts()
+  }, [])
 
   useEffect(() => {
     startTransition(() => {
@@ -302,7 +405,7 @@ export default function Products() {
   const filteredProducts = useMemo(() => {
     const activePriceRange = PRICE_RANGES.find((item) => item.key === priceRange)
 
-    let list = PRODUCT_CATALOG.filter((product) => {
+    let list = products.filter((product) => {
       if (category !== 'all' && product.category !== category) return false
       if (petType !== 'all' && product.petType !== petType) return false
       if (product.price < activePriceRange.min || product.price > activePriceRange.max) return false
@@ -345,7 +448,7 @@ export default function Products() {
     }
 
     return list
-  }, [category, petType, priceRange, sortBy, search, productFilter])
+  }, [category, petType, priceRange, sortBy, search, productFilter, products])
 
   const totalPages = Math.ceil(filteredProducts.length / PER_PAGE)
   const paginatedList = filteredProducts.slice((page - 1) * PER_PAGE, page * PER_PAGE)
@@ -419,6 +522,21 @@ export default function Products() {
   useEffect(() => {
     analytics.viewItemList(filteredProducts, activeCategory?.label ?? '全部商品')
   }, [filteredProducts, activeCategory])
+
+  if (isLoading) {
+    return (
+      <main className="products-page">
+        <SEOHead
+          title={seoTitle}
+          description={seoDescription}
+          canonicalUrl="/products"
+        />
+        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <div style={{ fontSize: '18px', color: '#666' }}>載入商品中...</div>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="products-page">
