@@ -5,7 +5,7 @@ steps:
       - '-t'
       - 'us-central1-docker.pkg.dev/$PROJECT_ID/mrpolarstore-repo/polar-pet-store:latest'
       - '--build-arg'
-      - 'VITE_MEDUSA_API_URL=https://mrpolarstore-backend-boq3athofa-uc.a.run.app'
+      - 'VITE_MEDUSA_API_URL=https://mrpolarstore-backend-976595412991.us-central1.run.app'
       - '--build-arg'
       - 'VITE_MEDUSA_API_KEY=pk_6456ed6824c064ffcbde9c303da0717d0edfc7684dffee5f6726912fa4eb4e72'
       - '.'
