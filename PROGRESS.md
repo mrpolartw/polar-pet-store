@@ -1,6 +1,6 @@
 # MrPolarStore 前台開發進度
 
-> 最後更新：2026-03-28
+> 最後更新：2026-03-29
 
 ---
 
@@ -51,13 +51,21 @@
 
 | 功能 | 檔案 | 說明 |
 |---|---|---|
-| 結帳頁面 | `src/pages/Shop/Checkout.jsx` | 完整 Medusa checkout flow |
+| 結帳頁面 | `src/pages/Shop/Checkout.jsx` | 完整 Medusa + PayUni checkout flow |
 | 購買人資訊預填 | Checkout.jsx | 自動填入登入會員的姓名/電話/Email |
 | 運送方式 | Checkout.jsx | 宅配到府 / 超商取貨 |
-| 付款方式 | Checkout.jsx | 信用卡 / LINE Pay / Apple Pay / ATM 轉帳（UI 選擇，金流待串接）|
+| 付款方式 | Checkout.jsx | 信用卡 / LINE Pay（透過 PayUni UPP 跳轉）|
 | 發票選擇 | Checkout.jsx | 會員載具 / 手機條碼 / 統一編號 / 捐贈碼 |
-| 訂單送出 | Checkout.jsx | `cart.update → addShippingMethod → complete`，metadata 含 buyer_phone + payment_method |
-| 訂單成功頁 | `src/pages/Shop/OrderSuccess.jsx` | 顯示訂單編號，連結至訂單查詢 / 繼續購物 |
+| 訂單送出 | `useOrderSubmit.js` | `prepareCart → createOrder → clearCart → initiatePayuniPayment → 跳轉 PayUni` |
+| 訂單成功頁 | `src/pages/Shop/OrderConfirm.jsx` | PayUni ReturnURL 導向此頁，顯示訂單資訊 |
+
+### 金流串接（PayUni）
+
+| 功能 | 檔案 | 說明 |
+|---|---|---|
+| PayUni payment API | `src/api/payment.js` | `initiatePayuniPayment()` 呼叫後端；`submitPayuniForm()` 動態提交隱藏表單 |
+| 結帳 hook 整合 | `src/modules/checkout/hooks/useOrderSubmit.js` | 完整 PayUni 付款流程，修正 cartId 傳遞 |
+| orderService 修正 | `src/services/orderService.js` | 新增 `prepareCart()`；`createOrder(cartId)` 修正接收明確 cartId |
 
 ### 訂單查詢（OrderQuery）
 
@@ -106,7 +114,7 @@
 
 | 功能 | 說明 |
 |---|---|
-| 付款閘道前端流程 | 跳轉至 PayUni / LINE Pay 付款頁，處理回調 |
+| ~~付款閘道前端流程~~ | ✅ 已完成（信用卡 + LINE Pay via PayUni，2026-03-29） |
 | 點數折抵結帳 | Checkout 頁顯示可用點數，點擊兌換減少金額 |
 | 會員等級優惠顯示 | 商品頁針對不同等級顯示折扣價 |
 | 訂單取消申請 | 在「我的訂單」Tab 新增取消按鈕 |
