@@ -1,6 +1,6 @@
 # MrPolarStore 前台開發進度
 
-> 最後更新：2026-03-29
+> 最後更新：2026-03-29（已修復商品價格顯示、PayUni 金流集成）
 
 ---
 
@@ -44,8 +44,9 @@
 
 | 功能 | 檔案 | 說明 |
 |---|---|---|
-| 商品列表 | `src/pages/Shop/Products.jsx` | 呼叫 `listProducts()`，支援搜尋與篩選 |
+| 商品列表 | `src/pages/Shop/Products.jsx` | 從 Medusa API 動態獲取商品，自動提取 variants 最低價格，與本地 productCatalog 合併增強資料 |
 | API 封裝 | `src/api/products.js` | `listProducts({ q, category_id, limit, offset })` / `retrieveProduct(handle)` |
+| 價格顯示修正 | 2026-03-29 | 修復商品價格顯示（原本新增商品顯示為 0），現動態從 Medusa API 獲取 |
 
 ### 結帳（Checkout）
 
@@ -154,6 +155,13 @@ gcloud run deploy polar-pet-store \
   --image us-central1-docker.pkg.dev/mrpolarstore/mrpolarstore-repo/polar-pet-store:latest \
   --project mrpolarstore --region us-central1
 ```
+
+## 最近改動（2026-03-29）
+
+### 新增功能
+- ✅ PayUni 統一金流前端整合（信用卡 + LINE Pay）
+- ✅ 修復商品價格顯示：從 Medusa API 動態獲取，支援 Medusa Admin 新增商品
+- ✅ GCP Secret Manager 儲存 PayUni 金鑰（PAYUNI_MER_ID / PAYUNI_HASH_KEY / PAYUNI_HASH_IV）
 
 ---
 
