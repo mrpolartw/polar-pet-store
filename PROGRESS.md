@@ -160,8 +160,11 @@ gcloud run deploy polar-pet-store \
 
 ### 新增功能
 - ✅ PayUni 統一金流前端整合（信用卡 + LINE Pay）
-- ✅ 修復商品價格顯示：從 Medusa API 動態獲取，支援 Medusa Admin 新增商品
 - ✅ GCP Secret Manager 儲存 PayUni 金鑰（PAYUNI_MER_ID / PAYUNI_HASH_KEY / PAYUNI_HASH_IV）
+
+### 問題修復
+- ✅ 修復全白畫面：移除 React Router `basename="/polar-pet-store"` 以適配 Cloud Run 根目錄部署
+- ✅ 修復商品價格顯示異常（金額為0）：修正前端 `products.js` 以自動獲取 Region ID 並帶入 API，成功喚出被隱藏的定價陣列
 
 ---
 
