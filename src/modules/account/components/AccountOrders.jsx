@@ -41,10 +41,12 @@ const getOrderStatusLabel = (status) => {
 
 const normalizeAccountOrder = (order) => {
   const normalizedStatus = normalizeOrderStatus(order?.status)
+  const publicOrderId = order?.display_id ? `PL-${order.display_id}` : (order?.id ?? '')
 
   return {
-    id: order?.id ?? '',
-    date: String(order?.createdAt ?? order?.date ?? '').slice(0, 10),
+    id: publicOrderId,
+    rawId: order?.id ?? '',
+    date: String(order?.createdAt ?? order?.created_at ?? order?.date ?? '').slice(0, 10),
     status: normalizedStatus,
     statusLabel: getOrderStatusLabel(normalizedStatus),
     total: Number(order?.total ?? 0),
@@ -52,7 +54,7 @@ const normalizeAccountOrder = (order) => {
       ? order.items.map((item, index) => ({
           id: item?.id ?? item?.variantId ?? `item-${index}`,
           name: item?.name ?? '商品',
-          img: item?.img ?? item?.image ?? '',
+          img: item?.img ?? item?.image ?? item?.thumbnail ?? '',
         }))
       : [],
   }

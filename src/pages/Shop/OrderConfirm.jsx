@@ -17,6 +17,10 @@ const OrderConfirm = () => {
   const location = useLocation()
 
   const locationOrder = location.state?.order ?? null
+  const publicOrderId =
+    location.state?.publicOrderId
+    || orderService.getPublicOrderId(locationOrder)
+    || orderId
 
   const [order, setOrder] = useState(locationOrder)
   const [isLoading, setIsLoading] = useState(!locationOrder)
@@ -32,7 +36,7 @@ const OrderConfirm = () => {
       try {
         // TODO: [BACKEND] orderService.getOrder 需後端
         //   GET /store/orders/:id 實作後才能取得真實訂單資料
-        const data = await orderService.getOrder(orderId)
+        const data = await orderService.getOrder(orderId, { guestLookup: true })
         const nextOrder = data?.order ?? data ?? null
 
         if (!nextOrder) {
@@ -97,7 +101,7 @@ const OrderConfirm = () => {
 
         <div style={styles.orderIdBox}>
           <span style={styles.orderIdLabel}>訂單編號</span>
-          <span style={styles.orderIdValue}>{orderId}</span>
+          <span style={styles.orderIdValue}>{publicOrderId}</span>
         </div>
 
         <p style={styles.desc}>

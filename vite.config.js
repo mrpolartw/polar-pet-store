@@ -3,6 +3,22 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/', // 改為根目錄，因為部署在 Cloud Run 根路徑
-  plugins: [react()],
+  plugins: [react()],  // ← 加這行！
+  server: {
+    proxy: {
+      '/store': {
+        target: 'http://localhost:9000',
+        changeOrigin: true,
+        rewrite: (path) => path  // 可選：保持路徑
+      },
+      '/admin': {  // ← 加 Admin proxy
+        target: 'http://localhost:9000',
+        changeOrigin: true
+      },
+      '/auth': {   // ← 加 Auth proxy
+        target: 'http://localhost:9000',
+        changeOrigin: true
+      }
+    }
+  }
 })

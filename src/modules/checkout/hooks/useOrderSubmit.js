@@ -74,6 +74,7 @@ export function useOrderSubmit() {
       // 2. 完成購物車 → 建立 Medusa 訂單
       const { order } = await orderService.createOrder(currentCartId)
       if (!order?.id) throw new Error('訂單建立失敗，請再試一次')
+      const publicOrderId = orderService.getPublicOrderId(order)
 
       // 3. 清空購物車（訂單已建立，不再需要）
       await clearCart()
@@ -100,15 +101,15 @@ export function useOrderSubmit() {
 
       // 4b. 其他付款方式（未來擴充）：直接導至訂單確認頁
       analytics.purchase({
-        id:          order.id,
+        id:          publicOrderId || order.id,
         total:       payload.total,
         shippingFee: payload.shippingFee,
         promoCode:   payload.promoCode,
         items:       cartItems,
       })
       navigate(
-        ROUTES.ORDER_CONFIRM.replace(':orderId', order.id),
-        { state: { order } }
+        ROUTES.ORDER_CONFIRM.replace(':orderId', publicOrderId || order.id),
+        { state: { order, publicOrderId } }
       )
     } catch (err) {
       console.error('[Checkout] 訂單提交失敗:', err)

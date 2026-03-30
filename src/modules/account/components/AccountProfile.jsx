@@ -1,11 +1,9 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, User } from 'lucide-react'
 import { CONFIG } from '../../../constants/config'
 import { useAuth } from '../../../context/useAuth'
 import { useToast } from '../../../context/ToastContext'
-import { getMemberTier } from '../../../context/authUtils'
-import { MEMBER_TIER_THRESHOLD } from '../../../utils/constants'
 
 const SUPPORTED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_AVATAR_FILE_SIZE = CONFIG.MAX_AVATAR_SIZE ?? 5 * 1024 * 1024
@@ -17,16 +15,14 @@ const fadeUp = {
   transition: { duration: 0.4, ease: [0.25, 1, 0.5, 1] },
 }
 
-const getNextTierPoints = (points) => {
-  if (points >= MEMBER_TIER_THRESHOLD.DIAMOND) return null
-  if (points >= MEMBER_TIER_THRESHOLD.GOLD) return MEMBER_TIER_THRESHOLD.DIAMOND
-  if (points >= MEMBER_TIER_THRESHOLD.SILVER) return MEMBER_TIER_THRESHOLD.GOLD
-  return MEMBER_TIER_THRESHOLD.SILVER
-}
-
 const getInitials = (name) => (name ? name.slice(0, 2).toUpperCase() : 'PL')
 
-function AccountProfileCard({ user, tier, onAvatarUpload }) {
+function formatCurrency(cents) {
+  if (!cents) return 'NT$0'
+  return `NT$${Math.round(cents / 100).toLocaleString()}`
+}
+
+function AccountProfileCard({ user, tier, annualSpend, onAvatarUpload }) {
   const inputRef = useRef(null)
 
   return (
@@ -55,10 +51,8 @@ function AccountProfileCard({ user, tier, onAvatarUpload }) {
         <span>會員等級 {tier.label}</span>
       </div>
       <div className="account-points-row">
-        <span>目前點數</span>
-        <span className="account-points-value">
-          {(user?.points || 0).toLocaleString()}
-        </span>
+        <span>年度累計消費</span>
+        <span className="account-points-value">{formatCurrency(annualSpend)}</span>
       </div>
     </div>
   )
@@ -74,12 +68,59 @@ export default function AccountProfile() {
     birthday: user?.birthday || '',
     gender: user?.gender || '',
   })
+  const [membership, setMembership] = useState(null)
+  const [membershipLoading, setMembershipLoading] = useState(true)
 
-  const points = user?.points || 0
-  const tier = getMemberTier(points)
-  const nextTierPoints = getNextTierPoints(points)
-  const progressPct = nextTierPoints ? Math.min((points / nextTierPoints) * 100, 100) : 100
-  const remainingToNextTier = nextTierPoints ? Math.max(nextTierPoints - points, 0) : 0
+  useEffect(() => {
+    let cancelled = false
+
+    const fetchMembership = async () => {
+      setMembershipLoading(true)
+
+      try {
+        const { sdk } = await import('../../../lib/medusa')
+        const data = await sdk.client.fetch('/store/me/membership', { method: 'GET' })
+
+        if (!cancelled) {
+          setMembership(data)
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setMembership(null)
+        }
+
+        console.error('Failed to fetch membership:', err)
+      } finally {
+        if (!cancelled) {
+          setMembershipLoading(false)
+        }
+      }
+    }
+
+    if (user) {
+      fetchMembership()
+    } else {
+      setMembership(null)
+      setMembershipLoading(false)
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [user])
+
+  const annualSpend = membership?.annual_spend ?? 0
+  const gapToNext = membership?.gap_to_next ?? null
+  const currentTier = membership?.current_tier
+  const nextTier = membership?.next_tier
+
+  const tier = currentTier
+    ? { label: currentTier.name, bg: '#003153', color: '#fff' }
+    : { label: '家庭會員', bg: '#003153', color: '#fff' }
+
+  const progressPct = nextTier?.min_annual_spend
+    ? Math.min((annualSpend / nextTier.min_annual_spend) * 100, 100)
+    : 100
 
   const handleUpdateProfile = async () => {
     try {
@@ -147,6 +188,7 @@ export default function AccountProfile() {
       <AccountProfileCard
         user={user}
         tier={tier}
+        annualSpend={annualSpend}
         onAvatarUpload={handleAvatarUpload}
       />
 
@@ -154,13 +196,13 @@ export default function AccountProfile() {
         <div className="tier-progress-label">
           <span>
             <strong style={{ color: 'var(--color-brand-coffee)' }}>
-              {points.toLocaleString()} 點
+              {formatCurrency(annualSpend)}
             </strong>
           </span>
           <span>
-            {nextTierPoints
-              ? `距離下一個會員等級還差 ${remainingToNextTier.toLocaleString()} 點`
-              : '已達最高會員等級 🎉'}
+            {gapToNext !== null
+              ? `距離下一個會員等級還差 ${formatCurrency(gapToNext)}`
+              : '您已達最高會員等級 🎉'}
           </span>
         </div>
         <div className="tier-progress-bar">

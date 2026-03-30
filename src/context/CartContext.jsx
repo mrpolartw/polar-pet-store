@@ -1,182 +1,238 @@
-import React, { createContext, useState, useEffect } from 'react'
+import React, { createContext, useEffect, useState } from 'react'
+
+import { getStoreRegion } from '../api/products'
 import { sdk } from '../lib/medusa'
 import { useAuth } from './useAuth'
 
 const CartContext = createContext(null)
-
-// 購物車 localStorage key（未登入的訪客使用）
 const GUEST_CART_KEY = 'polar_cart_id'
 
+function toPositiveInteger(value, fallback = 1) {
+  const nextValue = Number(value)
+
+  if (Number.isFinite(nextValue) && nextValue > 0) {
+    return Math.floor(nextValue)
+  }
+
+  return fallback
+}
+
+function mapLineItems(items = []) {
+  return items.map((item) => ({
+    id: item.id,
+    variantId: item.variant_id,
+    productId: item.product_id,
+    name: item.title,
+    specs: item.variant_title || '',
+    price: Number(item.unit_price || 0),
+    quantity: Number(item.quantity || 0),
+    image: item.thumbnail || '',
+    shippingMethods: ['宅配到府', '7-ELEVEN 超商取貨'],
+  }))
+}
+
 export const CartProvider = ({ children }) => {
-  useAuth()
+  const { user } = useAuth()
 
   const [cartId, setCartId] = useState(() => localStorage.getItem(GUEST_CART_KEY))
   const [cartItems, setCartItems] = useState([])
   const [medusaCart, setMedusaCart] = useState(null)
   const [isCartLoading, setIsCartLoading] = useState(false)
 
-  // ──────────────────────────────────────────────
-  // 格式轉換：把 Medusa 購物車 Line Item → 前台格式
-  // ──────────────────────────────────────────────
-  const mapLineItems = (items = []) =>
-    items.map(item => ({
-      id: item.id,
-      variantId: item.variant_id,
-      productId: item.product_id,
-      name: item.title,
-      specs: item.variant_title || '',
-      price: (item.unit_price || 0),
-      quantity: item.quantity,
-      image: item.thumbnail || '',
-      shippingMethods: ['宅配', '超商取貨'],
-    }))
-
-  // ──────────────────────────────────────────────
-  // 初始化：載入購物車
-  // ──────────────────────────────────────────────
   useEffect(() => {
-    const initCart = async () => {
-      setIsCartLoading(true)
-      try {
-        if (cartId) {
-          // 嘗試從 Medusa 載入現有的購物車
-          const { cart } = await sdk.store.cart.retrieve(cartId)
-          if (cart) {
-            setMedusaCart(cart)
-            setCartItems(mapLineItems(cart.items))
-            return
-          }
-        }
-        // 如果沒有 cartId 或購物車不存在，先留空
+    let isMounted = true
+
+    const loadCart = async () => {
+      if (!cartId) {
         setCartItems([])
-      } catch (err) {
-        console.error('Failed to load cart:', err)
-        // 購物車 ID 可能失效，清除它
+        setMedusaCart(null)
+        setIsCartLoading(false)
+        return
+      }
+
+      setIsCartLoading(true)
+
+      try {
+        const { cart } = await sdk.store.cart.retrieve(cartId, {
+          fields: '*items,*items.variant,*items.variant.product,*shipping_methods',
+        })
+
+        if (!isMounted) return
+
+        setMedusaCart(cart)
+        setCartItems(mapLineItems(cart.items))
+      } catch (error) {
+        console.error('Failed to load cart:', error)
+
+        if (!isMounted) return
+
         localStorage.removeItem(GUEST_CART_KEY)
         setCartId(null)
         setCartItems([])
+        setMedusaCart(null)
       } finally {
-        setIsCartLoading(false)
+        if (isMounted) {
+          setIsCartLoading(false)
+        }
       }
     }
-    initCart()
+
+    loadCart()
+
+    return () => {
+      isMounted = false
+    }
   }, [cartId])
 
-  // ──────────────────────────────────────────────
-  // 確保購物車存在（不存在則建立新的）
-  // ──────────────────────────────────────────────
-  const ensureCart = async () => {
-    if (medusaCart) return medusaCart
-
-    let region_id = undefined;
-    try {
-      const { regions } = await sdk.store.region.list({ limit: 1 });
-      if (regions?.length > 0) region_id = regions[0].id;
-    } catch(e) { console.warn('Failed to fetch regions', e); }
-
-    const { cart } = await sdk.store.cart.create({ region_id })
-    localStorage.setItem(GUEST_CART_KEY, cart.id)
-    setCartId(cart.id)
-    setMedusaCart(cart)
-    return cart
-  }
-
-  // ──────────────────────────────────────────────
-  // 加入購物車
-  // ──────────────────────────────────────────────
-  const addToCart = async (item) => {
-    // 如果沒有 variantId，降級為本地購物車（後台尚未建立商品時）
-    if (!item.variantId) {
-      setCartItems(prev => {
-        const exists = prev.find(i => i.id === item.id)
-        if (exists) {
-          return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i)
-        }
-        return [...prev, { ...item, quantity: 1 }]
-      })
+  useEffect(() => {
+    if (!user?.id || !cartId || !medusaCart || medusaCart.customer_id) {
       return
     }
 
-    // 與 Medusa 同步
+    let isMounted = true
+
+    const transferCartToCustomer = async () => {
+      try {
+        const { cart } = await sdk.store.cart.transferCart(cartId)
+
+        if (!isMounted) return
+
+        setMedusaCart(cart)
+        setCartItems(mapLineItems(cart.items))
+      } catch (error) {
+        console.warn('Failed to transfer guest cart to customer:', error)
+      }
+    }
+
+    transferCartToCustomer()
+
+    return () => {
+      isMounted = false
+    }
+  }, [user?.id, cartId, medusaCart])
+
+  const ensureCart = async () => {
+    if (medusaCart?.id) {
+      return medusaCart
+    }
+
+    const region = await getStoreRegion()
+    const { cart } = await sdk.store.cart.create({
+      ...(region?.id ? { region_id: region.id } : {}),
+    })
+
+    localStorage.setItem(GUEST_CART_KEY, cart.id)
+    setCartId(cart.id)
+    setMedusaCart(cart)
+    setCartItems(mapLineItems(cart.items))
+
+    return cart
+  }
+
+  const addLocalItem = (item, quantityToAdd) => {
+    setCartItems((prev) => {
+      const existingItem = prev.find((cartItem) => cartItem.id === item.id)
+
+      if (existingItem) {
+        return prev.map((cartItem) =>
+          cartItem.id === item.id
+            ? { ...cartItem, quantity: cartItem.quantity + quantityToAdd }
+            : cartItem,
+        )
+      }
+
+      return [...prev, { ...item, quantity: quantityToAdd }]
+    })
+  }
+
+  const addToCart = async (item) => {
+    const quantityToAdd = toPositiveInteger(item.quantity, 1)
+
+    if (!item.variantId) {
+      addLocalItem(item, quantityToAdd)
+      return
+    }
+
     try {
       const cart = await ensureCart()
       const { cart: updatedCart } = await sdk.store.cart.createLineItem(cart.id, {
         variant_id: item.variantId,
-        quantity: 1,
+        quantity: quantityToAdd,
       })
+
       setMedusaCart(updatedCart)
       setCartItems(mapLineItems(updatedCart.items))
-    } catch (err) {
-      console.error('addToCart error:', err)
-      // 失敗時降級為本地狀態
-      setCartItems(prev => {
-        const exists = prev.find(i => i.id === item.id)
-        if (exists) {
-          return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i)
-        }
-        return [...prev, { ...item, quantity: 1 }]
-      })
+    } catch (error) {
+      console.error('addToCart error:', error)
+      addLocalItem(item, quantityToAdd)
     }
   }
 
-  // ──────────────────────────────────────────────
-  // 移除購物車項目
-  // ──────────────────────────────────────────────
   const removeFromCart = async (id) => {
-    const item = cartItems.find(i => i.id === id)
+    if (!medusaCart?.id) {
+      setCartItems((prev) => prev.filter((item) => item.id !== id))
+      return
+    }
 
-    // 先樂觀更新 UI
-    setCartItems(prev => prev.filter(i => i.id !== id))
+    try {
+      const response = await sdk.store.cart.deleteLineItem(medusaCart.id, id)
+      const updatedCart = response.parent || response.cart || null
 
-    if (medusaCart && item) {
-      try {
-        const { cart: updatedCart } = await sdk.store.cart.deleteLineItem(medusaCart.id, id)
+      if (updatedCart) {
         setMedusaCart(updatedCart)
         setCartItems(mapLineItems(updatedCart.items))
-      } catch (err) {
-        console.error('removeFromCart error:', err)
+        return
       }
+
+      setCartItems((prev) => prev.filter((item) => item.id !== id))
+    } catch (error) {
+      console.error('removeFromCart error:', error)
     }
   }
 
-  // ──────────────────────────────────────────────
-  // 更新購物車數量
-  // ──────────────────────────────────────────────
   const updateQuantity = async (id, quantity) => {
-    const qty = Number(quantity)
-    if (qty < 1) { removeFromCart(id); return }
+    const nextQuantity = toPositiveInteger(quantity, 0)
 
-    // 先樂觀更新 UI
-    setCartItems(prev => prev.map(i => i.id === id ? { ...i, quantity: qty } : i))
+    if (nextQuantity < 1) {
+      await removeFromCart(id)
+      return
+    }
 
-    if (medusaCart) {
-      try {
-        const { cart: updatedCart } = await sdk.store.cart.updateLineItem(medusaCart.id, id, {
-          quantity: qty,
-        })
-        setMedusaCart(updatedCart)
-        setCartItems(mapLineItems(updatedCart.items))
-      } catch (err) {
-        console.error('updateQuantity error:', err)
-      }
+    if (!medusaCart?.id) {
+      setCartItems((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, quantity: nextQuantity } : item)),
+      )
+      return
+    }
+
+    try {
+      const { cart: updatedCart } = await sdk.store.cart.updateLineItem(medusaCart.id, id, {
+        quantity: nextQuantity,
+      })
+
+      setMedusaCart(updatedCart)
+      setCartItems(mapLineItems(updatedCart.items))
+    } catch (error) {
+      console.error('updateQuantity error:', error)
     }
   }
 
-  // ──────────────────────────────────────────────
-  // 清空購物車
-  // ──────────────────────────────────────────────
   const clearCart = () => {
+    localStorage.removeItem(GUEST_CART_KEY)
     setCartItems([])
     setMedusaCart(null)
     setCartId(null)
-    localStorage.removeItem(GUEST_CART_KEY)
   }
 
   const subtotal = cartItems.reduce(
-    (acc, item) => acc + (Number(item.price) || 0) * (Number(item.quantity) || 0),
+    (accumulator, item) => accumulator + Number(item.price || 0) * Number(item.quantity || 0),
     0,
   )
-  const itemCount = cartItems.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)
+
+  const itemCount = cartItems.reduce(
+    (accumulator, item) => accumulator + Number(item.quantity || 0),
+    0,
+  )
 
   return (
     <CartContext.Provider

@@ -873,6 +873,7 @@ export const createCartPayload = (product, variant, quantity = 1) => {
   return {
     id: `${product.id}-${selectedVariant.id}`,
     productId: product.id,
+    variantId: selectedVariant.variantId || selectedVariant.id,
     name: product.name,
     image: product.image,
     specs: selectedVariant.label,

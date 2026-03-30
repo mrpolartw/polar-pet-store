@@ -292,6 +292,10 @@ export default function Products() {
       try {
         setIsLoading(true)
         const { products: apiProducts } = await listProducts({ limit: 100 })
+        setProducts(apiProducts)
+        return
+
+        /*
 
         // 為每個 API 商品建立標準格式，包含價格資訊
         const mergedProducts = apiProducts.map((apiProduct) => {
@@ -375,6 +379,7 @@ export default function Products() {
         })
 
         setProducts(mergedProducts)
+        */
       } catch (err) {
         console.error('Failed to fetch products:', err)
         // 如果 API 失敗，退回到本地 productCatalog

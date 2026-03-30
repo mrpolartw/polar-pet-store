@@ -10,8 +10,8 @@ import {
   ShoppingBag,
 } from 'lucide-react'
 
-const MEDUSA_API_URL = import.meta.env.VITE_MEDUSA_API_URL || 'http://localhost:9000';
-const MEDUSA_API_KEY = import.meta.env.VITE_MEDUSA_API_KEY || '';
+import { EmptyState, ErrorState, LoadingSpinner } from '../../components/common'
+import { MEDUSA_API_URL, PUBLISHABLE_API_KEY } from '../../lib/medusa'
 
 // ── 呼叫後端訂單查詢 API ──
 const fetchOrders = async ({ order_id, phone }) => {
@@ -23,7 +23,7 @@ const fetchOrders = async ({ order_id, phone }) => {
         `${MEDUSA_API_URL}/store/orders/query?${params.toString()}`,
         {
             headers: {
-                'x-publishable-api-key': MEDUSA_API_KEY,
+                'x-publishable-api-key': PUBLISHABLE_API_KEY,
                 'Content-Type': 'application/json',
             },
         }
@@ -300,9 +300,8 @@ export default function OrderQuery() {
 
     try {
       if (mode === 'orderId') {
-        // TODO: [BACKEND] orderService.getOrder 需後端實作
-        const data = await orderService.getOrder(trimmedId)
-        const normalizedOrder = normalizeOrder(data?.order ?? data)
+        const orders = await fetchOrders({ order_id: trimmedId })
+        const normalizedOrder = normalizeOrder(orders?.[0])
 
         if (normalizedOrder) {
           setOrderData(normalizedOrder)
@@ -313,11 +312,9 @@ export default function OrderQuery() {
         return
       }
 
-      // TODO: [BACKEND] orderService.getOrders 需後端實作
-      const data = await orderService.getOrders({ phone: trimmedPhone })
-      const remoteOrders = (data?.orders ?? [])
+      const remoteOrders = (await fetchOrders({ phone: trimmedPhone }))
         .map(normalizeOrder)
-        .filter((order) => order?.phone === trimmedPhone)
+        .filter(Boolean)
 
       if (remoteOrders.length > 0) {
         setOrderList(remoteOrders)

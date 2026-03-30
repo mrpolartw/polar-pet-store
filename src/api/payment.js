@@ -1,5 +1,7 @@
-const BASE_URL = import.meta.env.VITE_MEDUSA_API_URL || 'http://localhost:9000'
-const API_KEY  = import.meta.env.VITE_MEDUSA_API_KEY || ''
+import { MEDUSA_API_URL, PUBLISHABLE_API_KEY } from '../lib/medusa'
+
+const BASE_URL = MEDUSA_API_URL
+const API_KEY = PUBLISHABLE_API_KEY
 
 /**
  * 向後端取得 PayUni UPP 表單資料
