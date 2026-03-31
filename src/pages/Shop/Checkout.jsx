@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Truck,
   Store,
@@ -35,6 +35,8 @@ import { TAIWAN_DISTRICTS, CITIES } from '../../data/taiwanDistricts'
 
 const Checkout = () => {
   const { user } = useAuth()
+  const [searchParams] = useSearchParams()
+  const paymentResult = searchParams.get('payment_result')
   const location = useLocation()
   const { cartItems, subtotal } = useCart();
   const { form, setField, getPayload } = useCheckoutForm()
@@ -84,6 +86,37 @@ const Checkout = () => {
   return (
     <div className="checkout-page">
       <SEOHead title="結帳" noIndex={true} />
+      {paymentResult === 'failed' && (
+        <div style={{
+          maxWidth: 860,
+          margin: '0 auto 16px',
+          padding: '14px 18px',
+          background: 'linear-gradient(135deg, #fff2f0 0%, #fff1f0 100%)',
+          border: '1px solid #ffccc7',
+          borderRadius: 14,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}>
+          <span style={{
+            width: 34, height: 34, borderRadius: '50%',
+            background: '#ff4d4f', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </span>
+          <div>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#a61d24' }}>
+              付款未完成
+            </p>
+            <p style={{ margin: 0, fontSize: 12, color: '#820014', marginTop: 2 }}>
+              您的訂單已保留，請重新選擇付款方式並完成付款。如有疑問請聯繫客服。
+            </p>
+          </div>
+        </div>
+      )}
       <div className="checkout-header-simple">
         <h1 className="headline-pro">安全結帳</h1>
       </div>

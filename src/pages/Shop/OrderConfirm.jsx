@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useLocation, Link } from 'react-router-dom'
+import { useParams, useLocation, useSearchParams, Link } from 'react-router-dom'
 import { CheckCircle2, Package, ArrowRight, RotateCcw } from 'lucide-react'
 
 import { ErrorState, LoadingSpinner } from '../../components/common'
@@ -14,6 +14,8 @@ import orderService from '../../services/orderService'
  */
 const OrderConfirm = () => {
   const { orderId } = useParams()
+  const [searchParams] = useSearchParams()
+  const displayId = searchParams.get('display_id')
   const location = useLocation()
 
   const locationOrder = location.state?.order ?? null
@@ -30,25 +32,41 @@ const OrderConfirm = () => {
       setError(null)
 
       try {
-        // TODO: [BACKEND] orderService.getOrder 需後端
-        //   GET /store/orders/:id 實作後才能取得真實訂單資料
+        // 先嘗試透過 SDK 取得訂單（已登入用戶）
         const data = await orderService.getOrder(orderId)
         const nextOrder = data?.order ?? data ?? null
-
-        if (!nextOrder) {
-          throw new Error('無法取得訂單資訊，請前往訂單查詢頁確認')
-        }
-
+        if (!nextOrder) throw new Error('empty')
         setOrder(nextOrder)
-      } catch (err) {
-        setError(err?.message || '無法取得訂單資訊，請前往訂單查詢頁確認')
+      } catch {
+        // SDK 失敗（訪客或 session 遺失）→ 使用公開查詢 endpoint
+        if (displayId) {
+          try {
+            const BASE_URL = import.meta.env.VITE_MEDUSA_API_URL || 'http://localhost:9000'
+            const API_KEY  = import.meta.env.VITE_MEDUSA_API_KEY  || ''
+            const res = await fetch(
+              `${BASE_URL}/store/orders/query?order_id=PL-${displayId}`,
+              { headers: { 'x-publishable-api-key': API_KEY } }
+            )
+            if (res.ok) {
+              const json = await res.json()
+              const fallbackOrder = json?.orders?.[0] ?? null
+              if (fallbackOrder) {
+                setOrder(fallbackOrder)
+                return
+              }
+            }
+          } catch {
+            // fallback 也失敗，走到下方 error 處理
+          }
+        }
+        setError('無法取得訂單資訊，請前往訂單查詢頁確認')
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchOrder()
-  }, [orderId, locationOrder])
+  }, [orderId, locationOrder, displayId])
 
   if (isLoading) {
     return (
