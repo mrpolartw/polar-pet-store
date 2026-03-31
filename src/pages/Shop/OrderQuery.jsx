@@ -300,9 +300,8 @@ export default function OrderQuery() {
 
     try {
       if (mode === 'orderId') {
-        // TODO: [BACKEND] orderService.getOrder 需後端實作
-        const data = await orderService.getOrder(trimmedId)
-        const normalizedOrder = normalizeOrder(data?.order ?? data)
+        const orders = await fetchOrders({ order_id: trimmedId })
+        const normalizedOrder = normalizeOrder((orders ?? [])[0] ?? null)
 
         if (normalizedOrder) {
           setOrderData(normalizedOrder)
@@ -313,9 +312,8 @@ export default function OrderQuery() {
         return
       }
 
-      // TODO: [BACKEND] orderService.getOrders 需後端實作
-      const data = await orderService.getOrders({ phone: trimmedPhone })
-      const remoteOrders = (data?.orders ?? [])
+      const orders = await fetchOrders({ phone: trimmedPhone })
+      const remoteOrders = (orders ?? [])
         .map(normalizeOrder)
         .filter((order) => order?.phone === trimmedPhone)
 
