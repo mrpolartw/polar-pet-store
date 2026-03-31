@@ -1,6 +1,6 @@
 # MrPolarStore 前台開發進度
 
-> 最後更新：2026-03-29（已修復配送地區選單、購物車建立異常、結帳完整流程）
+> 最後更新：2026-03-31（已修復 CORS、PayUni 付款流程、部署 URL 全面修正）
 
 ---
 
@@ -131,7 +131,7 @@
 | GCP Project | `mrpolarstore` |
 | Region | `us-central1` |
 | Cloud Run 服務名稱 | `polar-pet-store` |
-| 生產 URL | `https://polar-pet-store-boq3athofa-uc.a.run.app` |
+| 生產 URL | `https://polar-pet-store-976595412991.us-central1.run.app` |
 | Artifact Registry Image | `us-central1-docker.pkg.dev/mrpolarstore/mrpolarstore-repo/polar-pet-store:latest` |
 | 部署方式 | `gcloud builds submit --config cloudbuild.yaml` → `gcloud run deploy polar-pet-store --image <image>` |
 
@@ -155,6 +155,15 @@ gcloud run deploy polar-pet-store \
   --image us-central1-docker.pkg.dev/mrpolarstore/mrpolarstore-repo/polar-pet-store:latest \
   --project mrpolarstore --region us-central1
 ```
+
+## 最近改動（2026-03-31）
+
+### 問題修復
+- ✅ **部署 URL 修正**：`cloudbuild.yaml` 中 `VITE_MEDUSA_API_URL` build arg 從舊 URL（`boq3athofa-uc.a.run.app`）更正為正確 URL（`mrpolarstore-backend-976595412991.us-central1.run.app`）。
+- ✅ **PayUni 付款流程 error handling 強化**：
+  - `src/api/payment.js`：加入 URL / 參數驗證，區分網路錯誤與 API 錯誤，詳細 console.error 輸出。
+  - `src/modules/checkout/hooks/useOrderSubmit.js`：PayUni 初始化步驟獨立 try/catch，錯誤訊息更明確。
+- ✅ **前台架構確認**：所有 Medusa API 均透過 SDK；`payment.js` 使用 raw fetch 呼叫自訂 PayUni endpoint（正確做法）。
 
 ## 最近改動（2026-03-29）
 
