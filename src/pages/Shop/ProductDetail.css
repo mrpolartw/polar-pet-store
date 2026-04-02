@@ -924,3 +924,9 @@
     font-size: 16px;
   }
 }
+
+.pdp-breadcrumb-sep {
+  flex-shrink: 0;
+  color: var(--color-gray-dark);
+  opacity: 0.5;
+}

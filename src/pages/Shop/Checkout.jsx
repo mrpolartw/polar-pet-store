@@ -29,8 +29,15 @@ import { CONFIG } from '../../constants/config';
 import SEOHead from '../../components/common/SEOHead';
 import analytics from '../../utils/analytics'
 import { useCheckoutForm } from '../../modules/checkout/hooks/useCheckoutForm'
-import { usePromoCode }    from '../../modules/checkout/hooks/usePromoCode'
-import { useOrderSubmit }  from '../../modules/checkout/hooks/useOrderSubmit'
+import { usePromoCode } from '../../modules/checkout/hooks/usePromoCode'
+import { useOrderSubmit } from '../../modules/checkout/hooks/useOrderSubmit'
+import {
+  validateMobileBarcode,
+  validateTaxId,
+  validateDonateCode,
+} from '../../utils/invoiceValidators'
+import { getCities, getDistricts, getZipCode } from '../../data/twAddress'
+import './Checkout.css';
 
 void useNavigate;
 void orderService;
@@ -75,16 +82,84 @@ const Checkout = () => {
     ? 0 : CONFIG.SHIPPING_FEE
   const total = subtotal + shippingFee - discount
 
+  const setInvoiceFieldError = (field, message) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: message }))
+    const el = document.getElementById(field)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
   const handleSubmitOrder = async (e) => {
     e.preventDefault()
     setSubmitError(null)
+    setFieldErrors((prev) => {
+      const next = { ...prev }
+      delete next.deliveryAddress
+      delete next.invoiceMobile
+      delete next.invoiceTaxId
+      delete next.invoiceDonateCode
+      delete next.storeName
+      delete next.storeAddress
+      return next
+    })
     if (!agreed) {
       setSubmitError('請先閱讀並同意服務條款與隱私政策')
       const el = document.getElementById('agree-terms')
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
+
     const payload = getPayload(promoCode, isPromoApplied, subtotal, discount)
+
+    if (form.invoiceType === 'mobile') {
+      const mobileError = validateMobileBarcode(form.invoiceMobile)
+      if (mobileError) {
+        setInvoiceFieldError('invoiceMobile', mobileError)
+        return
+      }
+    }
+
+    if (form.invoiceType === 'company') {
+      const taxIdError = validateTaxId(form.invoiceTaxId)
+      if (taxIdError) {
+        setInvoiceFieldError('invoiceTaxId', taxIdError)
+        return
+      }
+    }
+
+    if (form.invoiceType === 'donate') {
+      const donateError = validateDonateCode(form.invoiceDonateCode)
+      if (donateError) {
+        setInvoiceFieldError('invoiceDonateCode', donateError)
+        return
+      }
+    }
+
+    if (form.shippingMethod === 'home') {
+      if (!form.deliveryCity) {
+        setFieldErrors((prev) => ({ ...prev, deliveryAddress: '請選擇縣市' }))
+        return
+      }
+      if (!form.deliveryDistrict) {
+        setFieldErrors((prev) => ({ ...prev, deliveryAddress: '請選擇鄉鎮市區' }))
+        return
+      }
+      if (!form.deliveryAddress?.trim()) {
+        setFieldErrors((prev) => ({ ...prev, deliveryAddress: '請輸入街道地址' }))
+        return
+      }
+    }
+
+    if (form.shippingMethod === 'store') {
+      if (!form.storeName?.trim()) {
+        setFieldErrors((prev) => ({ ...prev, storeName: '請輸入門市名稱' }))
+        return
+      }
+      if (!form.storeAddress?.trim()) {
+        setFieldErrors((prev) => ({ ...prev, storeAddress: '請輸入門市地址' }))
+        return
+      }
+    }
+
     await submit(payload)
   }
 
@@ -95,107 +170,41 @@ const Checkout = () => {
         <h1 className="headline-pro">安全結帳</h1>
       </div>
 
-      {/* 未登入提示 */}
       {!user && (
-        <div style={{
-          maxWidth: 860,
-          margin: '0 auto 16px',
-          padding: '14px 18px',
-          background: 'linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%)',
-          border: '1px solid #bfdbfe',
-          borderRadius: 14,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{
-              width: 34, height: 34, borderRadius: '50%',
-              background: '#003153', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <UserPlus size={16} color="#fff" />
+        <div className="checkout-guest-banner">
+          <div className="checkout-guest-banner__text-group">
+            <span className="checkout-guest-banner__icon">
+              <UserPlus size={16} />
             </span>
             <div>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1d1d1f' }}>
-                登入 / 註冊會員，購物更划算
-              </p>
-              <p style={{ margin: 0, fontSize: 12, color: '#6e6e73', marginTop: 2 }}>
-                消費自動累積點數可折抵，並即時接收出貨、配送狀態通知
-              </p>
+              <p className="checkout-guest-banner__title">登入以享有更完整的購物體驗</p>
+              <p className="checkout-guest-banner__sub">訂單追蹤、會員點數、快速結帳</p>
             </div>
           </div>
-          <Link
-            to="/login"
-            state={{ from: location.pathname }}
-            style={{
-              padding: '8px 18px',
-              background: '#003153',
-              color: '#fff',
-              borderRadius: 980,
-              fontSize: 13,
-              fontWeight: 600,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
-          >
+          <Link to="/login" state={{ from: location.pathname }} className="checkout-guest-banner__btn">
             登入 / 註冊
           </Link>
         </div>
       )}
 
-      {/* 已登入但未串接 LINE 提示 */}
       {user && !user.lineLinked && (
-        <div style={{
-          maxWidth: 860,
-          margin: '0 auto 16px',
-          padding: '14px 18px',
-          background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)',
-          border: '1px solid #bbf7d0',
-          borderRadius: 14,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{
-              width: 34, height: 34, borderRadius: '50%',
-              background: '#06C755', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <MessageCircle size={16} color="#fff" />
+        <div className="checkout-line-banner">
+          <div className="checkout-line-banner__text-group">
+            <span className="checkout-line-banner__icon">
+              <MessageCircle size={16} />
             </span>
             <div>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1d1d1f' }}>
-                加入 LINE 官方帳號，訂單資訊即時掌握
-              </p>
-              <p style={{ margin: 0, fontSize: 12, color: '#6e6e73', marginTop: 2 }}>
-                付款成功、出貨通知、物流動態，第一時間透過 LINE 推播給您
-              </p>
+              <p className="checkout-line-banner__title">綁定 LINE 接收訂單通知</p>
+              <p className="checkout-line-banner__sub">綁定後可透過 LINE 即時收到出貨、到貨通知</p>
             </div>
           </div>
           <a
             href="https://lin.ee/THZqvZ5r"
             target="_blank"
             rel="noreferrer"
-            style={{
-              padding: '8px 18px',
-              background: '#06C755',
-              color: '#fff',
-              borderRadius: 980,
-              fontSize: 13,
-              fontWeight: 600,
-              textDecoration: 'none',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-            }}
+            className="checkout-line-banner__btn"
           >
-            加入 LINE
+            綁定 LINE
           </a>
         </div>
       )}
@@ -357,33 +366,178 @@ const Checkout = () => {
 
             <div className="form-group" style={{ marginTop: '24px' }}>
               <h3 className="form-subtitle">配送細節</h3>
-              {form.shippingMethod === 'store' ? (
-                <div className="store-select-box">
-                  <p>請選擇您要取件的 7-ELEVEN 門市，貨件送達將以簡訊通知。</p>
-                  <button className="btn-blue btn-select-store">開啟電子地圖選擇門市</button>
-                </div>
-              ) : (
+              {form.shippingMethod === 'home' && (
                 <div className="slide-down">
                   <div className="form-row half-half">
-                    <select className="apple-input select-input">
-                      <option value="">選擇縣市</option>
-                      <option value="taipei">台北市</option>
-                      <option value="newtaipei">新北市</option>
-                    </select>
-                    <select className="apple-input select-input">
-                      <option value="">選擇鄉鎮市區</option>
-                      <option value="daan">大安區</option>
+                    <div>
+                      <select
+                        className="apple-input select-input"
+                        value={form.deliveryCity}
+                        onChange={(e) => {
+                          setField('deliveryCity', e.target.value)
+                          setField('deliveryDistrict', '')
+                          setField('deliveryZip', '')
+                          setFieldErrors((prev) => ({ ...prev, deliveryAddress: undefined }))
+                        }}
+                      >
+                        <option value="">請選擇縣市</option>
+                        {getCities().map((city) => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <select
+                        className="apple-input select-input"
+                        value={form.deliveryDistrict}
+                        disabled={!form.deliveryCity}
+                        onChange={(e) => {
+                          const district = e.target.value
+                          setField('deliveryDistrict', district)
+                          setField('deliveryZip', getZipCode(form.deliveryCity, district))
+                          setFieldErrors((prev) => ({ ...prev, deliveryAddress: undefined }))
+                        }}
+                      >
+                        <option value="">請選擇鄉鎮市區</option>
+                        {getDistricts(form.deliveryCity).map((district) => (
+                          <option key={district} value={district}>{district}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row half-half" style={{ marginTop: 12 }}>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        className="apple-input"
+                        placeholder="郵遞區號"
+                        value={form.deliveryZip}
+                        readOnly
+                        style={{
+                          background: 'var(--color-bg-light)',
+                          cursor: 'default',
+                          color: 'var(--color-gray-dark)',
+                        }}
+                      />
+                    </div>
+                    <input
+                      id="deliveryAddress"
+                      type="text"
+                      className="apple-input"
+                      placeholder="街道地址（路/街/巷/弄/號/樓）"
+                      value={form.deliveryAddress}
+                      onChange={(e) => {
+                        setField('deliveryAddress', e.target.value)
+                        setFieldErrors((prev) => ({ ...prev, deliveryAddress: undefined }))
+                      }}
+                      autoComplete="street-address"
+                    />
+                  </div>
+                  {fieldErrors.deliveryAddress && (
+                    <p style={{ fontSize: 12, color: '#e74c3c', marginTop: 4 }}>
+                      {fieldErrors.deliveryAddress}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {form.shippingMethod === 'store' && (
+                <div className="slide-down">
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 10,
+                      padding: '12px 16px',
+                      background: 'var(--color-bg-light)',
+                      border: '1px solid var(--color-gray-light)',
+                      borderRadius: 'var(--radius-md)',
+                      marginBottom: 16,
+                      fontSize: 13,
+                      color: 'var(--color-gray-dark)',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>🏪</span>
+                    <div>
+                      <strong
+                        style={{
+                          color: 'var(--color-text-dark)',
+                          display: 'block',
+                          marginBottom: 2,
+                        }}
+                      >
+                        7-ELEVEN 超商取貨
+                      </strong>
+                      請輸入您指定的 7-ELEVEN 門市名稱及地址。
+                      可至{' '}
+                      <a
+                        href="https://emap.pcsc.com.tw"
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: 'var(--color-brand-blue)', fontWeight: 600 }}
+                      >
+                        7-ELEVEN 門市查詢
+                      </a>{' '}
+                      確認門市資訊。
+                    </div>
+                  </div>
+
+                  <div className="form-row" style={{ marginBottom: 12 }}>
+                    <select
+                      className="apple-input select-input"
+                      value={form.storeCity}
+                      onChange={(e) => setField('storeCity', e.target.value)}
+                    >
+                      <option value="">請選擇取件縣市</option>
+                      {getCities().map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
                     </select>
                   </div>
-                  <div className="form-row">
-                    <input type="text" className="apple-input" placeholder="完整街道與門牌號碼" />
+
+                  <div className="form-row" style={{ marginBottom: 12 }}>
+                    <div>
+                      <input
+                        id="storeName"
+                        type="text"
+                        className="apple-input"
+                        placeholder="門市名稱（例：台北南京門市）"
+                        value={form.storeName}
+                        onChange={(e) => {
+                          setField('storeName', e.target.value)
+                          setFieldErrors((prev) => ({ ...prev, storeName: undefined }))
+                        }}
+                        autoComplete="off"
+                      />
+                      {fieldErrors.storeName && (
+                        <p style={{ fontSize: 12, color: '#e74c3c', marginTop: 4 }}>
+                          {fieldErrors.storeName}
+                        </p>
+                      )}
+                    </div>
                   </div>
+
                   <div className="form-row">
-                    <select className="apple-input select-input">
-                      <option value="any">配送時段：不限</option>
-                      <option value="morning">配送時段：13:00 前</option>
-                      <option value="afternoon">配送時段：14:00 - 18:00</option>
-                    </select>
+                    <div>
+                      <input
+                        id="storeAddress"
+                        type="text"
+                        className="apple-input"
+                        placeholder="門市地址（例：臺北市中山區南京東路二段）"
+                        value={form.storeAddress}
+                        onChange={(e) => {
+                          setField('storeAddress', e.target.value)
+                          setFieldErrors((prev) => ({ ...prev, storeAddress: undefined }))
+                        }}
+                        autoComplete="off"
+                      />
+                      {fieldErrors.storeAddress && (
+                        <p style={{ fontSize: 12, color: '#e74c3c', marginTop: 4 }}>
+                          {fieldErrors.storeAddress}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -512,14 +666,25 @@ const Checkout = () => {
                   <div className="input-with-icon">
                     <Smartphone className="input-icon" size={20} />
                     <input
+                      id="invoiceMobile"
                       type="text"
                       className="apple-input with-icon"
-                      placeholder="請輸入手機條碼（格式：/ABC1234）"
+                      placeholder="/ABC1234"
                       value={form.invoiceMobile}
-                      onChange={(e) => setField('invoiceMobile', e.target.value)}
+                      onChange={(e) => {
+                        let v = e.target.value.toUpperCase()
+                        if (v.length > 0 && v[0] !== '/') v = `/${v}`
+                        setField('invoiceMobile', v)
+                        setFieldErrors((prev) => ({ ...prev, invoiceMobile: undefined }))
+                      }}
                       maxLength={8}
                     />
                   </div>
+                  {fieldErrors.invoiceMobile && (
+                    <p style={{ fontSize: 12, color: '#e74c3c', marginTop: 4 }}>
+                      {fieldErrors.invoiceMobile}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -528,13 +693,22 @@ const Checkout = () => {
                   <div className="input-with-icon">
                     <Building2 className="input-icon" size={20} />
                     <input
+                      id="invoiceTaxId"
                       type="text"
                       className="apple-input with-icon"
                       placeholder="統一編號（8 碼數字）"
                       value={form.invoiceTaxId}
-                      onChange={(e) => setField('invoiceTaxId', e.target.value)}
+                      onChange={(e) => {
+                        setField('invoiceTaxId', e.target.value)
+                        setFieldErrors((prev) => ({ ...prev, invoiceTaxId: undefined }))
+                      }}
                       maxLength={8}
                     />
+                    {fieldErrors.invoiceTaxId && (
+                      <p style={{ fontSize: 12, color: '#e74c3c', marginTop: 4 }}>
+                        {fieldErrors.invoiceTaxId}
+                      </p>
+                    )}
                   </div>
                   <input
                     type="text"
@@ -551,13 +725,22 @@ const Checkout = () => {
                   <div className="input-with-icon">
                     <HeartHandshake className="input-icon" size={20} />
                     <input
+                      id="invoiceDonateCode"
                       type="text"
                       className="apple-input with-icon"
                       placeholder="請輸入機構捐贈碼"
                       value={form.invoiceDonateCode}
-                      onChange={(e) => setField('invoiceDonateCode', e.target.value)}
+                      onChange={(e) => {
+                        setField('invoiceDonateCode', e.target.value)
+                        setFieldErrors((prev) => ({ ...prev, invoiceDonateCode: undefined }))
+                      }}
                     />
                   </div>
+                  {fieldErrors.invoiceDonateCode && (
+                    <p style={{ fontSize: 12, color: '#e74c3c', marginTop: 4 }}>
+                      {fieldErrors.invoiceDonateCode}
+                    </p>
+                  )}
                 </div>
               )}
             </div>

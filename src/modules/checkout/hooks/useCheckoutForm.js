@@ -15,8 +15,14 @@ const INITIAL_FORM = {
   invoiceTaxId:   '',
   invoiceCompany: '',
   invoiceDonateCode: '',
+  deliveryCity:   '',
+  deliveryDistrict: '',
+  deliveryZip:    '',
+  deliveryAddress: '',
   storeId:        '',
+  storeCity:      '',
   storeName:      '',
+  storeAddress:   '',
   deliveryNote:   '',
 }
 
@@ -51,8 +57,30 @@ export function useCheckoutForm(initialValues = {}) {
       invoiceTaxId:   form.invoiceTaxId,
       invoiceCompany: form.invoiceCompany,
       invoiceDonateCode: form.invoiceDonateCode,
+      deliveryCity:   form.deliveryCity,
+      deliveryDistrict: form.deliveryDistrict,
+      deliveryZip:    form.deliveryZip,
+      deliveryAddress: form.deliveryAddress,
       storeId:        form.storeId,
+      storeCity:      form.storeCity,
       storeName:      form.storeName,
+      storeAddress:   form.storeAddress,
+      shippingAddress:
+        form.shippingMethod === 'home'
+          ? {
+              city: form.deliveryCity,
+              district: form.deliveryDistrict,
+              zip: form.deliveryZip,
+              address: form.deliveryAddress,
+              full: `${form.deliveryZip} ${form.deliveryCity}${form.deliveryDistrict}${form.deliveryAddress}`,
+            }
+          : {
+              city: form.storeCity,
+              storeId: form.storeId,
+              storeName: form.storeName,
+              storeAddress: form.storeAddress,
+              full: `${form.storeCity} ${form.storeName} ${form.storeAddress}`,
+            },
       deliveryNote:   form.deliveryNote,
       promoCode:      isPromoApplied ? promoCode : null,
       subtotal,

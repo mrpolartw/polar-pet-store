@@ -91,9 +91,9 @@ const Cart = () => {
                     <button
                       className="btn-remove"
                       onClick={() => removeFromCart(item.id)}
-                      aria-label="移除此商品"
+                      aria-label={`移除 ${item.name}`}
                     >
-                      <Trash2 size={16} /> 移除此商品
+                      <Trash2 size={16} aria-hidden="true" /> 移除此商品
                     </button>
                   </div>
                   {item.gift && (

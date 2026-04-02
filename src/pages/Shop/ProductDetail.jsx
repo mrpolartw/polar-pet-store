@@ -46,9 +46,9 @@ const ProductDetailContent = ({ product, onAddToCartItem, onBuyNowItem }) => {
       <div className="pdp-container">
         <nav className="pdp-breadcrumb" aria-label="Breadcrumb">
           <Link to="/">首頁</Link>
-          <ChevronRight size={14} />
+          <ChevronRight size={14} className="pdp-breadcrumb-sep" aria-hidden="true" />
           <Link to="/products">商品列表</Link>
-          <ChevronRight size={14} />
+          <ChevronRight size={14} className="pdp-breadcrumb-sep" aria-hidden="true" />
           <span>{product.name}</span>
         </nav>
 

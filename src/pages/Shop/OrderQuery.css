@@ -471,3 +471,9 @@
 .orderquery-header-simple {
   text-align: center;
 }
+
+.oq-card-icon {
+  margin-right: 8px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}

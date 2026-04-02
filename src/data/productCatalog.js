@@ -547,6 +547,15 @@ const createProduct = (product) => {
     ? product.variants
     : [{ id: 'default', label: product.specs, price: product.price, description: '標準規格' }]
   const slug = product.slug || slugify(product.name)
+  const defaultGuide = createFeedingGuide(product)
+  const guide = product.guide
+    ? {
+        ...defaultGuide,
+        ...product.guide,
+        rows: product.guide.rows?.length ? product.guide.rows : defaultGuide.rows,
+        transition: product.guide.transition?.length ? product.guide.transition : defaultGuide.transition,
+      }
+    : defaultGuide
 
   return {
     ...product,
@@ -570,7 +579,7 @@ const createProduct = (product) => {
     suitability: product.suitability || createSuitability(product),
     reviews: product.reviews || createReviews(product.category),
     reviewKeywords: product.reviewKeywords || ['適口性高', '願意回購', '資訊透明'],
-    guide: product.guide || createFeedingGuide(product),
+    guide,
     faqs: product.faqs || faqByCategory[product.category].map(([question, answer]) => ({ question, answer })),
   }
 }
@@ -724,6 +733,241 @@ const rawProducts = [
     image: REMOTE_PRODUCT_IMAGES.trainingCheeseBiscuits[0],
     usp: '一口大小的訓練獎勵，更適合重複回饋與外出攜帶',
     gallery: REMOTE_PRODUCT_IMAGES.trainingCheeseBiscuits,
+  },
+    {
+    id: 204,
+    slug: 'polar-brain-gut-balance-meat-paste',
+    name: 'Polar 情緒緩解 × 腸胃平衡肉泥條',
+    category: 'snacks',
+    petType: 'all',
+    price: 340,
+    originalPrice: 390,
+    specs: '犬貓通用 / 12 入（約 15.8g/條）',
+    rating: 4.9,
+    reviewCount: 128,
+    isBestseller: true,
+    isNew: true,
+    isBundle: false,
+    image: REMOTE_PRODUCT_IMAGES.pickyEatMeatPaste[0],
+    usp: '為緊張、易軟便、體重管理的毛孩，設計的高接受度、低熱量情緒＋腸胃補充。',
+    shortDescription: '以雞肉＋水解雞肝＋藻油為核心，結合 L-茶胺酸、L-色胺酸、菊糖與 MOS，每天一補充，幫助情緒穩定與腸胃雙向調節。',
+    gallery: REMOTE_PRODUCT_IMAGES.pickyEatMeatPaste,
+    variants: [
+      {
+        id: 'brain-gut-balance-12p',
+        label: '12 入',
+        price: 340,
+        description: '每日一條，約 4–5 天用量',
+      },
+      {
+        id: 'brain-gut-balance-24p',
+        label: '24 入',
+        price: 640,
+        description: '日常穩定保養、多寵家庭更划算',
+      },
+    ],
+    trustBadges: ['情緒舒緩', '腸胃平衡', '高適口', '低熱量'],
+    exclusions: [
+      '無柴魚粉',
+      '無人工香料',
+      '無人工色素',
+      '無化學防腐劑',
+      '無添加糖',
+    ],
+    sourceNote: '雞肉、水解雞肝、藻油與機能原料以穩定批次與來源追溯為前提設計。',
+    nutritionSectionTitle: '營養與機能亮點',
+    nutritionSectionIntro: '讓零食不只是好吃，還能成為日常情緒與腸胃管理的一部分。',
+    nutritionHighlights: [
+      {
+        title: '情緒緩解',
+        description: 'L-茶胺酸 + L-色胺酸，幫助緊張、焦慮型毛孩自然放鬆。',
+        value: '50mg L-茶胺酸 / 條',
+      },
+      {
+        title: '腸胃平衡',
+        description: '菊糖＋MOS＋南瓜＋蒟蒻＋卵磷脂，協助腸道菌相與排便穩定。',
+        value: '300mg 菊糖 / 條',
+      },
+      {
+        title: '低熱量高蛋白',
+        description: '每條約 15 大卡，適合體重管理、怕胖毛孩。',
+        value: '高蛋白、低脂肪',
+      },
+      {
+        title: '水解雞肝＋酵母萃取',
+        description: '味道自然、接受度高，不靠重調味掩蓋原味。',
+        value: '高適口、無重味',
+      },
+    ],
+    nutritionFacts: [
+      { label: '主要肉源', value: '去皮雞胸肉＋水解雞肝粉' },
+      { label: '適口性配方', value: '水解雞肝粉＋酵母萃取物' },
+      { label: '情緒配方', value: 'L-茶胺酸＋L-色胺酸＋藻油' },
+      { label: '腸胃配方', value: '菊糖＋MOS＋南瓜＋蒟蒻＋卵磷脂' },
+    ],
+    suitability: [
+      {
+        title: '情緒焦慮型毛孩',
+        issue: '怕吵、怕人、多貓衝突、換環境易緊張',
+        reason: 'L-茶胺酸＋L-色胺酸提供日常情緒穩定支持',
+        change: '讓壓力事件前後更放鬆、叫得少、咬得少',
+      },
+      {
+        title: '腸胃敏感、偶爾軟便',
+        issue: '換糧、換環境、換藥時容易軟便',
+        reason: '菊糖＋MOS＋南瓜＋蒟蒻雙重益生元與纖維',
+        change: '排便形態更穩定、嗅氣味更正常',
+      },
+      {
+        title: '體重管理、怕胖的犬貓',
+        issue: '想給零食又怕胖',
+        reason: '每條約 15 大卡，適合當成日常補充',
+        change: '在控制熱量同時維持互動與獎勵',
+      },
+      {
+        title: '高互動、外出訓練家庭',
+        issue: '想用小零食做獎勵，但又不希望只靠高熱量餅乾',
+        reason: '味道自然、入口溫和、適合分次餵食',
+        change: '把日常訓練、外出互動都做進去日常管理裡',
+      },
+    ],
+    storyBlocks: [
+      {
+        eyebrow: '情緒＋腸胃雙線路',
+        title: '把「毛孩子情緒穩定」與「肚子舒服」一起照顧到',
+        description:
+          '這條肉泥條不是只解決某一件事，而是把「情緒緩解」與「腸胃平衡」兩條主線一起寫進一個配方裡，讓你在每天餵一條的同時，把情緒與腸胃都一起穩下來。',
+        image: brainGutAxis,
+      },
+      {
+        eyebrow: '高適口不靠重調味',
+        title: '讓挑嘴毛孩也願意靠近，且不依賴過重香味',
+        description:
+          '透過水解雞肝粉濃縮鮮味、酵母萃取物提高自然鮮味，味道自然、不嗆，才是適合長期使用的日常獎勵。',
+        image: pickyEat,
+      },
+      {
+        eyebrow: '低熱量、高蛋白、有飽足感',
+        title: '在保持控制熱量的前提下，維持互動與獎勵質感',
+        description:
+          '每條約 15 大卡，適合日常獎勵，也可以做為主食的加碼，讓「給零食」不再等同於「變胖」。',
+        image: catDogPaste,
+      },
+      {
+        eyebrow: '日常可持續、長久使用',
+        title: '每天做得到，才是真正的配方價值',
+        description:
+          '不過度包裝、不誇張宣傳，把「情緒＋腸胃」兩件事，做成你每天都能穩定餵一條、不會有壓力的保養節奏。',
+        image: banner4,
+      },
+    ],
+    ingredients: [
+      {
+        name: '去皮雞胸肉',
+        benefit: '穩定高蛋白來源',
+        detail: '提供必需胺基酸，同時維持較低的脂肪含量，適合長期餵食。',
+      },
+      {
+        name: '水解雞肝粉（HCLP）',
+        benefit: '高適口、低過敏鮮味',
+        detail: '水解技術降低大分子蛋白，保留雞肝的鮮味精華，讓挑嘴毛孩更願意靠近。',
+      },
+      {
+        name: '藻油（DHA來源）',
+        benefit: '腸腦軸情緒支持',
+        detail: 'DHA 支持腸道受體與血清素受體，讓情緒基調更容易穩定下來。',
+      },
+      {
+        name: '菊糖＋MOS',
+        benefit: '腸道益生元雙重組合',
+        detail: '菊糖幫益菌增殖、MOS 帮抑制有害菌，雙向協助腸道健康。',
+      },
+      {
+        name: 'L-茶胺酸＋L-色胺酸',
+        benefit: '情緒舒緩前驅物',
+        detail: 'L-茶胺酸（50mg/條）＋L-色胺酸（60mg/條），協助血清素合成與自然放鬆。',
+      },
+      {
+        name: '南瓜＋蒟蒻＋卵磷脂',
+        benefit: '腸胃穩定與黏膜保護',
+        detail: '南瓜與蒟蒻提供膳食纖維，卵磷脂保護腸黏膜，協助排便與腸道健康。',
+      },
+    ],
+    guide: {
+      title: '食用建議與每日用量',
+      intro:
+        '適合做為日常獎勵或情緒＋腸胃保養的補充，控制在每日總熱量的一小部分即可。',
+      rowsTitle: '每日建議食用量（參考）',
+      rows: [
+        { weight: '2 - 5kg', amount: '每日 1 條' },
+        { weight: '5 - 10kg', amount: '每日 1 條' },
+        { weight: '10 - 20kg', amount: '每日 1 - 2 條' },
+        { weight: '20kg 以上', amount: '每日 1 - 2 條，依活動與體重調整' },
+      ],
+      storage:
+        '請密封存放於陰涼乾燥處，開封後建議盡量在 2 週內使用完畢。',
+      water:
+        '建議搭配充足飲水，尤其在換季、換環境或壓力期更需要補充水分。',
+    },
+    faqs: [
+      {
+        question: '這條可以天天餵嗎？',
+        answer: '可以，每天一條左右即可，屬於「日常保養型」點心，不是過度補充型。',
+      },
+      {
+        question: '挑嘴的貓或狗會吃嗎？',
+        answer:
+          '透過水解雞肝粉與酵母萃取物提升接受度，多數貓、狗在接受 2–3 次後，便會願意主動靠近。',
+      },
+      {
+        question: '對腸胃敏感毛孩有幫助嗎？',
+        answer:
+          '配方含菊糖、MOS、南瓜、蒟蒻、卵磷脂，幫助腸道菌相與排便穩定，對偶爾軟便、敏感型毛孩尤其適合。',
+      },
+      {
+        question: '緊張、焦慮的毛孩什麼時候餵最好？',
+        answer:
+          '可以在壓力事件（搬家、新寵、長途旅行、檢查、美容）前 1–2 小時給一條，幫助情緒放鬆，但無法取代獸醫診療。',
+      },
+      {
+        question: '有狗狗不接受這條，怎麼辦？',
+        answer:
+          '可先少量混合在主食或愛吃的罐頭中，降低第一次接受的門檻，再逐步減少混合量。',
+      },
+    ],
+    reviews: [
+      {
+        author: '小安',
+        meta: '3 歲米克斯 / 挑食＋緊張',
+        title: '終於找到他會主動吃、我也敢給的點心',
+        content:
+          '我們家是又挑食又怕人，之前試過好多零食都沒什麼反應。這條他聞一聞就願意舔，而且吃完後比較安靜、不會亂叫。',
+        rating: 5,
+      },
+      {
+        author: 'Momo 媽',
+        meta: '5 歲布偶貓 / 壓力大、常軟便',
+        title: '壓力期軟便有明顯改善',
+        content:
+          '搬家＋換環境那陣子，我每天給 1 條，搭配原本的主食，軟便頻率比之前好很多，也比較願意主動靠近我。',
+        rating: 4,
+      },
+      {
+        author: '阿布爸',
+        meta: '7 歲黃金獵犬 / 腸胃敏感',
+        title: '看起來像是普通零食，其實照顧得很細',
+        content:
+          '我會拿去當訓練獎勵，他接受度很高，而且沒有發現便便有明顯拉稀，代表腸胃負擔不算大，會很放心。',
+        rating: 5,
+      },
+    ],
+    recommendedSlugs: [
+      'polar-dog-gut-balance',
+      'polar-cat-ocean-sensitive',
+      'polar-picky-eat-meat-paste',
+    ],
+    slug: 'polar-brain-gut-balance-meat-paste',
+    reviewKeywords: ['高接受度', '情緒穩定', '腸胃舒服', '低熱量'],
   },
   {
     id: 301,

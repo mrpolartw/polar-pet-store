@@ -76,3 +76,23 @@
     color: var(--color-gray-dark);
     line-height: 1.5;
 }
+
+.about-section-alt {
+    background-color: var(--color-bg-white);
+}
+
+.about-section-values-header {
+    max-width: 1024px;
+    width: 100%;
+}
+
+.about-values-intro {
+    margin: 0 auto 48px;
+    text-align: center;
+}
+
+.about-values-intro .description-pro {
+    max-width: 720px;
+    margin: 0 auto;
+    color: var(--color-gray-dark);
+}

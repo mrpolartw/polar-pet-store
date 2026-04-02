@@ -30,7 +30,7 @@ const About = () => {
                 </div>
             </section>
 
-            <section className="about-story" style={{ backgroundColor: 'var(--color-bg-white)' }}>
+            <section className="about-story about-section-alt">
                 <div className="story-content">
                     <h2 className="headline-regular" style={{ marginBottom: '24px' }}>我們在做的事</h2>
                     <p className="description-pro" style={{ textAlign: 'left', maxWidth: '800px' }}>
@@ -40,10 +40,10 @@ const About = () => {
             </section>
 
             <section className="about-values">
-                <div style={{ maxWidth: '1024px', width: '100%' }}>
-                    <div className="story-content" style={{ margin: '0 auto 48px', textAlign: 'center' }}>
+                <div className="about-section-values-header">
+                    <div className="story-content about-values-intro">
                         <h2 className="headline-regular" style={{ marginBottom: '20px' }}>背後的人</h2>
-                        <p className="description-pro" style={{ maxWidth: '720px', margin: '0 auto', color: 'var(--color-gray-dark)' }}>
+                        <p className="description-pro">
                             我們不是站得很遠的品牌。是你養毛孩這條路上，願意一直陪你一起想的人。
                         </p>
                     </div>

@@ -29,9 +29,9 @@ const ProductSummary = ({
           type="button"
           className={`pdp-favorite-btn ${isFavorite ? 'active' : ''}`}
           onClick={onToggleFavorite}
-          aria-label={isFavorite ? '從收藏中移除' : '收藏這款'}
+          aria-label={isFavorite ? '取消收藏' : '加入收藏'}
         >
-          <Heart size={18} />
+          <Heart size={18} aria-hidden="true" />
         </button>
       </div>
 

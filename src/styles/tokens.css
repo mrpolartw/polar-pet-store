@@ -1,0 +1,78 @@
+:root {
+  /* === Brand Colors === */
+  --color-brand-blue: #003153;
+  --color-brand-coffee: #8B5A2B;
+  --color-brand-coffee-light: #C48C58;
+
+  /* === Surfaces === */
+  --color-bg-white: #FCF9F2;
+  --color-bg-light: #F5F1EA;
+  --color-bg-dark: #001A2C;
+  --color-bg-dark-card: #002640;
+
+  /* === Text === */
+  --color-text-dark: #1d1d1f;
+  --color-text-light: #FCF9F2;
+  --color-gray-dark: #8A7E71;
+  --color-gray-light: #E6DFD3;
+
+  /* === Utility === */
+  --color-shadow-light: rgba(139, 90, 43, 0.06);
+  --color-accent: #C48C58;
+  --color-accent-hover: #a67243;
+
+  /* === Typography === */
+  /* Display: 英文品牌標題、h1、hero heading */
+  --font-family-display: 'DM Serif Display', 'Noto Serif TC', 'PingFang TC',
+    'Microsoft JhengHei', Georgia, serif;
+
+  /* Base: 所有 UI 文字、body、button、input */
+  --font-family-base: 'DM Sans', 'PingFang TC', 'Microsoft JhengHei',
+    -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Mono: 訂單編號、發票條碼等 */
+  --font-family-mono: 'SF Mono', ui-monospace, 'Cascadia Code',
+    'Roboto Mono', Consolas, monospace;
+
+  /* === Border Radius === */
+  --pet-border-radius: 24px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* === Glassmorphism === */
+  --glass-bg: rgba(252, 249, 242, 0.65);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.6);
+  --nav-backdrop-filter: saturate(180%) blur(20px);
+
+  /* === Transitions === */
+  --transition-fast: 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* === Spacing === */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* === Content Widths === */
+  --content-narrow: 640px;
+  --content-default: 960px;
+  --content-wide: 1200px;
+
+  /* === Compatibility Alias === */
+  --color-nav-bg: var(--glass-bg);
+}
+
+/* Dark Mode 骨架（保留 light mode，完整 dark mode 後續再補） */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* 保留 light mode，dark mode 由後續任務實作 */
+  }
+}

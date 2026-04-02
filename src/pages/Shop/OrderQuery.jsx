@@ -116,7 +116,7 @@ function OrderResult({ order, searchMode }) {
         <div className="oq-main-col">
           <div className="oq-card">
             <h3 className="oq-card-title">
-              <Package size={20} style={{ marginRight: 8 }} />
+              <Package size={20} className="oq-card-icon" aria-hidden="true" />
               訂單進度
             </h3>
             <div className="oq-timeline">
@@ -139,7 +139,7 @@ function OrderResult({ order, searchMode }) {
 
           <div className="oq-card">
             <h3 className="oq-card-title">
-              <ShoppingBag size={20} style={{ marginRight: 8 }} />
+              <ShoppingBag size={20} className="oq-card-icon" aria-hidden="true" />
               訂購商品
             </h3>
             <div className="oq-items">
@@ -182,7 +182,7 @@ function OrderResult({ order, searchMode }) {
         <div className="oq-sidebar-col">
           <div className="oq-card">
             <h3 className="oq-card-title">
-              <Truck size={20} style={{ marginRight: 8 }} />
+              <Truck size={20} className="oq-card-icon" aria-hidden="true" />
               收件資訊
             </h3>
             <div className="oq-info-rows">
@@ -364,7 +364,7 @@ export default function OrderQuery() {
                 </span>
               ) : (
                 <>
-                  <Search size={18} style={{ marginRight: 8 }} />
+                  <Search size={18} className="oq-card-icon" aria-hidden="true" />
                   查詢訂單
                 </>
               )}

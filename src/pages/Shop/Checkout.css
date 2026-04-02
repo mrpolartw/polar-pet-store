@@ -1,0 +1,115 @@
+/* 未登入提示橫幅 */
+.checkout-guest-banner {
+  max-width: 860px;
+  margin: 0 auto 16px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkout-guest-banner__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #003153;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.checkout-guest-banner__text-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkout-guest-banner__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.checkout-guest-banner__sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #6e6e73;
+}
+
+.checkout-guest-banner__btn {
+  padding: 8px 18px;
+  background: #003153;
+  color: #fff;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* LINE 未綁定橫幅 */
+.checkout-line-banner {
+  max-width: 860px;
+  margin: 0 auto 16px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkout-line-banner__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #06c755;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.checkout-line-banner__text-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkout-line-banner__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d1d1f;
+}
+
+.checkout-line-banner__sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #6e6e73;
+}
+
+.checkout-line-banner__btn {
+  padding: 8px 18px;
+  background: #06c755;
+  color: #fff;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

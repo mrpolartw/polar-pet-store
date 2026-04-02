@@ -1,61 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-:root {
-  /* Warm Earth Tones & Pet-inspired Palette */
-  --color-bg-light: #fbf7f3;
-  /* 拿鐵燕麥白 (Latte/Oat) - 主背景色 */
-  --color-bg-white: #ffffff;
-  /* 純白 (White) - 提升卡片乾淨度與毛玻璃亮度 */
-  --color-text-light: #4a423d;
-  /* 深炭棕 (Charcoal Brown) - 柔和的深色文字 */
-
-  --color-bg-dark: #3a332f;
-  /* 深可可 (Cocoa) - 深色區塊主背 */
-  --color-bg-dark-card: #48403a;
-  /* 稍微提亮的深灰色 - 用於深底上的卡片 */
-  --color-text-dark: #fbf7f3;
-  /* 暖白柔和字 - 用於深底上的文字 */
-
-  --color-accent: #c48c58;
-  /* 暖砂橘/焦糖色 (Caramel) - 主要強調色，取代傳統科技藍與突兀的橘 */
-  --color-accent-hover: #a67243;
-
-  --color-nav-bg: rgba(251, 247, 243, 0.45);
-  /* 燕麥色毛玻璃底色，加強透明度 */
-  --color-nav-text: #4a423d;
-  /* 深可可字 */
-  --color-nav-text-hover: #c48c58;
-
-  --color-gray-dark: #8c8279;
-  /* 暖深灰 */
-  --color-gray-light: #e5dfd8;
-  /* 暖淡灰 */
-
-  --color-shadow-light: rgba(74, 66, 61, 0.08);
-  /* 帶有大地溫度的溫暖陰影 */
-
-  --color-brand-blue: #003153;
-  --color-brand-coffee: #c48c58;
-
-  /* Typography */
-  --font-family-base: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", "PingFang TC", "Microsoft JhengHei", sans-serif;
-  --font-family-display: "SF Pro Display", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", "PingFang TC", "Microsoft JhengHei", sans-serif;
-
-  /* Glassmorphism */
-  --nav-backdrop-filter: saturate(180%) blur(20px);
-  --glass-bg: rgba(251, 247, 243, 0.45);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.5);
-  --pet-border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
-  /* 肉球 / 有機圓潤造型 */
-
-  /* Animations */
-  --transition-fast: 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
-  --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@media (prefers-color-scheme: dark) {
-  /* 自動深色模式目前預設關閉，確保訪客能完整體驗淺色燕麥溫馨版 */
-}
+/* Token 定義已移至 src/styles/tokens.css */
 
 * {
   box-sizing: border-box;
@@ -88,47 +31,47 @@ ul {
   list-style: none;
 }
 
-/* ===== 全域 RWD 修正 ===== */
+/* ===== ?典? RWD 靽格迤 ===== */
 
-/* 防止任何元素超出螢幕寬度 */
+/* ?脫迫隞颱???頞?Ｗ?撖砍漲 */
 *, *::before, *::after {
   box-sizing: border-box;
 }
 
-/* 防止橫向捲軸 */
+/* ?脫迫璈怠??脰遘 */
 html, body {
   overflow-x: hidden;
   max-width: 100vw;
 }
 
-/* 所有圖片 RWD */
+/* ?????RWD */
 img {
   max-width: 100%;
   height: auto;
 }
 
-/* 全域按鈕 RWD 修正 */
+/* ?典??? RWD 靽格迤 */
 button, .btn-blue, .btn-outline, .btn-ghost {
   white-space: nowrap;
-  min-height: 44px;       /* iOS 最小點擊目標 */
+  min-height: 44px;       /* iOS ?撠??璅?*/
   touch-action: manipulation;
 }
 
-/* 防止 iOS 縮放輸入框 */
+/* ?脫迫 iOS 蝮格頛詨獢?*/
 input, select, textarea {
   font-size: 16px;
 }
 
 @media (max-width: 640px) {
 
-  /* 表格 RWD */
+  /* 銵冽 RWD */
   table {
     display: block;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* 長文字截斷 */
+  /* ?瑟?摮??*/
   .text-truncate-mobile {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -146,7 +89,7 @@ input, select, textarea {
   display: block;
 }
 
-/* 購物袋 Badge */
+/* 鞈潛鋡?Badge */
 .cart-badge {
   position: absolute;
   top: 0px;

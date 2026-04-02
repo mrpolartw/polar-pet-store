@@ -1,42 +1,11 @@
+/* Token 定義已移至 src/styles/tokens.css */
+
 /* =========================================
    Polar Pet Store - Global CSS (Warm & Premium Pet Style)
    ========================================= */
 
 /* -------------------------------------
- * 0. 核心變數設定 (Design Tokens)
- * ------------------------------------- */
-:root {
-  /* 品牌核心色 */
-  --color-brand-blue: #003153; 
-  --color-brand-coffee: #8B5A2B; 
-  --color-brand-coffee-light: #C68E58; 
-
-  /* 🌿 介面基礎色 (溫暖的大地/奶油色系) */
-  --color-bg-white: #FCF9F2; 
-  --color-bg-light: #F3EFE6; 
-  --color-bg-dark: #001A2C; 
-  --color-bg-dark-card: #002640; 
-  
-  /* 🐾 文字與灰階 */
-  --color-text-dark: #33241B; 
-  --color-text-light: #FCF9F2;
-  --color-gray-dark: #8A7E71; 
-  --color-gray-light: #E6DFD3; 
-  
-  /* 排版與其他設定 */
-  --font-family-display: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --transition-fast: 0.2s ease;
-  --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  --pet-border-radius: 32px; 
-  
-  /* 毛玻璃效果參數 */
-  --glass-bg: rgba(252, 249, 242, 0.65); 
-  --glass-border: 1px solid rgba(255, 255, 255, 0.6);
-  --color-shadow-light: rgba(139, 90, 43, 0.05); 
-}
-
-/* -------------------------------------
- * 1. 基礎重置 (Base & Reset)
+ * 1. ?箇??蔭 (Base & Reset)
  * ------------------------------------- */
 html, body {
   margin: 0;
@@ -44,6 +13,12 @@ html, body {
   width: 100%;
   overflow-x: hidden;
   background-color: var(--color-bg-white);
+}
+
+body {
+  font-family: var(--font-family-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .app-container {
@@ -55,7 +30,7 @@ html, body {
 }
 
 /* -------------------------------------
- * 2. 全域排版與元件 (Typography & Buttons)
+ * 2. ?典?????隞?(Typography & Buttons)
  * ------------------------------------- */
 .headline-pro {
   font-family: var(--font-family-display);
@@ -106,7 +81,7 @@ html, body {
   margin-bottom: 8px;
 }
 
-/* 按鈕系統 */
+/* ??蝟餌絞 */
 .btns-wrapper {
   display: flex;
   justify-content: center;
@@ -117,7 +92,7 @@ html, body {
 
 .btn-blue {
   background-color: var(--color-brand-blue);
-  color: #ffffff; 
+  color: #ffffff;
   border: none;
   border-radius: 980px;
   padding: 12px 22px;
@@ -153,7 +128,7 @@ html, body {
 }
 
 .btn-link::after {
-  content: ' 〉';
+  content: '→';
   display: inline-block;
   margin-left: 4px;
   font-size: 13px;
@@ -162,7 +137,7 @@ html, body {
 }
 
 /* -------------------------------------
- * 3. 導覽列與大型選單 (Navbar & Mega Menu)
+ * 3. 撠汗??憭批??詨 (Navbar & Mega Menu)
  * ------------------------------------- */
 .navbar-wrapper {
   position: fixed;
@@ -176,10 +151,10 @@ html, body {
   position: relative;
   width: 100%;
   height: 80px;
-  background: rgba(252, 249, 242, 0.85); 
+  background: rgba(252, 249, 242, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(139, 90, 43, 0.08); 
+  border-bottom: 1px solid rgba(139, 90, 43, 0.08);
   transition: background-color var(--transition-smooth);
   z-index: 10;
 }
@@ -286,14 +261,14 @@ html, body {
 }
 
 /* -------------------------------------
- * 4. 購物袋彈窗 (Cart Dropdown)
+ * 4. 鞈潛鋡?蝒?(Cart Dropdown)
  * ------------------------------------- */
 .cart-dropdown-overlay {
   position: absolute;
   top: 69px;
   right: -10px;
   width: 280px;
-  background-color: rgba(255, 253, 248, 0.98); 
+  background-color: rgba(255, 253, 248, 0.98);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 18px; 
@@ -305,7 +280,7 @@ html, body {
 
 .cart-status-text {
   font-size: 14px;
-  color: var(--color-gray-dark); /* 改用變數統一灰色 */
+  color: var(--color-gray-dark); /* ?寧霈蝯曹??啗 */
   text-align: center;
   margin-bottom: 20px;
 }
@@ -326,10 +301,10 @@ html, body {
   display: flex;
   align-items: center;
   padding: 12px 5px;
-  color: var(--color-brand-blue); /* ★ 同步導覽列顏色 */
+  color: var(--color-brand-blue); /* ???郊撠汗????*/
   text-decoration: none;
-  font-size: 14px; /* ★ 同步導覽列字級 */
-  font-weight: 600; /* ★ 同步導覽列字重 */
+  font-size: 14px; /* ???郊撠汗??蝝?*/
+  font-weight: 600; /* ???郊撠汗????*/
   transition: color var(--transition-fast);
 }
 
@@ -339,7 +314,7 @@ html, body {
 }
 
 .cart-menu-links li a:hover {
-  color: var(--color-brand-coffee); /* ★ Hover 同步為咖啡色 */
+  color: var(--color-brand-coffee); /* ??Hover ?郊?箏??∟ */
 }
 
 @keyframes appleFadeIn {
@@ -348,7 +323,7 @@ html, body {
 }
 
 /* -------------------------------------
- * 5. 行動版導覽與多層滑動選單 (Mobile Nav)
+ * 5. 銵???閬質?憭惜皛??詨 (Mobile Nav)
  * ------------------------------------- */
 .nav-actions {
   display: flex;
@@ -383,26 +358,26 @@ html, body {
   background-color: var(--color-bg-light); 
   padding: 140px 20px;
   display: flex;
-  flex-direction: column; /* ★ 關鍵：讓內容變成上下垂直排列 */
-  align-items: center;    /* ★ 關鍵：讓所有內容水平置中 */
+  flex-direction: column; /* ???嚗??批捆霈?銝???? */
+  align-items: center;    /* ???嚗???摰寞偌撟喟蔭銝?*/
   width: 100%;
   box-sizing: border-box;
 }
 /* -------------------------------------
- * 第 6 區塊：合作通路展示 (Marquee)
+ * 蝚?6 ?憛????楝撅內 (Marquee)
  * ------------------------------------- */
 .section-partners {
   padding: 100px 0;
   background-color: var(--color-bg-white); 
   overflow: hidden;
   width: 100%;
-  /* 👇 加入這三行，強制讓裡面的標題絕對置中 */
+  /* ?? ???銵?撘瑕霈ㄐ?Ｙ?璅?蝯?蝵桐葉 */
   display: flex;
   flex-direction: column;
   align-items: center; 
 }
 
-/* 👇 新增標題專用 class */
+/* ?? ?啣?璅?撠 class */
 .partners-header {
   text-align: center;
   margin-bottom: 50px;
@@ -410,7 +385,7 @@ html, body {
 }
 
 .marquee-container {
-  width: 100vw; /* 改用 100vw 確保突破所有容器，達到螢幕全滿版 */
+  width: 100vw; /* ?寧 100vw 蝣箔?蝒??捆?剁???Ｗ??冽遛??*/
   margin: 0 auto;
   overflow: hidden;
   position: relative;
@@ -464,10 +439,10 @@ html, body {
     margin: 0 20px; 
   }
 }
-/* ★ 新增：設定這段文字的置中與下方間距 */
+/* ???啣?嚗身摰挾???蔭銝剛?銝?? */
 .stats-header {
   text-align: center;
-  margin-bottom: 80px; /* 這裡控制文字和下方數字的距離，可依喜好調整 */
+  margin-bottom: 80px; /* ?ㄐ?批?????寞摮?頝嚗靘?憟質矽??*/
   max-width: 800px;
 }
 
@@ -593,7 +568,7 @@ html, body {
 }
 
 /* -------------------------------------
- * 6. 動畫、骨架屏 (Animations & Loaders)
+ * 6. ??爸?嗅? (Animations & Loaders)
  * ------------------------------------- */
 .img-wrapper {
   position: relative;
@@ -635,7 +610,7 @@ html, body {
   100% { background-position: -200% 0; }
 }
 
-/* 滑動顯示動畫 */
+/* 皛?憿舐內? */
 .reveal .text-container, .text-container {
   opacity: 0;
   transform: translateY(40px);
@@ -653,7 +628,7 @@ html, body {
 .reveal .img-wrapper { opacity: 1; transform: scale(1) translateY(0); }
 
 /* -------------------------------------
- * 7. 主頁內容區塊 (Page Sections)
+ * 7. 銝駁??批捆?憛?(Page Sections)
  * ------------------------------------- */
 
 /* Section 1: Hero Pro */
@@ -724,13 +699,9 @@ html, body {
 
 .stat-number {
   font-size: clamp(48px, 6vw, 72px);
-  font-weight: 700; 
+  font-weight: 700;
   letter-spacing: -0.01em;
-  background: linear-gradient(135deg, var(--color-brand-blue) 0%, var(--color-brand-coffee) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
+  color: var(--color-brand-coffee);
   margin-bottom: 8px;
 }
 
@@ -918,7 +889,7 @@ html, body {
 }
 
 /* -------------------------------------
- * 8. Footer 頁尾區塊
+ * 8. Footer ?偏?憛?
  * ------------------------------------- */
 .footer-global {
   background-color: var(--color-bg-light); 
@@ -1006,7 +977,7 @@ html, body {
 }
 
 /* -------------------------------------
- * 9. 響應式佈局 (Responsive Design)
+ * 9. ?踵?撘?撅 (Responsive Design)
  * ------------------------------------- */
 @media (min-width: 1025px) {
   .hamburger-btn { display: none !important; }
@@ -1049,7 +1020,7 @@ html, body {
   }
 }
 /* =========================================
-   購物袋頁面專屬樣式 (Cart Page - Apple Style)
+   鞈潛鋡??Ｗ?撅祆見撘?(Cart Page - Apple Style)
    ========================================= */
 
 .cart-page {
@@ -1068,7 +1039,7 @@ html, body {
   padding-top: 15vh;
 }
 
-/* 頂部標題與按鈕 */
+/* ?璅?????*/
 .cart-header {
   text-align: center;
   margin-bottom: 60px;
@@ -1093,10 +1064,10 @@ html, body {
   padding: 16px 24px;
   font-size: 17px;
   font-weight: 600;
-  border-radius: 12px; /* Apple 按鈕較常使用圓角矩形 */
+  border-radius: 12px; /* Apple ??頛虜雿輻???拙耦 */
 }
 
-/* 商品列表容器 */
+/* ???”摰孵 */
 .cart-items-container {
   display: flex;
   flex-direction: column;
@@ -1109,7 +1080,7 @@ html, body {
   gap: 40px;
 }
 
-/* 商品圖片 */
+/* ???? */
 .item-image-col {
   flex: 0 0 200px;
   display: flex;
@@ -1121,10 +1092,10 @@ html, body {
   width: 100%;
   border-radius: 16px;
   object-fit: cover;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.05); /* 給圖片加點溫和陰影 */
+  box-shadow: 0 4px 15px rgba(0,0,0,0.05); /* 蝯血???暺澈?敶?*/
 }
 
-/* 商品詳細資訊 */
+/* ??閰喟敦鞈? */
 .item-content-col {
   flex: 1;
   display: flex;
@@ -1201,7 +1172,7 @@ html, body {
   color: var(--color-brand-coffee);
 }
 
-/* 附加服務 (仿 AppleCare) */
+/* ???? (隞?AppleCare) */
 .item-extra-service {
   display: flex;
   align-items: center;
@@ -1222,7 +1193,7 @@ html, body {
   cursor: pointer;
 }
 
-/* 運送資訊 */
+/* ??閮?*/
 .item-fulfillment {
   display: flex;
   gap: 40px;
@@ -1252,7 +1223,7 @@ html, body {
   cursor: pointer;
 }
 
-/* --- 總結算區 --- */
+/* --- 蝮賜?蝞? --- */
 .cart-summary-section {
   display: flex;
   flex-direction: column;
@@ -1297,7 +1268,7 @@ html, body {
   display: none;
 }
 
-/* --- 響應式佈局 --- */
+/* --- ?踵?撘?撅 --- */
 @media (max-width: 834px) {
   .mobile-only { display: block; }
   
@@ -1343,7 +1314,7 @@ html, body {
   }
 }
 /* =========================================
-   結帳頁面專屬樣式 (Checkout Page - Advanced Taiwan E-com Standard)
+   蝯董?撠惇璅?? (Checkout Page - Advanced Taiwan E-com Standard)
    ========================================= */
 
 @media (max-width: 640px) {
@@ -1390,7 +1361,7 @@ html, body {
   align-items: flex-start;
 }
 
-/* --- 左側表單主區塊 --- */
+/* --- 撌血銵典銝餃?憛?--- */
 .checkout-main {
   flex: 1;
   display: flex;
@@ -1411,12 +1382,12 @@ html, body {
 .section-title {
   font-size: 22px;
   font-weight: 600;
-  color: #1d1d1f !important; /* 強制深黑色，確保可見 */
+  color: #1d1d1f !important; /* 撘瑕瘛梢??莎?蝣箔??航? */
   margin-bottom: 20px;
   letter-spacing: -0.01em;
 }
 
-/* 選項卡片設計 (高對比度純白底) */
+/* ?賊??∠?閮剛? (擃?瘥漲蝝摨? */
 .option-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1435,7 +1406,7 @@ html, body {
   justify-content: center;
   padding: 24px 16px;
   border-radius: 16px;
-  background: #ffffff !important; /* 強制純白背景 */
+  background: #ffffff !important; /* 撘瑕蝝? */
   border: 2px solid #E6DFD3 !important; 
   box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   cursor: pointer;
@@ -1444,16 +1415,16 @@ html, body {
 }
 
 .option-card:hover {
-  border-color: #C68E58 !important; /* 懸停變為品牌淺咖啡 */
+  border-color: #C68E58 !important; /* ?詨?霈??瘛箏???*/
   transform: translateY(-2px);
 }
 
 .option-card.active {
-  border-color: #003153 !important; /* 選取時為品牌深藍 */
-  background: #F8FBFF !important; /* 極淡的藍色底 */
+  border-color: #003153 !important; /* ?詨????瘛梯? */
+  background: #F8FBFF !important; /* 璆菜楚???脣? */
 }
 
-/* 確保 Icon 與文字的顏色不會消失 */
+/* 蝣箔? Icon ??摮?憿銝?瘨仃 */
 .option-icon {
   color: #555555 !important;
   margin-bottom: 12px;
@@ -1488,7 +1459,7 @@ html, body {
   color: #003153 !important;
 }
 
-/* --- 仿 Apple / Stripe 高質感輸入框 --- */
+/* --- 隞?Apple / Stripe 擃釭?撓?交? --- */
 .form-group {
   margin-bottom: 24px;
 }
@@ -1533,7 +1504,7 @@ html, body {
   box-shadow: 0 0 0 4px rgba(0, 49, 83, 0.1);
 }
 
-/* 帶有 Icon 的輸入框 */
+/* 撣嗆? Icon ?撓?交? */
 .input-with-icon {
   position: relative;
   display: flex;
@@ -1550,11 +1521,11 @@ html, body {
   padding-left: 48px;
 }
 
-/* 修正下拉選單箭頭 (移除腳印) */
+/* 靽格迤銝??詨蝞剝 (蝘駁?喳) */
 .select-input {
   appearance: none;
   cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23555555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+  background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM1NTU1NTUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWxpbmUgcG9pbnRzPSI2IDkgMTIgMTUgMTggOSIvPjwvc3ZnPg==") !important;
   background-repeat: no-repeat !important;
   background-position: right 16px center !important;
   padding-right: 48px;
@@ -1566,7 +1537,7 @@ html, body {
   line-height: 1.5;
 }
 
-/* --- PayUni 免跳轉信用卡表單區塊 --- */
+/* --- PayUni ?歲頧縑?典銵典?憛?--- */
 .seamless-payment-box {
   background: #f9f9fb;
   border: 1px solid #e5e5ea;
@@ -1592,7 +1563,7 @@ html, body {
   font-weight: 500;
 }
 
-/* 單選/複選框設計 */
+/* ?桅/銴獢身閮?*/
 .checkbox-wrapper {
   display: flex;
   align-items: center;
@@ -1635,7 +1606,7 @@ html, body {
   height: 18px;
 }
 
-/* 超商選擇區塊 */
+/* 頞??豢??憛?*/
 .store-select-box {
   padding: 32px 24px;
   background: #ffffff;
@@ -1650,7 +1621,7 @@ html, body {
   font-size: 15px;
 }
 
-/* 動畫 */
+/* ? */
 .slide-down {
   animation: slideDown 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
@@ -1659,7 +1630,7 @@ html, body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- 右側訂單摘要 (Sticky) --- */
+/* --- ?喳閮?? (Sticky) --- */
 .checkout-sidebar {
   width: 360px;
   flex-shrink: 0;
@@ -1735,7 +1706,7 @@ html, body {
   color: #1d1d1f;
 }
 
-/* 優惠碼區塊 */
+/* ?芣?蝣澆?憛?*/
 .promo-input-group {
   display: flex;
   align-items: center;
@@ -1780,7 +1751,7 @@ html, body {
   cursor: not-allowed;
 }
 
-/* 計算區塊 */
+/* 閮??憛?*/
 .summary-calc {
   display: flex;
   flex-direction: column;
@@ -1837,7 +1808,7 @@ html, body {
   box-shadow: 0 4px 15px rgba(0, 49, 83, 0.2);
 }
 
-/* --- 響應式佈局 --- */
+/* --- ?踵?撘?撅 --- */
 @media (max-width: 992px) {
   .checkout-layout {
     flex-direction: column;
@@ -1858,9 +1829,9 @@ html, body {
     grid-template-columns: 1fr;
   }
   .features-grid {
-    grid-template-columns: 1fr !important; /* 強制變成上下排列 (單欄) */
-    gap: 20px !important;                  /* 縮小卡片之間的間距 */
-    padding: 0 10px;                       /* 避免卡片太貼齊螢幕邊緣 */
+    grid-template-columns: 1fr !important; /* 撘瑕霈?銝??? (?格?) */
+    gap: 20px !important;                  /* 蝮桀??∠?銋???頝?*/
+    padding: 0 10px;                       /* ?踹??∠?憭芾票朣撟?蝺?*/
   }
   .stats-header h2.headline-regular {
     font-size: 28px !important;
