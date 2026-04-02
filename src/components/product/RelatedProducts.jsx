@@ -16,7 +16,13 @@ const RelatedProducts = ({ products, onAddToCart }) => (
       {products.map((product) => (
         <article key={product.slug} className="pdp-related-card">
           <Link to={`/products/${product.slug}`} className="pdp-related-image-link">
-            <ImageWithFallback src={product.image} alt={product.name} className="pdp-related-image" />
+            <ImageWithFallback
+              src={product.image}
+              alt={product.name}
+              className="pdp-related-image"
+              loading="lazy"
+              decoding="async"
+            />
           </Link>
           <div className="pdp-related-body">
             <Link to={`/products/${product.slug}`} className="pdp-related-title">{product.name}</Link>

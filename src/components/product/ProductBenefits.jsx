@@ -6,7 +6,13 @@ const ProductBenefits = ({ blocks }) => (
     {blocks.map((block, index) => (
       <article key={block.title} className={`pdp-story-card ${index % 2 === 1 ? 'reverse' : ''}`}>
         <div className="pdp-story-media">
-          <ImageWithFallback src={block.image} alt={block.title} className="pdp-story-image" />
+          <ImageWithFallback
+            src={block.image}
+            alt={block.title}
+            className="pdp-story-image"
+            loading="lazy"
+            decoding="async"
+          />
         </div>
         <div className="pdp-story-copy">
           <div className="pdp-section-kicker">{block.eyebrow}</div>

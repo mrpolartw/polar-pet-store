@@ -780,6 +780,7 @@
   border: 1px solid rgba(0, 49, 83, 0.08);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
   backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
   overflow: hidden;
 }
 

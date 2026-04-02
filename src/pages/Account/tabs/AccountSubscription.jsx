@@ -339,6 +339,8 @@ export default function AccountSubscription() {
                 <img
                   src={sub.productImage}
                   alt={sub.productName}
+                  loading="lazy"
+                  decoding="async"
                   style={{
                     width: 80,
                     height: 80,

@@ -64,7 +64,12 @@ const Cart = () => {
             {cartItems.map((item) => (
               <div className="cart-item" key={item.id}>
                 <div className="item-image-col">
-                  <img src={item.image} alt={item.name} />
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    loading="lazy"
+                    decoding="async"
+                  />
                 </div>
                 <div className="item-content-col">
                   <div className="item-main-info">

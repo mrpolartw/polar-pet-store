@@ -9,7 +9,16 @@ const FALLBACK_IMAGE =
         '</svg>'
     );
 
-const ImageWithFallback = ({ src, alt, className }) => {
+const ImageWithFallback = ({
+    src,
+    alt,
+    className = '',
+    loading = 'lazy',
+    decoding = 'async',
+    fetchPriority = 'auto',
+    style,
+    ...imgProps
+}) => {
     const [loadedSrc, setLoadedSrc] = useState('');
 
     const handleError = (event) => {
@@ -31,9 +40,17 @@ const ImageWithFallback = ({ src, alt, className }) => {
                 key={src}
                 src={src}
                 alt={alt}
+                loading={loading}
+                decoding={decoding}
+                fetchPriority={fetchPriority}
                 onError={handleError}
                 onLoad={handleLoad}
-                style={{ opacity: isLoading ? 0 : 1, transition: 'opacity 0.5s ease-in-out' }}
+                style={{
+                    opacity: isLoading ? 0 : 1,
+                    transition: 'opacity 0.5s ease-in-out',
+                    ...style,
+                }}
+                {...imgProps}
             />
             {isLoading && <div className="skeleton-loader"></div>}
         </div>

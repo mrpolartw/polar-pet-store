@@ -219,7 +219,7 @@ function BlogCard({ post, index }) {
       <Link to={`/blog/${post.slug}`} className="blog-card">
         <div className="blog-card__cover">
           {post.coverImage
-            ? <img src={post.coverImage} alt={post.title} />
+            ? <img src={post.coverImage} alt={post.title} loading="lazy" decoding="async" />
             : <span className="blog-card__cover-emoji">{post.emoji}</span>
           }
         </div>

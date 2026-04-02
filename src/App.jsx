@@ -104,7 +104,6 @@ function AppContent() {
     location.pathname === '/polar-pet-store/' ||
     location.pathname === '/polar-pet-store';
 
-  // 判斷是否為精確指標裝置（滑鼠），觸控裝置返回 false
   const isPointerFine = typeof window !== 'undefined'
     && window.matchMedia('(pointer: fine)').matches;
 
@@ -393,6 +392,8 @@ function AppContent() {
                                   <img
                                     src={item.image}
                                     alt={item.name}
+                                    loading="lazy"
+                                    decoding="async"
                                     style={{
                                       width: '100%',
                                       height: '100%',

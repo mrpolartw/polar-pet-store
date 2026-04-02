@@ -145,7 +145,13 @@ function OrderResult({ order, searchMode }) {
             <div className="oq-items">
               {order.items.map((item) => (
                 <div key={item.id} className="oq-item-row">
-                  <img src={item.image} alt={item.name} className="oq-item-img" />
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="oq-item-img"
+                    loading="lazy"
+                    decoding="async"
+                  />
                   <div className="oq-item-info">
                     <p className="oq-item-name">{item.name}</p>
                     <p className="oq-item-specs">{item.specs}</p>

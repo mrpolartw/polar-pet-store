@@ -338,7 +338,13 @@ export default function ProductRegister() {
 
         {/* ── 商品資訊 ── */}
         <div className="pr-product-card">
-          <img src={product.image} alt={product.name} className="pr-product-img" />
+          <img
+            src={product.image}
+            alt={product.name}
+            className="pr-product-img"
+            loading="lazy"
+            decoding="async"
+          />
           <div className="pr-product-info">
             <div className="pr-product-badges">
               <span className="pr-badge verified"><CheckCircle2 size={11} /> 正品驗證</span>

@@ -89,6 +89,8 @@ export default function AccountFavorites() {
                 <img
                   src={item.img}
                   alt={item.name}
+                  loading="lazy"
+                  decoding="async"
                   style={{ width: '100%', aspectRatio: '1', objectFit: 'cover' }}
                 />
                 <button

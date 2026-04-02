@@ -75,7 +75,13 @@ function ProductCard({ product, viewMode, onAddToCart }) {
       <div className="prod-card-list">
         <Link to={`/products/${product.slug}`} className="prod-card-list-img-link">
           <div className="prod-card-list-img-wrap">
-            <img src={product.image} alt={product.name} className="prod-card-list-img" />
+            <img
+              src={product.image}
+              alt={product.name}
+              className="prod-card-list-img"
+              loading="lazy"
+              decoding="async"
+            />
             {discountPct && <span className="prod-badge discount">-{discountPct}%</span>}
           </div>
         </Link>
@@ -127,7 +133,13 @@ function ProductCard({ product, viewMode, onAddToCart }) {
     <div className="prod-card">
       <Link to={`/products/${product.slug}`} className="prod-card-img-link">
         <div className="prod-card-img-wrap">
-          <img src={product.image} alt={product.name} className="prod-card-img" />
+          <img
+            src={product.image}
+            alt={product.name}
+            className="prod-card-img"
+            loading="lazy"
+            decoding="async"
+          />
           <div className="prod-card-badges">
             {product.isBestseller && <span className="prod-badge bestseller">熱銷</span>}
             {product.isNew && <span className="prod-badge new-item">新品</span>}

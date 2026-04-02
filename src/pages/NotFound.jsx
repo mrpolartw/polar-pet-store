@@ -95,6 +95,8 @@ export default function NotFound() {
                     src={product.image}
                     alt={product.name}
                     className="nf-product-image"
+                    loading="lazy"
+                    decoding="async"
                   />
                 </div>
                 <div className="nf-product-body">

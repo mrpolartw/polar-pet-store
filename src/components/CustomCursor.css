@@ -1,4 +1,3 @@
-/* 全域強制隱藏預設滑鼠，包含所有自訂卡片與按鈕的 pointer */
 * {
     cursor: none !important;
 }

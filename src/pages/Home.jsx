@@ -194,6 +194,8 @@ const Home = () => {
                     src={jointCareProductSvg}
                     alt="犬貓關節保健"
                     className="std-image-wrapper"
+                    loading="lazy"
+                    decoding="async"
                 />
             </section>
 
@@ -222,6 +224,8 @@ const Home = () => {
                         src={catDogPasteSvg}
                         alt="原肉手工點心"
                         className="grid-image-wrapper"
+                        loading="lazy"
+                        decoding="async"
                     />
                 </div>
 
@@ -244,6 +248,8 @@ const Home = () => {
                         src={brainGutAxisSvg}
                         alt="特級視力寶"
                         className="grid-image-wrapper"
+                        loading="lazy"
+                        decoding="async"
                     />
                 </div>
             </section>

@@ -215,15 +215,26 @@ body {
   background-color: var(--color-brand-blue);
   color: var(--color-bg-white);
   overflow: hidden;
-  max-height: 0;
   opacity: 0;
-  transition: max-height var(--transition-smooth), opacity 0.3s ease;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast),
+    visibility 0s linear var(--transition-fast);
   box-shadow: 0 15px 40px rgba(0, 49, 83, 0.15); 
 }
 
 .mega-menu.show {
-  max-height: 400px;
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+  transition:
+    opacity var(--transition-fast),
+    transform var(--transition-fast),
+    visibility 0s linear 0s;
 }
 
 .mega-menu-content {
@@ -270,6 +281,7 @@ body {
   width: 280px;
   background-color: rgba(255, 253, 248, 0.98);
   backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 18px; 
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
@@ -1090,6 +1102,8 @@ body {
 
 .item-image-col img {
   width: 100%;
+  aspect-ratio: 1 / 1;
+  display: block;
   border-radius: 16px;
   object-fit: cover;
   box-shadow: 0 4px 15px rgba(0,0,0,0.05); /* 蝯血???暺澈?敶?*/
@@ -1671,9 +1685,11 @@ body {
 .preview-item img {
   width: 64px;
   height: 64px;
+  aspect-ratio: 1 / 1;
+  display: block;
   border-radius: 8px;
   object-fit: cover;
-  border: 1px solid #E6DFD3;
+  border: 1px solid var(--color-gray-light);
 }
 
 .preview-info {

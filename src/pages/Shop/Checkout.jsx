@@ -764,7 +764,12 @@ const Checkout = () => {
               ) : (
                 cartItems.map((item) => (
                   <div key={item.id} className="preview-item">
-                    <img src={item.image} alt={item.name} />
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      loading="lazy"
+                      decoding="async"
+                    />
                     <div className="preview-info">
                       <h4>{item.name}</h4>
                       <p>{item.specs}</p>

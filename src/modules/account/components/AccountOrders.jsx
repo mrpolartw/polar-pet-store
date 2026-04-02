@@ -143,6 +143,8 @@ export default function AccountOrders() {
                     src={item.img}
                     alt={item.name}
                     className="order-item-img"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ))}
               </div>
