@@ -1,6 +1,6 @@
 # MrPolarStore 前台知識庫
 
-> React 19 + Medusa SDK 前端開發參考手冊
+> React 19 + WooCommerce API 前端開發參考手冊
 
 ---
 
@@ -10,17 +10,18 @@
 polar-pet-store/
 ├── src/
 │   ├── lib/
-│   │   └── medusa.js               # SDK 初始化（唯一的 sdk 實例出口）
+│   │   ├── woocommerce.js          # WooCommerce / MrPolar API 客戶端（主要使用）
+│   │   └── medusa.js               # 已廢棄 stub，保留避免未遷移 import 出錯
 │   ├── context/
 │   │   ├── AuthContext.jsx         # 全域登入狀態（user, login, logout, updateProfile...）
 │   │   ├── CartContext.jsx         # 全域購物車（cartItems, addToCart, removeFromCart...）
 │   │   ├── authUtils.js            # getMemberTier(points) — 純函式
 │   │   ├── useAuth.js              # useContext(AuthContext) hook
 │   │   └── useCart.js              # useContext(CartContext) hook
-│   ├── api/                        # 所有 Medusa SDK 呼叫封裝（pages/components 禁止直接 import sdk）
+│   ├── api/                        # API 呼叫封裝（pages/components 禁止直接 import woocommerce）
 │   │   ├── products.js             # listProducts() / retrieveProduct()
 │   │   ├── orders.js               # listMyOrders() / retrieveOrder()
-│   │   ├── cart.js                 # （保留，CartContext 直接使用 sdk）
+│   │   ├── cart.js
 │   │   └── index.js                # re-export 全部 API 函式
 │   ├── hooks/
 │   │   ├── useApi.js               # 通用 data fetching hook
@@ -40,7 +41,7 @@ polar-pet-store/
 │   │   └── Shop/
 │   │       ├── Products.jsx        # 商品列表
 │   │       ├── Cart.jsx            # 購物車
-│   │       ├── Checkout.jsx        # 結帳（完整 Medusa checkout flow）
+│   │       ├── Checkout.jsx        # 結帳
 │   │       ├── OrderSuccess.jsx    # 訂單成功頁
 │   │       ├── OrderQuery.jsx      # 訂單查詢（無需登入）
 │   │       └── ProductRegister.jsx # 產品保固登錄
@@ -49,14 +50,12 @@ polar-pet-store/
 │   │   ├── ExpandableCard.jsx
 │   │   ├── CustomCursor.jsx
 │   │   └── common/
-│   │       ├── Counter.jsx
-│   │       └── ImageWithFallback.jsx
 │   ├── App.jsx                     # 路由定義
 │   └── main.jsx                    # AuthProvider + CartProvider 最外層包裹
 ├── public/
 ├── cloudbuild.yaml                 # GCP Cloud Build 設定
 ├── Dockerfile
-└── .env.template
+└── .env.example
 ```
 
 ---
@@ -70,59 +69,48 @@ pages/      → 路由頁面，只組合 components，不含業務邏輯
 components/ → 純 UI，props in / events out
 context/    → 全域狀態（含 API 呼叫）
 hooks/      → 可複用邏輯（含 API 呼叫）
-api/        → 所有 Medusa SDK 呼叫封裝在此
+api/        → 所有 API 呼叫封裝在此
 utils/      → 純函式，無副作用
 ```
 
-**禁止：** `pages/` 與 `components/` 直接 `import { sdk } from '../../lib/medusa'`
+**禁止：** `pages/` 與 `components/` 直接 `import { auth, mrpolar } from '../../lib/woocommerce'`
 **正確：** 透過 `api/` 函式或 `context/` hook 使用
 
 ---
 
-## Medusa SDK 使用方式
+## WooCommerce API 使用方式
 
-### 初始化（`src/lib/medusa.js`）
+### 初始化（`src/lib/woocommerce.js`）
 
 ```javascript
-import Medusa from "@medusajs/js-sdk"
-
-export const sdk = new Medusa({
-  baseUrl: import.meta.env.VITE_MEDUSA_API_URL,
-  publishableKey: import.meta.env.VITE_MEDUSA_API_KEY,
-})
+const WC_URL = import.meta.env.VITE_WC_URL || 'http://localhost:8080'
 ```
 
 ### 常用 API 呼叫範例
 
 ```javascript
+import { auth, mrpolar, store } from '../lib/woocommerce'
+
 // ── 認證 ──
-await sdk.auth.login("customer", "emailpass", { email, password })
-await sdk.auth.logout()
-await sdk.auth.getToken("customer", "emailpass", { email, password })
-await sdk.auth.updateProvider("customer", "emailpass", { email, password })
+await auth.login(email, password)     // POST /wp-json/jwt-auth/v1/token
+await auth.validate()                 // POST /wp-json/jwt-auth/v1/token/validate
 
-// ── 顧客 ──
-await sdk.store.customer.retrieve()
-await sdk.store.customer.update({ first_name, phone, metadata })
+// ── 會員 ──
+await mrpolar.register(userData)      // POST /wp-json/mrpolar/v1/register
+await mrpolar.getMe()                 // GET  /wp-json/mrpolar/v1/me
+await mrpolar.updateMe(data)          // PATCH /wp-json/mrpolar/v1/me
+await mrpolar.changePassword(old, new) // POST /wp-json/mrpolar/v1/change-password
+await mrpolar.updatePets(pets)        // POST /wp-json/mrpolar/v1/customer/pets
 
-// ── 購物車 ──
-await sdk.store.cart.create({})
-await sdk.store.cart.retrieve(cartId)
-await sdk.store.cart.update(cartId, { email, shipping_address, metadata })
-await sdk.store.cart.createLineItem(cartId, { variant_id, quantity })
-await sdk.store.cart.updateLineItem(cartId, lineItemId, { quantity })
-await sdk.store.cart.deleteLineItem(cartId, lineItemId)
-await sdk.store.cart.listShippingOptions(cartId)
-await sdk.store.cart.addShippingMethod(cartId, { option_id })
-await sdk.store.cart.complete(cartId)  // 回傳 { type: "order", order: {...} }
+// ── 地址 ──
+await mrpolar.getAddresses()          // GET    /wp-json/mrpolar/v1/customer/addresses
+await mrpolar.addAddress(addr)        // POST   /wp-json/mrpolar/v1/customer/addresses
+await mrpolar.updateAddress(id, addr) // PUT    /wp-json/mrpolar/v1/customer/addresses/:id
+await mrpolar.deleteAddress(id)       // DELETE /wp-json/mrpolar/v1/customer/addresses/:id
 
 // ── 商品 ──
-await sdk.store.product.list({ q, category_id, limit, offset })
-await sdk.store.product.retrieve(id)
-
-// ── 訂單 ──
-await sdk.store.order.list({ limit, offset })
-await sdk.store.order.retrieve(id)
+await store.products.list(params)     // GET /wp-json/wc/v3/products
+await store.products.get(id)          // GET /wp-json/wc/v3/products/:id
 ```
 
 ---
@@ -135,7 +123,7 @@ await sdk.store.order.retrieve(id)
 import { useAuth } from '../../context/useAuth'
 
 const {
-  user,           // { id, name, email, phone, points, pets, tier, metadata }
+  user,           // { id, name, email, phone, points, pets, tier }
   isLoggedIn,     // boolean
   isLoading,      // boolean
   authError,      // string | null
@@ -154,9 +142,7 @@ const {
 import { useCart } from '../../context/useCart'
 
 const {
-  cartItems,        // [{ id, variantId, productId, name, specs, price, quantity, image }]
-  medusaCart,       // Medusa 原始購物車物件（含 id）
-  cartId,           // string | null
+  cartItems,        // [{ id, productId, name, price, quantity, image }]
   isCartLoading,    // boolean
   addToCart,        // async (item) => void
   removeFromCart,   // async (id) => void
@@ -177,20 +163,21 @@ import { listMyOrders } from '../../api'
 
 const { data, isLoading, error, refetch } = useApi(
   () => listMyOrders({ limit: 10 }),
-  []   // deps array，同 useEffect
+  []
 )
 ```
 
 ---
 
-## LocalStorage 規範
+## LocalStorage / SessionStorage 規範
 
-| Key | 型別 | 說明 |
-|---|---|---|
-| `polar_logged_in` | `"true"` / 不存在 | 登入狀態標記（非 JWT，只是 boolean） |
-| `polar_cart_id` | string | Guest 購物車 ID |
+| Key | Storage | 型別 | 說明 |
+|---|---|---|---|
+| `polar_logged_in` | localStorage | `"true"` / 不存在 | 登入狀態標記 |
+| `polar_cart_id` | localStorage | string | 購物車 ID |
+| `polar_wc_token` | sessionStorage | string | JWT token（關閉分頁即清除）|
 
-**安全規則：** 不在 localStorage 存放 JWT、Token 或個人資料。
+**安全規則：** JWT token 存 sessionStorage，不存 localStorage。不在任何 storage 存放個人資料。
 
 ---
 
@@ -222,58 +209,6 @@ export const ORDER_STATUS_LABELS = {
 
 ---
 
-## Checkout 完整流程
-
-```
-1. cart.update(cartId, { email, shipping_address, metadata: { buyer_phone, payment_method } })
-          ↓
-2. cart.addShippingMethod(cartId, { option_id: selectedShippingOptionId })
-          ↓
-3. cart.complete(cartId)
-          ↓
-4. result.type === "order" → clearCart() → navigate("/order-success?id=<orderId>")
-```
-
----
-
-## 訂單查詢 API（公開端點）
-
-```javascript
-// 無需 SDK，直接 fetch（不需 auth）
-const res = await fetch(
-  `${VITE_MEDUSA_API_URL}/store/orders/query?order_id=PL-1`,
-  { headers: { 'x-publishable-api-key': VITE_MEDUSA_API_KEY } }
-)
-const { orders } = await res.json()
-// orders[0].id = "PL-1"
-// orders[0].status = "ordered" | "processing" | "shipped" | "delivered" | "cancelled"
-// orders[0].timeline = [{ label, time, done }]
-// orders[0].items = [{ id, name, specs, quantity, price, image }]
-```
-
----
-
-## 顧客物件格式（前台）
-
-`AuthContext` 的 `mapMedusaCustomer()` 將後端資料轉換為：
-
-```javascript
-{
-  id:        "cus_xxx",
-  name:      "王小明",          // first_name + last_name
-  email:     "xxx@example.com",
-  phone:     "0912345678",
-  gender:    "male",           // 存在 metadata.gender
-  birthday:  "1990-01-01",     // 存在 metadata.birthday
-  points:    1500,             // metadata.points
-  tier:      "Polar Silver",   // getMemberTier(points) 換算
-  pets:      [...],            // metadata.pets
-  metadata:  { ... },         // 原始 metadata
-}
-```
-
----
-
 ## 命名規範
 
 | 類型 | 規則 | 範例 |
@@ -289,7 +224,7 @@ const { orders } = await res.json()
 ## ESLint 規則注意事項
 
 - 未使用的變數若需保留（僅供 side-effect），以底線前綴：`_unusedVar`
-- `useAuth()` / `useCart()` 在 Provider 內呼叫時，只取需要的值（避免 `isLoggedIn assigned but never used`）
+- `useAuth()` / `useCart()` 在 Provider 內呼叫時，只取需要的值
 
 ---
 

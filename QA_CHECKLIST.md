@@ -8,7 +8,7 @@
 
 ### 環境設定
 - [ ] `VITE_USE_MOCK=false` 已設定
-- [ ] `VITE_API_BASE_URL` 已指向正式 API 網址
+- [ ] `VITE_WC_URL` 已指向正式 WordPress 網址
 - [ ] `VITE_GA_ID` 已設定正確的 GA4 追蹤 ID
 - [ ] `npm run pre-launch` 全部通過，無 error
 
