@@ -1,28 +1,16 @@
-import { sdk } from '../lib/medusa'
+import { store } from '../lib/woocommerce'
 
 export async function listProducts({ category_id, q, limit = 12, offset = 0 } = {}) {
-  let region_id = undefined;
-  try {
-    const { regions } = await sdk.store.region.list({ limit: 1 });
-    if (regions?.length > 0) region_id = regions[0].id;
-  } catch(e) { console.warn('Failed to fetch regions', e); }
+  const params = { per_page: limit, page: Math.floor(offset / limit) + 1 }
+  if (category_id) params.category = category_id
+  if (q) params.search = q
 
-  const params = { limit, offset, region_id }
-  if (category_id) params.category_id = [category_id]
-  if (q) params.q = q
-
-  const { products, count } = await sdk.store.product.list(params)
-  return { products, count }
+  const products = await store.products.list(params)
+  return { products: products || [], count: products?.length || 0 }
 }
 
-export async function retrieveProduct(handle) {
-  let region_id = undefined;
-  try {
-    const { regions } = await sdk.store.region.list({ limit: 1 });
-    if (regions?.length > 0) region_id = regions[0].id;
-  } catch(e) { console.warn('Failed to fetch regions', e); }
-
-  const { products } = await sdk.store.product.list({ handle, region_id })
+export async function retrieveProduct(slug) {
+  const products = await store.products.list({ slug })
   if (!products?.length) throw new Error('Product not found')
   return products[0]
 }

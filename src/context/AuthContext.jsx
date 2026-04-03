@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useCallback } from 'react'
-import { sdk } from '../lib/medusa'
+import { auth, mrpolar, setToken, getToken, clearToken } from '../lib/woocommerce'
 
 const AuthContext = createContext(null)
 
@@ -9,48 +9,55 @@ export const AuthProvider = ({ children }) => {
   const [authError, setAuthError] = useState('')
 
   // ──────────────────────────────────────────────
-  // 工具：將 Medusa Customer 物件轉換成前台格式
+  // 工具：將 WooCommerce Customer 物件轉換成前台格式
   // ──────────────────────────────────────────────
-  const mapMedusaCustomer = (c) => ({
+  const mapWcCustomer = (c) => ({
     id: c.id,
-    name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.email.split('@')[0],
+    name: c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.username,
     firstName: c.first_name || '',
     lastName: c.last_name || '',
     email: c.email,
     phone: c.phone || '',
-    avatar: null,
-    memberSince: c.created_at?.split('T')[0] || '',
-    points: c.metadata?.points || 0,
-    pets: c.metadata?.pets || [],
-    metadata: c.metadata || {},
+    avatar: c.avatar || null,
+    memberSince: c.member_since?.split('T')[0] || '',
+    points: c.points || 0,
+    pets: c.pets || [],
+    gender: c.gender || '',
+    birthday: c.birthday || '',
     addresses: (c.addresses || []).map(a => ({
       id: a.id,
-      label: a.metadata?.label || '地址',
-      name: `${a.first_name || ''} ${a.last_name || ''}`.trim(),
+      label: a.label || '地址',
+      name: a.name || '',
       phone: a.phone || '',
       city: a.city || '',
-      district: a.province || '',
-      address: `${a.address_1 || ''} ${a.address_2 || ''}`.trim(),
-      isDefault: a.is_default_shipping || false,
+      district: a.district || '',
+      address: a.address || '',
+      isDefault: a.is_default || false,
     })),
   })
 
   // ──────────────────────────────────────────────
-  // 初始化：從 Medusa 取得當前登入的會員資訊
+  // 初始化：從 WooCommerce 取得當前登入的會員資訊
   // ──────────────────────────────────────────────
   useEffect(() => {
     const wasLoggedIn = localStorage.getItem('polar_logged_in') === '1'
-    if (!wasLoggedIn) {
+    const hasToken = !!getToken()
+
+    if (!wasLoggedIn || !hasToken) {
+      // 旗標存在但 token 不見（分頁已關閉），清除旗標
+      if (wasLoggedIn && !hasToken) {
+        localStorage.removeItem('polar_logged_in')
+      }
       setIsLoading(false)
       return
     }
+
     const fetchCurrentCustomer = async () => {
       try {
-        const { customer } = await sdk.store.customer.retrieve()
-        if (customer) {
-          setUser(mapMedusaCustomer(customer))
-        }
+        const customer = await mrpolar.getMe()
+        setUser(mapWcCustomer(customer))
       } catch {
+        clearToken()
         localStorage.removeItem('polar_logged_in')
       } finally {
         setIsLoading(false)
@@ -67,21 +74,29 @@ export const AuthProvider = ({ children }) => {
     setAuthError('')
 
     try {
-      const token = await sdk.auth.login('customer', 'emailpass', { email, password })
+      // JWT 插件接受 username 或 email
+      const result = await auth.login(email, password)
 
-      if (!token) {
+      if (!result?.token) {
         setAuthError('帳號或密碼不正確，請再試一次')
         return { success: false }
       }
 
-      const { customer } = await sdk.store.customer.retrieve()
-      setUser(mapMedusaCustomer(customer))
+      setToken(result.token)
+
+      const customer = await mrpolar.getMe()
+      setUser(mapWcCustomer(customer))
       localStorage.setItem('polar_logged_in', '1')
       return { success: true }
     } catch (err) {
       console.error('Login error:', err)
-      const msg = err?.response?.json?.message || err?.message || ''
-      if (msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('credentials')) {
+      const msg = err?.message || ''
+      if (
+        msg.toLowerCase().includes('incorrect') ||
+        msg.toLowerCase().includes('invalid') ||
+        err?.code === '[jwt_auth] incorrect_password' ||
+        err?.code === '[jwt_auth] invalid_username'
+      ) {
         setAuthError('帳號或密碼不正確，請再試一次')
       } else {
         setAuthError('登入時發生錯誤，請稍後再試')
@@ -100,30 +115,43 @@ export const AuthProvider = ({ children }) => {
     setAuthError('')
 
     try {
-      const { email, password, name, phone } = userData
-      const nameParts = name?.split(' ') || []
-      const firstName = nameParts[0] || name || ''
-      const lastName = nameParts.slice(1).join(' ') || ''
+      const {
+        email, password, name, firstName, lastName,
+        phone, gender, birthday, pets,
+      } = userData
 
-      await sdk.auth.register('customer', 'emailpass', { email, password })
+      const first = firstName || (name ? name.split(' ')[0] : '') || ''
+      const last  = lastName  || (name ? name.split(' ').slice(1).join(' ') : '') || ''
 
-      await sdk.store.customer.create({
+      // 呼叫自定義公開註冊 endpoint
+      await mrpolar.register({
         email,
-        first_name: firstName,
-        last_name: lastName,
-        phone: phone || '',
+        password,
+        first_name: first,
+        last_name:  last,
+        phone:    phone    || '',
+        gender:   gender   || '',
+        birthday: birthday || '',
+        pets:     pets     || [],
       })
 
-      await sdk.auth.login('customer', 'emailpass', { email, password })
+      // 註冊成功後自動登入
+      const result = await auth.login(email, password)
+      if (!result?.token) throw new Error('自動登入失敗')
 
-      const { customer } = await sdk.store.customer.retrieve()
-      setUser(mapMedusaCustomer(customer))
+      setToken(result.token)
+      const customer = await mrpolar.getMe()
+      setUser(mapWcCustomer(customer))
       localStorage.setItem('polar_logged_in', '1')
       return { success: true }
     } catch (err) {
       console.error('Register error:', err)
-      const msg = err?.response?.json?.message || err?.message || ''
-      if (msg.toLowerCase().includes('exists') || msg.toLowerCase().includes('already')) {
+      const msg = err?.message || ''
+      if (
+        msg.includes('已被註冊') ||
+        err?.code === 'email_exists' ||
+        msg.toLowerCase().includes('exists')
+      ) {
         setAuthError('此電子郵件已被註冊，請直接登入')
       } else {
         setAuthError('註冊時發生錯誤：' + (msg || '請稍後再試'))
@@ -138,14 +166,9 @@ export const AuthProvider = ({ children }) => {
   // 登出
   // ──────────────────────────────────────────────
   const logout = async () => {
-    try {
-      await sdk.auth.logout()
-    } catch (err) {
-      console.error('Logout error:', err)
-    } finally {
-      setUser(null)
-      localStorage.removeItem('polar_logged_in')
-    }
+    clearToken()
+    setUser(null)
+    localStorage.removeItem('polar_logged_in')
   }
 
   // ──────────────────────────────────────────────
@@ -158,37 +181,33 @@ export const AuthProvider = ({ children }) => {
       if (updates.name) {
         const parts = updates.name.split(' ')
         payload.first_name = parts[0]
-        payload.last_name = parts.slice(1).join(' ') || ''
+        payload.last_name  = parts.slice(1).join(' ') || ''
       }
       if (updates.firstName !== undefined) payload.first_name = updates.firstName
-      if (updates.lastName !== undefined) payload.last_name = updates.lastName
-      if (updates.phone !== undefined) payload.phone = updates.phone
+      if (updates.lastName  !== undefined) payload.last_name  = updates.lastName
+      if (updates.phone     !== undefined) payload.phone      = updates.phone
+      if (updates.gender    !== undefined) payload.gender     = updates.gender
+      if (updates.birthday  !== undefined) payload.birthday   = updates.birthday
 
-      const { customer } = await sdk.store.customer.update(payload)
-      setUser(mapMedusaCustomer(customer))
+      const customer = await mrpolar.updateMe(payload)
+      setUser(mapWcCustomer(customer))
       return { success: true }
     } catch (err) {
       console.error('Update profile error:', err)
-      return { success: false }
+      return { success: false, message: err?.message }
     } finally {
       setIsLoading(false)
     }
   }
 
   // ──────────────────────────────────────────────
-  // 更新毛孩資料 (使用 Metadata)
+  // 更新毛孩資料
   // ──────────────────────────────────────────────
   const updatePets = async (newPets) => {
     setIsLoading(true)
     try {
-      const payload = {
-        metadata: {
-          ...(user.metadata || {}),
-          pets: newPets,
-        },
-      }
-      const { customer } = await sdk.store.customer.update(payload)
-      setUser(mapMedusaCustomer(customer))
+      const { pets } = await mrpolar.updatePets(newPets)
+      setUser(prev => ({ ...prev, pets }))
       return { success: true }
     } catch (err) {
       console.error('Update pets error:', err)
@@ -204,14 +223,13 @@ export const AuthProvider = ({ children }) => {
   const changePassword = async (oldPassword, newPassword) => {
     setIsLoading(true)
     try {
-      await sdk.auth.updateProvider('customer', 'emailpass', {
-        email: user.email,
-        password: newPassword,
-      })
+      await mrpolar.changePassword(oldPassword, newPassword)
+      // 密碼修改後 token 仍有效，但建議重新登入
       return { success: true }
     } catch (err) {
       console.error('Change password error:', err)
-      return { success: false, message: '更新密碼失敗，請再試一次' }
+      const msg = err?.message || '更新密碼失敗，請再試一次'
+      return { success: false, message: msg }
     } finally {
       setIsLoading(false)
     }
