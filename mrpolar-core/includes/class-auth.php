@@ -1,12 +1,6 @@
 <?php
 defined('ABSPATH') || exit;
 
-/**
- * 認證相關 API：
- * POST /mrpolar/v1/register  - 公開會員註冊
- * POST /mrpolar/v1/logout    - 登出（前端清除 token）
- * GET  /mrpolar/v1/me        - 取得當前登入會員資料
- */
 class MrPolar_Auth {
 
     public static function register_routes() {
@@ -36,242 +30,169 @@ class MrPolar_Auth {
         ]);
     }
 
-    // --------------------------------------------------------
-    // 公開會員註冊
-    // --------------------------------------------------------
     public static function register(WP_REST_Request $request) {
         $email      = sanitize_email($request->get_param('email'));
-        $password   = $request->get_param('password');
-        $first_name = sanitize_text_field($request->get_param('first_name'));
-        $last_name  = sanitize_text_field($request->get_param('last_name'));
-        $phone      = sanitize_text_field($request->get_param('phone') ?? '');
-        $gender     = sanitize_text_field($request->get_param('gender') ?? '');
-        $birthday   = sanitize_text_field($request->get_param('birthday') ?? '');
+        $password   = (string) $request->get_param('password');
+        $first_name = sanitize_text_field((string) $request->get_param('first_name'));
+        $last_name  = sanitize_text_field((string) ($request->get_param('last_name') ?? ''));
+        $phone      = sanitize_text_field((string) ($request->get_param('phone') ?? ''));
+        $gender     = $request->get_param('gender');
+        $birthday   = $request->get_param('birthday');
         $pets       = $request->get_param('pets') ?? [];
 
-        // 驗證必填
         if (empty($email) || !is_email($email)) {
-            return new WP_Error('invalid_email', '請輸入有效的電子郵件', ['status' => 400]);
+            return new WP_Error('invalid_email', 'A valid email is required.', ['status' => 400]);
         }
         if (empty($password) || strlen($password) < 8) {
-            return new WP_Error('invalid_password', '密碼至少需要 8 個字元', ['status' => 400]);
+            return new WP_Error('invalid_password', 'Password must be at least 8 characters.', ['status' => 400]);
         }
         if (email_exists($email)) {
-            return new WP_Error('email_exists', '此電子郵件已被註冊', ['status' => 409]);
+            return new WP_Error('email_exists', 'This email is already registered.', ['status' => 409]);
         }
 
-        // 建立 WordPress 使用者
         $username = self::generate_username($email);
         $user_id  = wp_create_user($username, $password, $email);
-
         if (is_wp_error($user_id)) {
             return new WP_Error('register_failed', $user_id->get_error_message(), ['status' => 500]);
         }
 
-        // 更新基本資料
+        $display_name = trim($first_name . ' ' . $last_name);
         wp_update_user([
             'ID'           => $user_id,
             'first_name'   => $first_name,
             'last_name'    => $last_name,
-            'display_name' => trim("$first_name $last_name") ?: $username,
+            'display_name' => '' !== $display_name ? $display_name : $username,
             'role'         => 'customer',
         ]);
 
-        // 儲存自定義 meta
-        if ($phone)    update_user_meta($user_id, 'billing_phone', $phone);
-        if ($gender)   update_user_meta($user_id, 'mrpolar_gender', $gender);
-        if ($birthday) update_user_meta($user_id, 'mrpolar_birthday', $birthday);
+        $member = MrPolar_Member::ensure_member_for_user($user_id, [
+            'display_name' => '' !== $display_name ? $display_name : $username,
+            'first_name'   => $first_name,
+            'last_name'    => $last_name,
+            'email'        => $email,
+            'phone'        => $phone,
+            'gender'       => $gender,
+            'birthday'     => $birthday,
+            'pets'         => is_array($pets) ? $pets : [],
+        ]);
 
-        // 同步 WooCommerce billing
-        update_user_meta($user_id, 'billing_email', $email);
-        update_user_meta($user_id, 'billing_first_name', $first_name);
-        update_user_meta($user_id, 'billing_last_name', $last_name);
-
-        // 初始化點數
-        update_user_meta($user_id, 'mrpolar_points', 0);
-
-        // 儲存寵物資料
-        if (!empty($pets) && is_array($pets)) {
-            $sanitized_pets = array_map([self::class, 'sanitize_pet'], $pets);
-            update_user_meta($user_id, 'mrpolar_pets', wp_json_encode($sanitized_pets));
+        if (is_wp_error($member)) {
+            return $member;
         }
 
-        // 建立 WooCommerce 顧客記錄
         do_action('woocommerce_created_customer', $user_id, [], $password);
-
-        $customer = self::format_customer($user_id);
 
         return new WP_REST_Response([
             'success'  => true,
-            'message'  => '註冊成功',
-            'customer' => $customer,
+            'message'  => 'Registration completed.',
+            'customer' => self::format_customer($user_id),
         ], 201);
     }
 
-    // --------------------------------------------------------
-    // 取得當前會員
-    // --------------------------------------------------------
     public static function get_me(WP_REST_Request $request) {
-        $user_id  = get_current_user_id();
-        $customer = self::format_customer($user_id);
-
-        return new WP_REST_Response($customer, 200);
+        return new WP_REST_Response(self::format_customer(get_current_user_id()), 200);
     }
 
-    // --------------------------------------------------------
-    // 更新當前會員
-    // --------------------------------------------------------
     public static function update_me(WP_REST_Request $request) {
-        $user_id    = get_current_user_id();
-        $first_name = $request->get_param('first_name');
-        $last_name  = $request->get_param('last_name');
-        $phone      = $request->get_param('phone');
-        $gender     = $request->get_param('gender');
-        $birthday   = $request->get_param('birthday');
-        $pets       = $request->get_param('pets');
+        $user_id = get_current_user_id();
+        $data    = [
+            'display_name' => $request->get_param('display_name'),
+            'first_name'   => $request->get_param('first_name'),
+            'last_name'    => $request->get_param('last_name'),
+            'phone'        => $request->get_param('phone'),
+            'gender'       => $request->get_param('gender'),
+            'birthday'     => $request->get_param('birthday'),
+            'avatar_url'   => $request->get_param('avatar_url'),
+        ];
 
-        $update_data = ['ID' => $user_id];
-
-        if ($first_name !== null) {
-            $update_data['first_name'] = sanitize_text_field($first_name);
-            update_user_meta($user_id, 'billing_first_name', sanitize_text_field($first_name));
-        }
-        if ($last_name !== null) {
-            $update_data['last_name'] = sanitize_text_field($last_name);
-            update_user_meta($user_id, 'billing_last_name', sanitize_text_field($last_name));
-        }
-        if (!empty($update_data['first_name']) || !empty($update_data['last_name'])) {
-            $fn = $update_data['first_name'] ?? get_user_meta($user_id, 'first_name', true);
-            $ln = $update_data['last_name']  ?? get_user_meta($user_id, 'last_name', true);
-            $update_data['display_name'] = trim("$fn $ln");
+        $member = MrPolar_Member::update_member_self_profile($user_id, $data);
+        if (is_wp_error($member)) {
+            return $member;
         }
 
-        wp_update_user($update_data);
-
-        if ($phone !== null)    update_user_meta($user_id, 'billing_phone', sanitize_text_field($phone));
-        if ($gender !== null)   update_user_meta($user_id, 'mrpolar_gender', sanitize_text_field($gender));
-        if ($birthday !== null) update_user_meta($user_id, 'mrpolar_birthday', sanitize_text_field($birthday));
-
-        if ($pets !== null && is_array($pets)) {
-            $sanitized_pets = array_map([self::class, 'sanitize_pet'], $pets);
-            update_user_meta($user_id, 'mrpolar_pets', wp_json_encode($sanitized_pets));
+        $pets = $request->get_param('pets');
+        if (null !== $pets) {
+            if (!is_array($pets)) {
+                return new WP_Error('invalid_pets', 'Pets payload must be an array.', ['status' => 400]);
+            }
+            $updated_pets = MrPolar_Member::replace_pets_for_member((int) $member['id'], $pets);
+            if (is_wp_error($updated_pets)) {
+                return $updated_pets;
+            }
         }
 
         return new WP_REST_Response(self::format_customer($user_id), 200);
     }
 
-    // --------------------------------------------------------
-    // 修改密碼
-    // --------------------------------------------------------
     public static function change_password(WP_REST_Request $request) {
         $user_id      = get_current_user_id();
-        $old_password = $request->get_param('old_password');
-        $new_password = $request->get_param('new_password');
+        $old_password = (string) $request->get_param('old_password');
+        $new_password = (string) $request->get_param('new_password');
 
-        if (empty($old_password) || empty($new_password)) {
-            return new WP_Error('missing_fields', '請填寫舊密碼與新密碼', ['status' => 400]);
+        if ('' === $old_password || '' === $new_password) {
+            return new WP_Error('missing_fields', 'Both old and new passwords are required.', ['status' => 400]);
         }
         if (strlen($new_password) < 8) {
-            return new WP_Error('weak_password', '新密碼至少需要 8 個字元', ['status' => 400]);
+            return new WP_Error('weak_password', 'Password must be at least 8 characters.', ['status' => 400]);
         }
 
         $user = get_user_by('ID', $user_id);
-        if (!wp_check_password($old_password, $user->user_pass, $user_id)) {
-            return new WP_Error('wrong_password', '舊密碼不正確', ['status' => 400]);
+        if (!$user || !wp_check_password($old_password, $user->user_pass, $user_id)) {
+            return new WP_Error('wrong_password', 'Current password is incorrect.', ['status' => 400]);
         }
 
         wp_set_password($new_password, $user_id);
 
-        return new WP_REST_Response(['success' => true, 'message' => '密碼已更新'], 200);
+        return new WP_REST_Response([
+            'success' => true,
+            'message' => 'Password updated.',
+        ], 200);
     }
 
-    // --------------------------------------------------------
-    // Helpers
-    // --------------------------------------------------------
     public static function is_logged_in() {
         return is_user_logged_in();
     }
 
-    private static function generate_username(string $email): string {
-        $base = sanitize_user(strstr($email, '@', true), true);
-        $username = $base;
-        $i = 1;
-        while (username_exists($username)) {
-            $username = $base . $i;
-            $i++;
+    public static function format_customer($user_id) {
+        $customer = MrPolar_Member::get_legacy_customer_by_user_id((int) $user_id, true);
+
+        if (is_wp_error($customer)) {
+            return [
+                'id'         => (int) $user_id,
+                'member_id'  => 0,
+                'email'      => '',
+                'username'   => '',
+                'first_name' => '',
+                'last_name'  => '',
+                'name'       => '',
+                'phone'      => '',
+                'gender'     => '',
+                'birthday'   => '',
+                'avatar'     => '',
+                'member_since' => '',
+                'points'     => 0,
+                'pets'       => [],
+                'addresses'  => [],
+            ];
         }
+
+        return $customer;
+    }
+
+    private static function generate_username($email) {
+        $base     = sanitize_user(strstr($email, '@', true), true);
+        $username = $base;
+        $index    = 1;
+
+        while (username_exists($username)) {
+            $username = $base . $index;
+            $index++;
+        }
+
         return $username;
     }
 
-    public static function format_customer(int $user_id): array {
-        $user    = get_user_by('ID', $user_id);
-        $meta    = get_user_meta($user_id);
-        $pets_raw = $meta['mrpolar_pets'][0] ?? '[]';
-        $pets    = json_decode($pets_raw, true) ?: [];
-        $points  = (int) ($meta['mrpolar_points'][0] ?? 0);
-
-        // 取得收件地址
-        $addresses = self::get_addresses($user_id);
-
-        return [
-            'id'          => $user_id,
-            'email'       => $user->user_email,
-            'username'    => $user->user_login,
-            'first_name'  => $user->first_name,
-            'last_name'   => $user->last_name,
-            'name'        => trim("{$user->first_name} {$user->last_name}") ?: $user->display_name,
-            'phone'       => $meta['billing_phone'][0] ?? '',
-            'gender'      => $meta['mrpolar_gender'][0] ?? '',
-            'birthday'    => $meta['mrpolar_birthday'][0] ?? '',
-            'avatar'      => get_avatar_url($user_id),
-            'member_since' => $user->user_registered,
-            'points'      => $points,
-            'pets'        => $pets,
-            'addresses'   => $addresses,
-        ];
-    }
-
-    private static function get_addresses(int $user_id): array {
-        $addresses_raw = get_user_meta($user_id, 'mrpolar_addresses', true);
-        if (!empty($addresses_raw)) {
-            return json_decode($addresses_raw, true) ?: [];
-        }
-
-        // 從 WooCommerce billing 地址建立預設
-        $meta        = get_user_meta($user_id);
-        $city        = $meta['billing_city'][0] ?? '';
-        $address_1   = $meta['billing_address_1'][0] ?? '';
-
-        if (empty($city) && empty($address_1)) {
-            return [];
-        }
-
-        return [[
-            'id'         => 'default',
-            'label'      => '預設地址',
-            'name'       => trim(($meta['billing_first_name'][0] ?? '') . ' ' . ($meta['billing_last_name'][0] ?? '')),
-            'phone'      => $meta['billing_phone'][0] ?? '',
-            'city'       => $city,
-            'district'   => $meta['billing_state'][0] ?? '',
-            'address'    => $address_1,
-            'is_default' => true,
-        ]];
-    }
-
-    private static function sanitize_pet(array $pet): array {
-        return [
-            'id'       => sanitize_text_field($pet['id'] ?? uniqid('pet_')),
-            'name'     => sanitize_text_field($pet['name'] ?? ''),
-            'type'     => sanitize_text_field($pet['type'] ?? ''),
-            'breed'    => sanitize_text_field($pet['breed'] ?? ''),
-            'age'      => sanitize_text_field($pet['age'] ?? ''),
-            'weight'   => sanitize_text_field($pet['weight'] ?? ''),
-            'birthday' => sanitize_text_field($pet['birthday'] ?? ''),
-            'gender'   => sanitize_text_field($pet['gender'] ?? ''),
-        ];
-    }
-
-    private static function register_args(): array {
+    private static function register_args() {
         return [
             'email'      => ['required' => true, 'type' => 'string'],
             'password'   => ['required' => true, 'type' => 'string'],
