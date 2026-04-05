@@ -50,6 +50,8 @@ function mrpolar_api_init(): void {
     }
 
     MrPolar_REST_Member::boot();
+    MrPolar_Order_Hooks::boot();
+    MrPolar_Points_Shortcode::boot();
 
     if (is_admin()) {
         class_exists('MrPolar_Admin_Member');
