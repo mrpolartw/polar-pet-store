@@ -309,7 +309,161 @@ class MrPolar_Member {
         return self::ensure_member_for_user($user_id, $seed);
     }
 
-    public static function get_member_by_id($member_id) {
+    public static function get_member_by_id(int $id): array {
+        global $wpdb;
+
+        if ($id <= 0) {
+            return [];
+        }
+
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT
+                    m.*,
+                    t.tier_name,
+                    t.tier_color,
+                    t.tier_key,
+                    t.cashback_rate,
+                    t.upgrade_min_spending AS next_tier_min_spending,
+                    t.sort_order AS tier_sort_order,
+                    t.welcome_points,
+                    t.birthday_bonus_rate,
+                    t.free_shipping_threshold,
+                    t.description AS tier_description,
+                    t.benefits_json,
+                    t.is_active AS tier_is_active,
+                    u.user_login
+                 FROM {$wpdb->prefix}mrpolar_members m
+                 LEFT JOIN {$wpdb->prefix}mrpolar_member_tiers t ON t.id = m.tier_id
+                 LEFT JOIN {$wpdb->users} u ON u.ID = m.wp_user_id
+                 WHERE m.id = %d
+                 LIMIT 1",
+                $id
+            ),
+            ARRAY_A
+        );
+
+        return is_array($row) ? $row : [];
+    }
+
+    public static function get_addresses_by_member_id(int $memberId): array {
+        return self::get_addresses_by_member_id_legacy($memberId);
+    }
+
+    public static function get_pets_by_member_id(int $memberId): array {
+        return self::get_pets_by_member_id_legacy($memberId);
+    }
+
+    public static function get_points_summary(int $memberId, int $limit = 50): array {
+        $summary = self::get_points_summary_legacy($memberId, $limit);
+
+        if (is_wp_error($summary)) {
+            return [
+                'member_id'       => $memberId,
+                'points_balance'  => 0,
+                'points_lifetime' => 0,
+                'logs'            => [],
+            ];
+        }
+
+        return is_array($summary) ? $summary : ['logs' => []];
+    }
+
+    public static function update_member_admin_profile(int $id, array $data) {
+        global $wpdb;
+
+        if ($id <= 0) {
+            return new WP_Error('mrpolar_invalid_member_id', 'Invalid member ID.', ['status' => 400]);
+        }
+
+        $allowed = ['status', 'note', 'tier_id', 'points_balance'];
+        $set     = [];
+        $params  = [];
+
+        foreach ($allowed as $field) {
+            if (!array_key_exists($field, $data)) {
+                continue;
+            }
+
+            switch ($field) {
+                case 'status':
+                    $status = self::normalize_member_status($data[$field]);
+                    if (is_wp_error($status)) {
+                        return $status;
+                    }
+                    $set[]    = 'status = %s';
+                    $params[] = $status;
+                    break;
+
+                case 'note':
+                    $set[]    = 'note = %s';
+                    $params[] = sanitize_textarea_field(wp_unslash((string) $data[$field]));
+                    break;
+
+                case 'tier_id':
+                    $set[]    = 'tier_id = %d';
+                    $params[] = max(0, (int) $data[$field]);
+                    break;
+
+                case 'points_balance':
+                    $set[]    = 'points_balance = %d';
+                    $params[] = max(0, (int) $data[$field]);
+                    break;
+            }
+        }
+
+        if (empty($set)) {
+            return true;
+        }
+
+        $member = self::get_member_by_id($id);
+        if (empty($member)) {
+            return new WP_Error('mrpolar_member_not_found', 'Member not found.', ['status' => 404]);
+        }
+
+        $params[] = $id;
+
+        $updated = $wpdb->query(
+            $wpdb->prepare(
+                "UPDATE {$wpdb->prefix}mrpolar_members
+                 SET " . implode(', ', $set) . ", updated_at = NOW()
+                 WHERE id = %d",
+                $params
+            )
+        );
+
+        if (false === $updated) {
+            return new WP_Error('mrpolar_member_update_failed', 'Unable to update member.', ['status' => 500]);
+        }
+
+        self::sync_legacy_user_meta(self::get_member_by_id($id));
+
+        return true;
+    }
+
+    public static function get_next_tier(int $currentTierSortOrder): array {
+        global $wpdb;
+
+        $row = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT *
+                 FROM {$wpdb->prefix}mrpolar_member_tiers
+                 WHERE sort_order > %d
+                   AND is_active = %d
+                   AND is_manual_only = %d
+                 ORDER BY sort_order ASC
+                 LIMIT 1",
+                $currentTierSortOrder,
+                1,
+                0
+            ),
+            ARRAY_A
+        );
+
+        return is_array($row) ? $row : [];
+    }
+
+    public static function get_member_by_id_legacy($member_id) {
         global $wpdb;
 
         $member_id = (int) $member_id;
@@ -516,7 +670,7 @@ class MrPolar_Member {
         return self::update_member_record((int) $member['id'], $update, true);
     }
 
-    public static function update_member_admin_profile($member_id, array $data) {
+    public static function update_member_admin_profile_legacy($member_id, array $data) {
         $update = [];
 
         if (array_key_exists('display_name', $data)) {
@@ -606,7 +760,7 @@ class MrPolar_Member {
         return $fresh;
     }
 
-    public static function get_addresses_by_member_id($member_id) {
+    public static function get_addresses_by_member_id_legacy($member_id) {
         global $wpdb;
 
         $rows = $wpdb->get_results(
@@ -736,7 +890,7 @@ class MrPolar_Member {
         return true;
     }
 
-    public static function get_pets_by_member_id($member_id) {
+    public static function get_pets_by_member_id_legacy($member_id) {
         global $wpdb;
 
         $rows = $wpdb->get_results(
@@ -871,7 +1025,7 @@ class MrPolar_Member {
         return self::get_pets_by_member_id((int) $member_id);
     }
 
-    public static function get_points_summary($member_id, $limit = 20) {
+    public static function get_points_summary_legacy($member_id, $limit = 20) {
         global $wpdb;
 
         $member = self::get_member_by_id((int) $member_id);
