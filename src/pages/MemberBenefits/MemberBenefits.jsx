@@ -9,6 +9,7 @@ import {
   Info,
   Star,
 } from 'lucide-react';
+import { useTiers } from '../../hooks/useMember';
 import './MemberBenefits.css';
 
 const TIER_DATA = [
@@ -99,6 +100,73 @@ const APPENDIX_BIRTHDAY_ROWS = [
   ['不適用情形', '取消訂單、退貨退款、異常交易、未填生日或非生日當日訂單'],
 ];
 
+const formatTierRate = (rate) => {
+  const percent = Number(rate || 0) * 100;
+
+  if (Number.isNaN(percent)) {
+    return '0%';
+  }
+
+  if (Number.isInteger(percent)) {
+    return `${percent}%`;
+  }
+
+  return `${percent.toFixed(2).replace(/\.?0+$/, '')}%`;
+};
+
+const formatTierThreshold = (value) => {
+  const amount = Number(value || 0);
+  if (!amount) {
+    return '不限';
+  }
+
+  return `累積消費 NT$${amount.toLocaleString()}`;
+};
+
+const getTierPerks = (tier) => {
+  if (!tier?.description) {
+    return [];
+  }
+
+  return String(tier.description)
+    .split(/\r?\n+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
+const buildTierCards = (tiers) => tiers.map((tier, index) => ({
+  key: tier.tier_key || `tier-${tier.id}`,
+  icon: TIER_DATA[index]?.icon || '⭐',
+  name: tier.tier_name,
+  rate: formatTierRate(tier.cashback_rate),
+  threshold: formatTierThreshold(tier.upgrade_min_spending),
+  perks: getTierPerks(tier),
+}));
+
+const buildTierTableRows = (tiers) => tiers.map((tier) => ([
+  tier.tier_name,
+  formatTierThreshold(tier.upgrade_min_spending),
+  formatTierRate(tier.cashback_rate),
+  tier.description || '—',
+]));
+
+const buildUpgradeRows = (tiers) => tiers.map((tier, index) => {
+  const nextTier = tiers[index + 1];
+
+  return [
+    tier.tier_name,
+    formatTierThreshold(tier.upgrade_min_spending),
+    nextTier ? `升等至${nextTier.tier_name}` : '維持最高等級',
+    '依年度消費計算',
+  ];
+});
+
+const buildPointRateRows = (tiers) => tiers.map((tier) => ([
+  tier.tier_name,
+  formatTierRate(tier.cashback_rate),
+  tier.description || '依會員等級回饋點數',
+]));
+
 function TocLink({ item, activeSection, onClick }) {
   return (
     <a
@@ -131,8 +199,18 @@ function Chapter({ id, number, title, delay = 0, children }) {
 }
 
 export default function MemberBenefits() {
+  const { tiers, loading } = useTiers();
   const [activeSection, setActiveSection] = useState('chapter-1');
   const [showBackToTop, setShowBackToTop] = useState(false);
+
+  const sortedTiers = !loading && tiers.length > 0
+    ? [...tiers].sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
+    : [];
+
+  const tierData = sortedTiers.length > 0 ? buildTierCards(sortedTiers) : TIER_DATA;
+  const tierTableRows = sortedTiers.length > 0 ? buildTierTableRows(sortedTiers) : TIER_TABLE_ROWS;
+  const upgradeTableRows = sortedTiers.length > 0 ? buildUpgradeRows(sortedTiers) : UPGRADE_TABLE_ROWS;
+  const pointRateRows = sortedTiers.length > 0 ? buildPointRateRows(sortedTiers) : POINT_RATE_ROWS;
 
   useEffect(() => {
     const sections = document.querySelectorAll('.mb-chapter');
@@ -189,7 +267,7 @@ export default function MemberBenefits() {
 
       <section className="mb-tier-section">
         <div className="mb-tier-grid">
-          {TIER_DATA.map((tier) => (
+          {tierData.map((tier) => (
             <div key={tier.key} className={`mb-tier-card mb-tier-card--${tier.key}`}>
               <div className="mb-tier-badge">{tier.icon}</div>
               <h3 className="mb-tier-name">{tier.name}</h3>
@@ -244,7 +322,7 @@ export default function MemberBenefits() {
                     </tr>
                   </thead>
                   <tbody>
-                    {TIER_TABLE_ROWS.map((row) => (
+                    {tierTableRows.map((row) => (
                       <tr key={row[0]}>
                         <td>{row[0]}</td>
                         <td>{row[1]}</td>
@@ -326,7 +404,7 @@ export default function MemberBenefits() {
                     </tr>
                   </thead>
                   <tbody>
-                    {UPGRADE_TABLE_ROWS.map((row) => (
+                    {upgradeTableRows.map((row) => (
                       <tr key={`${row[0]}-${row[1]}`}>
                         <td>{row[0]}</td>
                         <td>{row[1]}</td>
@@ -368,7 +446,7 @@ export default function MemberBenefits() {
                     </tr>
                   </thead>
                   <tbody>
-                    {POINT_RATE_ROWS.map((row) => (
+                    {pointRateRows.map((row) => (
                       <tr key={row[0]}>
                         <td>{row[0]}</td>
                         <td>{row[1]}</td>
@@ -537,7 +615,7 @@ export default function MemberBenefits() {
                     </tr>
                   </thead>
                   <tbody>
-                    {TIER_TABLE_ROWS.map((row) => (
+                    {tierTableRows.map((row) => (
                       <tr key={`appendix-${row[0]}`}>
                         <td>{row[0]}</td>
                         <td>{row[1]}</td>

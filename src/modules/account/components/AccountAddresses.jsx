@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Edit2, MapPin, Plus, Store, Trash2, X } from 'lucide-react'
-import { useAuth } from '../../../context/useAuth'
 import { useToast } from '../../../context/ToastContext'
+import { useAddresses } from '../../../hooks/useMember'
 
 const EMPTY_ADDRESS_FORM = {
   type: 'home',
@@ -12,15 +12,17 @@ const EMPTY_ADDRESS_FORM = {
   city: '',
   district: '',
   address: '',
+  postalCode: '',
   isDefault: false,
   storeName: '',
   storeId: '',
+  storeType: '',
 }
 
 const TW_CITIES = [
-  '台北市', '新北市', '基隆市', '桃園市', '新竹市', '新竹縣',
-  '苗栗縣', '台中市', '彰化縣', '南投縣', '雲林縣', '嘉義市',
-  '嘉義縣', '台南市', '高雄市', '屏東縣', '宜蘭縣', '花蓮縣',
+  '台北市', '新北市', '桃園市', '台中市', '台南市', '高雄市',
+  '基隆市', '新竹市', '新竹縣', '苗栗縣', '彰化縣', '南投縣',
+  '雲林縣', '嘉義市', '嘉義縣', '屏東縣', '宜蘭縣', '花蓮縣',
   '台東縣', '澎湖縣', '金門縣', '連江縣',
 ]
 
@@ -28,6 +30,40 @@ const fadeUp = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.4, ease: [0.25, 1, 0.5, 1] },
+}
+
+const mapAddressToForm = (address) => ({
+  ...EMPTY_ADDRESS_FORM,
+  type: address?.type ?? ((address?.store_type || address?.store_name || address?.store_id) ? '711' : 'home'),
+  label: address?.label || '',
+  name: address?.name ?? address?.recipient_name ?? '',
+  phone: address?.phone || '',
+  city: address?.city || '',
+  district: address?.district || '',
+  address: address?.address || '',
+  postalCode: address?.postalCode ?? address?.postal_code ?? '',
+  isDefault: Boolean(address?.isDefault ?? address?.is_default),
+  storeName: address?.storeName ?? address?.store_name ?? '',
+  storeId: address?.storeId ?? address?.store_id ?? '',
+  storeType: address?.storeType ?? address?.store_type ?? '',
+})
+
+const buildAddressPayload = (addressForm) => {
+  const isStore = addressForm.type === '711'
+
+  return {
+    label: addressForm.label || (isStore ? '超商取貨' : '住家'),
+    recipient_name: addressForm.name.trim(),
+    phone: addressForm.phone.trim(),
+    postal_code: addressForm.postalCode || '',
+    city: isStore ? '' : addressForm.city,
+    district: isStore ? '' : addressForm.district,
+    address: isStore ? '' : addressForm.address,
+    is_default: Boolean(addressForm.isDefault),
+    store_type: isStore ? (addressForm.storeType || '7-11') : '',
+    store_id: isStore ? addressForm.storeId : '',
+    store_name: isStore ? addressForm.storeName : '',
+  }
 }
 
 function AddressModal({
@@ -68,8 +104,8 @@ function AddressModal({
 
               <div className="address-type-grid">
                 {[
-                  { key: 'home', label: '宅配地址', desc: '提供一般配送使用' },
-                  { key: '711', label: '7-11 超商取貨', desc: '模擬 PayUni 門市選擇' },
+                  { key: 'home', label: '宅配地址', desc: '適用一般宅配配送' },
+                  { key: '711', label: '7-11 超商取貨', desc: '可先使用測試門市資料' },
                 ].map((option) => (
                   <button
                     key={option.key}
@@ -100,7 +136,7 @@ function AddressModal({
                     <input
                       type="text"
                       className="apple-input"
-                      placeholder="自訂標籤（例如：爸媽家）"
+                      placeholder="若有需要可自訂地址標籤"
                       value={['住家', '公司', '其他'].includes(addressForm.label) ? '' : addressForm.label}
                       onChange={(e) => setAddressForm((prev) => ({ ...prev, label: e.target.value }))}
                     />
@@ -112,7 +148,7 @@ function AddressModal({
                       <input
                         type="text"
                         className="apple-input"
-                        placeholder="請輸入姓名"
+                        placeholder="請輸入收件人姓名"
                         value={addressForm.name}
                         onChange={(e) => setAddressForm((prev) => ({ ...prev, name: e.target.value }))}
                       />
@@ -144,11 +180,11 @@ function AddressModal({
                       </select>
                     </div>
                     <div>
-                      <label className="address-form-label">行政區 *</label>
+                      <label className="address-form-label">區域 *</label>
                       <input
                         type="text"
                         className="apple-input"
-                        placeholder="例如：大安區"
+                        placeholder="例如 大安區"
                         value={addressForm.district}
                         onChange={(e) => setAddressForm((prev) => ({ ...prev, district: e.target.value }))}
                       />
@@ -160,7 +196,7 @@ function AddressModal({
                     <input
                       type="text"
                       className="apple-input"
-                      placeholder="街道、巷弄、樓層"
+                      placeholder="請輸入住址門牌與樓層"
                       value={addressForm.address}
                       onChange={(e) => setAddressForm((prev) => ({ ...prev, address: e.target.value }))}
                     />
@@ -175,27 +211,29 @@ function AddressModal({
                     {addressForm.storeName ? (
                       <>
                         <p className="store-picker-name">{addressForm.storeName}</p>
-                        {addressForm.storeId && <p className="store-picker-id">門市代號：{addressForm.storeId}</p>}
+                        {addressForm.storeId && <p className="store-picker-id">門市代碼：{addressForm.storeId}</p>}
                         <button
                           className="store-picker-reselect"
-                          onClick={() => onToast('目前為 PayUni 模擬選店流程')}
+                          onClick={() => onToast('目前先使用測試門市資料，之後可接 PayUni 門市選擇器')}
                         >
                           重新選擇門市
                         </button>
                       </>
                     ) : (
                       <>
-                        <p className="store-picker-desc">點擊下方按鈕，模擬開啟 7-11 電子地圖選店。</p>
+                        <p className="store-picker-desc">目前先使用測試門市資料模擬 7-11 取貨流程。</p>
                         <button
                           className="btn-blue"
                           style={{ padding: '10px 24px', borderRadius: 980, fontSize: 14 }}
                           onClick={() => {
                             setAddressForm((prev) => ({
                               ...prev,
-                              storeName: '7-ELEVEN 大安門市',
+                              storeName: '7-ELEVEN 測試門市',
                               storeId: 'TEST001',
+                              storeType: '7-11',
+                              label: prev.label || '超商取貨',
                             }))
-                            onToast('已完成模擬選店，門市資料已帶入')
+                            onToast('已帶入測試超商門市資料')
                           }}
                         >
                           選擇 7-11 門市
@@ -210,7 +248,7 @@ function AddressModal({
                       <input
                         type="text"
                         className="apple-input"
-                        placeholder="請輸入姓名"
+                        placeholder="請輸入收件人姓名"
                         value={addressForm.name}
                         onChange={(e) => setAddressForm((prev) => ({ ...prev, name: e.target.value }))}
                       />
@@ -228,7 +266,7 @@ function AddressModal({
                   </div>
 
                   <div className="store-notice">
-                    <strong>提醒：</strong> 此流程目前為前端展示用途，尚未串接真實超商選店服務。
+                    <strong>提醒：</strong> 完整的超商門市串接完成前，這裡會先使用測試資料，方便前後端串 API。
                   </div>
                 </div>
               )}
@@ -242,7 +280,7 @@ function AddressModal({
                 設為預設收件地址
               </label>
 
-              {addressError && <div className="address-form-error">提示：{addressError}</div>}
+              {addressError && <div className="address-form-error">{addressError}</div>}
 
               <div className="address-modal-actions">
                 <button className="btn-modal-cancel" onClick={onClose}>取消</button>
@@ -259,24 +297,14 @@ function AddressModal({
 }
 
 export default function AccountAddresses() {
-  const { user } = useAuth()
   const toast = useToast()
+  const {
+    addresses,
+    add: addAddressApi,
+    update: updateAddressApi,
+    remove: removeAddressApi,
+  } = useAddresses()
 
-  const [addresses, setAddresses] = useState(
-    user?.addresses || [
-      {
-        id: 1,
-        type: 'home',
-        label: '住家',
-        name: '王小明',
-        phone: '0912-345-678',
-        city: '台北市',
-        district: '大安區',
-        address: '仁愛路四段 100 號 5 樓',
-        isDefault: true,
-      },
-    ],
-  )
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS_FORM)
   const [editingAddress, setEditingAddress] = useState(null)
@@ -290,7 +318,7 @@ export default function AccountAddresses() {
   }
 
   const openEditAddressModal = (address) => {
-    setAddressForm({ ...EMPTY_ADDRESS_FORM, ...address })
+    setAddressForm(mapAddressToForm(address))
     setEditingAddress(address)
     setAddressError('')
     setIsAddressModalOpen(true)
@@ -303,20 +331,21 @@ export default function AccountAddresses() {
 
   const validateAddressForm = () => {
     if (addressForm.type === '711') {
-      if (!addressForm.storeName.trim()) return '請先選擇門市'
+      if (!addressForm.storeName.trim()) return '請先選擇超商門市'
       if (!addressForm.name.trim()) return '請輸入收件人姓名'
       if (!addressForm.phone.trim()) return '請輸入手機號碼'
     } else {
       if (!addressForm.name.trim()) return '請輸入收件人姓名'
       if (!addressForm.phone.trim()) return '請輸入手機號碼'
       if (!addressForm.city) return '請選擇縣市'
-      if (!addressForm.district.trim()) return '請輸入行政區'
+      if (!addressForm.district.trim()) return '請輸入區域'
       if (!addressForm.address.trim()) return '請輸入詳細地址'
     }
+
     return ''
   }
 
-  const handleSaveAddress = () => {
+  const handleSaveAddress = async () => {
     try {
       const error = validateAddressForm()
       if (error) {
@@ -324,26 +353,13 @@ export default function AccountAddresses() {
         return
       }
 
-      if (editingAddress) {
-        setAddresses((prev) => prev.map((address) => {
-          if (address.id !== editingAddress.id) {
-            return addressForm.isDefault ? { ...address, isDefault: false } : address
-          }
+      const payload = buildAddressPayload(addressForm)
 
-          return { ...address, ...addressForm }
-        }))
+      if (editingAddress) {
+        await updateAddressApi(editingAddress.id, payload)
         toast.success('地址已更新')
       } else {
-        const nextAddress = {
-          ...addressForm,
-          id: Date.now(),
-          label: addressForm.label || (addressForm.type === '711' ? '超商取貨' : '宅配地址'),
-        }
-
-        setAddresses((prev) => {
-          const base = addressForm.isDefault ? prev.map((address) => ({ ...address, isDefault: false })) : prev
-          return [...base, nextAddress]
-        })
+        await addAddressApi(payload)
         toast.success('地址已新增')
       }
 
@@ -353,18 +369,18 @@ export default function AccountAddresses() {
     }
   }
 
-  const handleDeleteAddress = (id) => {
+  const handleDeleteAddress = async (id) => {
     try {
-      setAddresses((prev) => prev.filter((address) => address.id !== id))
+      await removeAddressApi(id)
       toast.success('地址已刪除')
     } catch (err) {
       toast.error(err?.message || '操作失敗，請稍後再試')
     }
   }
 
-  const handleSetDefaultAddress = (id) => {
+  const handleSetDefaultAddress = async (id) => {
     try {
-      setAddresses((prev) => prev.map((address) => ({ ...address, isDefault: address.id === id })))
+      await updateAddressApi(id, { is_default: true })
       toast.success('已設為預設地址')
     } catch (err) {
       toast.error(err?.message || '操作失敗，請稍後再試')
@@ -375,7 +391,7 @@ export default function AccountAddresses() {
     <motion.div key="addresses" {...fadeUp}>
       <h2 className="account-section-title">
         <MapPin size={22} className="account-nav-icon" />
-        地址管理
+        收件地址
       </h2>
 
       <AddressModal
@@ -390,54 +406,58 @@ export default function AccountAddresses() {
       />
 
       <div className="address-grid">
-        {addresses.map((address) => (
-          <div key={address.id} className={`address-card ${address.isDefault ? 'default' : ''}`}>
-            {address.isDefault && <span className="address-default-badge">預設</span>}
+        {addresses.map((address) => {
+          const addressView = mapAddressToForm(address)
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-              {address.type === '711'
-                ? <span className="address-type-badge type-711">超商取貨</span>
-                : <span className="address-type-badge type-home">{address.label || '宅配地址'}</span>}
-            </div>
+          return (
+            <div key={address.id} className={`address-card ${addressView.isDefault ? 'default' : ''}`}>
+              {addressView.isDefault && <span className="address-default-badge">預設</span>}
 
-            <div className="address-name">{address.name}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                {addressView.type === '711'
+                  ? <span className="address-type-badge type-711">超商取貨</span>
+                  : <span className="address-type-badge type-home">{addressView.label || '宅配地址'}</span>}
+              </div>
 
-            <div className="address-detail">
-              {address.phone}
-              <br />
-              {address.type === '711'
-                ? address.storeName
-                : (
-                  <>
-                    {address.city}{address.district}
-                    <br />
-                    {address.address}
-                  </>
+              <div className="address-name">{addressView.name}</div>
+
+              <div className="address-detail">
+                {addressView.phone}
+                <br />
+                {addressView.type === '711'
+                  ? addressView.storeName
+                  : (
+                    <>
+                      {addressView.city}{addressView.district}
+                      <br />
+                      {addressView.address}
+                    </>
+                  )}
+              </div>
+
+              <div className="address-actions">
+                <button className="btn-address-action" onClick={() => openEditAddressModal(address)}>
+                  <Edit2 size={12} style={{ display: 'inline', marginRight: 4 }} />
+                  編輯
+                </button>
+                {!addressView.isDefault && (
+                  <button className="btn-address-action" onClick={() => handleSetDefaultAddress(address.id)}>
+                    設為預設
+                  </button>
                 )}
+                {!addressView.isDefault && (
+                  <button
+                    className="btn-address-action"
+                    style={{ color: '#e74c3c' }}
+                    onClick={() => window.confirm('確定要刪除此地址嗎？') && handleDeleteAddress(address.id)}
+                  >
+                    <Trash2 size={12} style={{ display: 'inline' }} />
+                  </button>
+                )}
+              </div>
             </div>
-
-            <div className="address-actions">
-              <button className="btn-address-action" onClick={() => openEditAddressModal(address)}>
-                <Edit2 size={12} style={{ display: 'inline', marginRight: 4 }} />
-                編輯
-              </button>
-              {!address.isDefault && (
-                <button className="btn-address-action" onClick={() => handleSetDefaultAddress(address.id)}>
-                  設為預設
-                </button>
-              )}
-              {!address.isDefault && (
-                <button
-                  className="btn-address-action"
-                  style={{ color: '#e74c3c' }}
-                  onClick={() => window.confirm('確定要刪除此地址嗎？') && handleDeleteAddress(address.id)}
-                >
-                  <Trash2 size={12} style={{ display: 'inline' }} />
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
+          )
+        })}
 
         <button className="btn-add-address" onClick={openAddAddressModal}>
           <Plus size={24} />

@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Edit2, PawPrint, Plus, Trash2, X } from 'lucide-react'
 import { EmptyState } from '../../../components/common'
-import { useAuth } from '../../../context/useAuth'
 import { useToast } from '../../../context/ToastContext'
+import { usePets } from '../../../hooks/useMember'
 
 const EMPTY_PET_FORM = {
   petName: '',
@@ -13,17 +13,55 @@ const EMPTY_PET_FORM = {
   petAge: '',
   petWeight: '',
   petBirthday: '',
+  petAvatarUrl: '',
+  petNote: '',
+  petUid: '',
 }
 
 const PET_EMOJI = { cat: '🐱', dog: '🐶', other: '🐾' }
 const PET_TYPE_LABEL = { cat: '貓咪', dog: '狗狗', other: '其他' }
-const PET_GENDER_LABEL = { male: '男生', female: '女生' }
+const PET_GENDER_LABEL = { male: '公', female: '母' }
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.4, ease: [0.25, 1, 0.5, 1] },
 }
+
+const createPetUid = () => {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID()
+  }
+
+  return `pet-${Date.now()}`
+}
+
+const mapPetToForm = (pet) => ({
+  ...EMPTY_PET_FORM,
+  petName: pet?.petName ?? pet?.name ?? '',
+  petGender: pet?.petGender ?? pet?.gender ?? '',
+  petType: pet?.petType ?? pet?.type ?? '',
+  petBreed: pet?.petBreed ?? pet?.breed ?? '',
+  petAge: pet?.petAge ?? (pet?.age ?? ''),
+  petWeight: pet?.petWeight ?? (pet?.weight ?? ''),
+  petBirthday: pet?.petBirthday ?? pet?.birthday ?? '',
+  petAvatarUrl: pet?.petAvatarUrl ?? pet?.avatar_url ?? '',
+  petNote: pet?.petNote ?? pet?.note ?? '',
+  petUid: pet?.petUid ?? pet?.pet_uid ?? '',
+})
+
+const buildPetPayload = (petForm, existingPet) => ({
+  pet_uid: petForm.petUid || existingPet?.pet_uid || createPetUid(),
+  name: petForm.petName.trim(),
+  type: petForm.petType || '',
+  breed: petForm.petBreed.trim(),
+  gender: petForm.petGender || '',
+  birthday: petForm.petBirthday || '',
+  age: petForm.petAge === '' ? null : Number(petForm.petAge),
+  weight: petForm.petWeight === '' ? null : Number(petForm.petWeight),
+  avatar_url: petForm.petAvatarUrl || '',
+  note: petForm.petNote || '',
+})
 
 function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petError }) {
   return (
@@ -63,7 +101,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                       PET_TYPE_LABEL[petForm.petType],
                       petForm.petBreed,
                       PET_GENDER_LABEL[petForm.petGender],
-                    ].filter(Boolean).join(' · ') || '請填寫毛孩資訊'}
+                    ].filter(Boolean).join('・') || '填寫更多資訊，建立完整毛孩檔案'}
                   </div>
                 </div>
               </div>
@@ -74,7 +112,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                   <input
                     type="text"
                     className="apple-input"
-                    placeholder="例如：Momo"
+                    placeholder="例如 Momo"
                     value={petForm.petName}
                     onChange={(e) => setPetForm((prev) => ({ ...prev, petName: e.target.value }))}
                   />
@@ -82,7 +120,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
 
                 <div className="address-form-row">
                   <div>
-                    <label className="address-form-label">種類</label>
+                    <label className="address-form-label">類型</label>
                     <select
                       className="apple-input select-input"
                       value={petForm.petType}
@@ -91,6 +129,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                       <option value="">請選擇</option>
                       <option value="cat">貓咪</option>
                       <option value="dog">狗狗</option>
+                      <option value="other">其他</option>
                     </select>
                   </div>
                   <div>
@@ -101,8 +140,9 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                       onChange={(e) => setPetForm((prev) => ({ ...prev, petGender: e.target.value }))}
                     >
                       <option value="">請選擇</option>
-                      <option value="male">男生</option>
-                      <option value="female">女生</option>
+                      <option value="male">公</option>
+                      <option value="female">母</option>
+                      <option value="other">其他</option>
                     </select>
                   </div>
                 </div>
@@ -112,7 +152,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                   <input
                     type="text"
                     className="apple-input"
-                    placeholder="例如：米克斯、英國短毛貓"
+                    placeholder="例如 柴犬、英國短毛貓"
                     value={petForm.petBreed}
                     onChange={(e) => setPetForm((prev) => ({ ...prev, petBreed: e.target.value }))}
                   />
@@ -120,7 +160,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
 
                 <div className="address-form-row">
                   <div>
-                    <label className="address-form-label">年齡（歲）</label>
+                    <label className="address-form-label">年齡</label>
                     <input
                       type="number"
                       className="apple-input"
@@ -136,7 +176,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                     <input
                       type="text"
                       className="apple-input"
-                      placeholder="例如：3.5"
+                      placeholder="例如 3.5"
                       value={petForm.petWeight}
                       onChange={(e) => setPetForm((prev) => ({ ...prev, petWeight: e.target.value }))}
                     />
@@ -154,7 +194,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                 </div>
               </div>
 
-              {petError && <div className="address-form-error">提示：{petError}</div>}
+              {petError && <div className="address-form-error">{petError}</div>}
 
               <div className="address-modal-actions">
                 <button className="btn-modal-cancel" onClick={onClose}>取消</button>
@@ -171,12 +211,15 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
 }
 
 export default function AccountPets() {
-  const { user } = useAuth()
   const toast = useToast()
+  const {
+    pets,
+    loading,
+    add: addPetApi,
+    update: updatePetApi,
+    remove: removePetApi,
+  } = usePets()
 
-  const [pets, setPets] = useState(
-    user?.pets?.map((pet, index) => ({ ...pet, id: pet.id || index + 1 })) || [],
-  )
   const [isPetModalOpen, setIsPetModalOpen] = useState(false)
   const [petForm, setPetForm] = useState(EMPTY_PET_FORM)
   const [editingPet, setEditingPet] = useState(null)
@@ -190,7 +233,7 @@ export default function AccountPets() {
   }
 
   const openEditPetModal = (pet) => {
-    setPetForm({ ...EMPTY_PET_FORM, ...pet })
+    setPetForm(mapPetToForm(pet))
     setEditingPet(pet)
     setPetError('')
     setIsPetModalOpen(true)
@@ -207,7 +250,7 @@ export default function AccountPets() {
     return ''
   }
 
-  const handleSavePet = () => {
+  const handleSavePet = async () => {
     try {
       const error = validatePetForm()
       if (error) {
@@ -215,14 +258,14 @@ export default function AccountPets() {
         return
       }
 
+      const petData = buildPetPayload(petForm, editingPet)
+
       if (editingPet) {
-        setPets((prev) => prev.map((pet) => (
-          pet.id === editingPet.id ? { ...pet, ...petForm } : pet
-        )))
+        await updatePetApi(editingPet.id, petData)
         toast.success('毛孩資料已更新')
       } else {
-        setPets((prev) => [...prev, { ...petForm, id: Date.now() }])
-        toast.success('毛孩已新增')
+        await addPetApi(petData)
+        toast.success('毛孩資料已新增')
       }
 
       closePetModal()
@@ -231,10 +274,10 @@ export default function AccountPets() {
     }
   }
 
-  const handleDeletePet = (id) => {
+  const handleDeletePet = async (id) => {
     try {
       if (!window.confirm('確定要刪除此毛孩資料嗎？')) return
-      setPets((prev) => prev.filter((pet) => pet.id !== id))
+      await removePetApi(id)
       toast.success('毛孩資料已刪除')
     } catch (err) {
       toast.error(err?.message || '操作失敗，請稍後再試')
@@ -258,60 +301,64 @@ export default function AccountPets() {
         petError={petError}
       />
 
-      {pets.length === 0 ? (
+      {!loading && pets.length === 0 ? (
         <EmptyState
           className="account-empty-state"
           icon="🐾"
           title="目前還沒有毛孩資料"
-          description="新增毛孩後，我們能提供更符合需求的商品推薦。"
+          description="新增毛孩後，可以在會員中心更方便管理生日、品種與基本資訊。"
           actionLabel="新增毛孩"
           onAction={openAddPetModal}
         />
       ) : (
         <div className="address-grid">
-          {pets.map((pet) => (
-            <div key={pet.id} className="address-card">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <span style={{ fontSize: 32, lineHeight: 1 }}>
-                  {PET_EMOJI[pet.petType] || '🐾'}
-                </span>
-                <div>
-                  <div className="address-name">{pet.petName}</div>
-                  <div style={{ fontSize: 12, color: 'var(--color-gray-dark)', marginTop: 2 }}>
-                    {PET_TYPE_LABEL[pet.petType] || '未設定種類'}
-                    {pet.petBreed && ` · ${pet.petBreed}`}
+          {pets.map((pet) => {
+            const petView = mapPetToForm(pet)
+
+            return (
+              <div key={pet.id} className="address-card">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <span style={{ fontSize: 32, lineHeight: 1 }}>
+                    {PET_EMOJI[petView.petType] || '🐾'}
+                  </span>
+                  <div>
+                    <div className="address-name">{petView.petName}</div>
+                    <div style={{ fontSize: 12, color: 'var(--color-gray-dark)', marginTop: 2 }}>
+                      {PET_TYPE_LABEL[petView.petType] || '未分類'}
+                      {petView.petBreed && ` ・ ${petView.petBreed}`}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div
-                className="address-detail"
-                style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginBottom: 12 }}
-              >
-                {pet.petGender && <span>{PET_GENDER_LABEL[pet.petGender]}</span>}
-                {pet.petAge && <span>{pet.petAge} 歲</span>}
-                {pet.petWeight && <span>{pet.petWeight} kg</span>}
-                {pet.petBirthday && <span>{pet.petBirthday}</span>}
-                {!pet.petGender && !pet.petAge && !pet.petWeight && !pet.petBirthday && (
-                  <span style={{ color: 'var(--color-gray-dark)', fontStyle: 'italic' }}>尚未填寫更多資訊</span>
-                )}
-              </div>
-
-              <div className="address-actions">
-                <button className="btn-address-action" onClick={() => openEditPetModal(pet)}>
-                  <Edit2 size={12} style={{ display: 'inline', marginRight: 4 }} />
-                  編輯
-                </button>
-                <button
-                  className="btn-address-action"
-                  style={{ color: '#e74c3c' }}
-                  onClick={() => handleDeletePet(pet.id)}
+                <div
+                  className="address-detail"
+                  style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginBottom: 12 }}
                 >
-                  <Trash2 size={12} style={{ display: 'inline' }} />
-                </button>
+                  {petView.petGender && <span>{PET_GENDER_LABEL[petView.petGender] || petView.petGender}</span>}
+                  {petView.petAge && <span>{petView.petAge} 歲</span>}
+                  {petView.petWeight && <span>{petView.petWeight} kg</span>}
+                  {petView.petBirthday && <span>{petView.petBirthday}</span>}
+                  {!petView.petGender && !petView.petAge && !petView.petWeight && !petView.petBirthday && (
+                    <span style={{ color: 'var(--color-gray-dark)', fontStyle: 'italic' }}>尚未填寫更多資訊</span>
+                  )}
+                </div>
+
+                <div className="address-actions">
+                  <button className="btn-address-action" onClick={() => openEditPetModal(pet)}>
+                    <Edit2 size={12} style={{ display: 'inline', marginRight: 4 }} />
+                    編輯
+                  </button>
+                  <button
+                    className="btn-address-action"
+                    style={{ color: '#e74c3c' }}
+                    onClick={() => handleDeletePet(pet.id)}
+                  >
+                    <Trash2 size={12} style={{ display: 'inline' }} />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
 
           <button className="btn-add-address" onClick={openAddPetModal}>
             <Plus size={24} />

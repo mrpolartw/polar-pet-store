@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, User } from 'lucide-react'
 import { CONFIG } from '../../../constants/config'
 import { useAuth } from '../../../context/useAuth'
 import { useToast } from '../../../context/ToastContext'
 import { getMemberTier } from '../../../context/authUtils'
+import { useMember } from '../../../hooks/useMember'
 import { MEMBER_TIER_THRESHOLD } from '../../../utils/constants'
 
 const SUPPORTED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
@@ -42,15 +43,15 @@ function AccountProfileCard({ user, tier, onAvatarUpload }) {
         type="button"
         className="account-avatar account-avatar-button"
         onClick={() => inputRef.current?.click()}
-        aria-label="更換頭像"
+        aria-label="更新頭像"
       >
         {user?.avatar ? <img src={user.avatar} alt={user?.name || '會員頭像'} /> : getInitials(user?.name)}
         <span className="account-avatar-overlay">
           <Camera size={18} />
         </span>
       </button>
-      <div className="account-user-name">{`嗨，${user?.name ?? '會員'}`}</div>
-      <div className="account-user-email">你和毛孩的所有紀錄，都在這裡。</div>
+      <div className="account-user-name">{`哈囉，${user?.name ?? '會員'}`}</div>
+      <div className="account-user-email">點擊頭像可上傳新的會員照片</div>
       <div className="account-tier-badge" style={{ background: tier.bg, color: tier.color }}>
         <span>會員等級 {tier.label}</span>
       </div>
@@ -65,7 +66,8 @@ function AccountProfileCard({ user, tier, onAvatarUpload }) {
 }
 
 export default function AccountProfile() {
-  const { user, updateProfile, isLoading } = useAuth()
+  const { user, isLoading } = useAuth()
+  const { member, loading, updateMember } = useMember()
   const toast = useToast()
 
   const [profileForm, setProfileForm] = useState({
@@ -73,9 +75,34 @@ export default function AccountProfile() {
     phone: user?.phone || '',
     birthday: user?.birthday || '',
     gender: user?.gender || '',
+    avatar: user?.avatar || '',
   })
 
-  const points = user?.points || 0
+  useEffect(() => {
+    if (!member) return
+
+    setProfileForm((prev) => ({
+      ...prev,
+      name: member.display_name || '',
+      phone: member.phone || '',
+      birthday: member.birthday || '',
+      gender: member.gender || '',
+      avatar: member.avatar_url || '',
+    }))
+  }, [member])
+
+  const profileUser = {
+    ...user,
+    name: member?.display_name || user?.name || '',
+    email: member?.email || user?.email || '',
+    phone: member?.phone || user?.phone || '',
+    birthday: member?.birthday || user?.birthday || '',
+    gender: member?.gender || user?.gender || '',
+    avatar: member?.avatar_url || profileForm.avatar || user?.avatar || '',
+    points: Number(member?.points_balance ?? user?.points ?? 0),
+  }
+
+  const points = profileUser?.points || 0
   const tier = getMemberTier(points)
   const nextTierPoints = getNextTierPoints(points)
   const progressPct = nextTierPoints ? Math.min((points / nextTierPoints) * 100, 100) : 100
@@ -83,13 +110,16 @@ export default function AccountProfile() {
 
   const handleUpdateProfile = async () => {
     try {
-      const result = await updateProfile(profileForm)
-      if (result?.success === false) {
-        throw new Error(result?.message || '儲存失敗，請稍後再試')
-      }
-      toast.success('已儲存。')
+      await updateMember({
+        display_name: profileForm.name,
+        phone: profileForm.phone,
+        gender: profileForm.gender,
+        birthday: profileForm.birthday,
+        avatar_url: profileForm.avatar,
+      })
+      toast.success('資料已更新')
     } catch (err) {
-      toast.error(err?.message || '操作失敗，請稍後再試')
+      toast.error(err?.message || '更新失敗，請稍後再試')
     }
   }
 
@@ -100,7 +130,7 @@ export default function AccountProfile() {
     if (!file) return
 
     if (!SUPPORTED_AVATAR_TYPES.includes(file.type)) {
-      toast.error('僅支援 JPG / PNG / WebP / GIF 格式')
+      toast.error('請上傳 JPG / PNG / WebP / GIF 圖片')
       return
     }
 
@@ -116,22 +146,19 @@ export default function AccountProfile() {
         const avatar = typeof reader.result === 'string' ? reader.result : ''
 
         if (!avatar) {
-          throw new Error('頭像讀取失敗，請重新選擇檔案')
+          throw new Error('無法讀取頭像檔案')
         }
 
-        const result = await updateProfile({ avatar })
-        if (result?.success === false) {
-          throw new Error(result?.message || '頭像更新失敗，請稍後再試')
-        }
-
-        toast.success('頭像更新成功')
+        await updateMember({ avatar_url: avatar })
+        setProfileForm((prev) => ({ ...prev, avatar }))
+        toast.success('頭像已更新')
       } catch (err) {
-        toast.error(err?.message || '操作失敗，請稍後再試')
+        toast.error(err?.message || '更新失敗，請稍後再試')
       }
     }
 
     reader.onerror = () => {
-      toast.error('頭像讀取失敗，請重新選擇檔案')
+      toast.error('無法讀取頭像檔案')
     }
 
     reader.readAsDataURL(file)
@@ -141,11 +168,11 @@ export default function AccountProfile() {
     <motion.div key="profile" {...fadeUp}>
       <h2 className="account-section-title">
         <User size={22} className="account-nav-icon" />
-        你的資料
+        個人資料
       </h2>
 
       <AccountProfileCard
-        user={user}
+        user={profileUser}
         tier={tier}
         onAvatarUpload={handleAvatarUpload}
       />
@@ -159,8 +186,8 @@ export default function AccountProfile() {
           </span>
           <span>
             {nextTierPoints
-              ? `距離下一個會員等級還差 ${remainingToNextTier.toLocaleString()} 點`
-              : '已達最高會員等級 🎉'}
+              ? `距離下一個等級還差 ${remainingToNextTier.toLocaleString()} 點`
+              : '你已經是最高等級會員'}
           </span>
         </div>
         <div className="tier-progress-bar">
@@ -171,7 +198,7 @@ export default function AccountProfile() {
       <div className="profile-form">
         <div className="profile-form-row">
           <div className="profile-field">
-            <label>姓名</label>
+            <label>暱稱</label>
             <input
               type="text"
               className="apple-input"
@@ -206,13 +233,13 @@ export default function AccountProfile() {
                   padding: '1px 8px',
                 }}
               >
-                需聯絡客服協助修改
+                目前無法在此修改
               </span>
             </label>
             <input
               type="email"
               className="apple-input"
-              value={user?.email || ''}
+              value={profileUser?.email || ''}
               disabled
               style={{ opacity: 0.6, cursor: 'not-allowed' }}
             />
@@ -232,7 +259,7 @@ export default function AccountProfile() {
                   padding: '1px 8px',
                 }}
               >
-                僅能建立後修改
+                目前由客服協助修改
               </span>
             </label>
             <input
@@ -255,7 +282,7 @@ export default function AccountProfile() {
             <option value="">請選擇</option>
             <option value="male">男性</option>
             <option value="female">女性</option>
-            <option value="other">不方便透露</option>
+            <option value="other">其他</option>
           </select>
         </div>
 
@@ -263,9 +290,9 @@ export default function AccountProfile() {
           <button
             className="btn-blue profile-save-btn"
             onClick={handleUpdateProfile}
-            disabled={isLoading}
+            disabled={isLoading || loading}
           >
-            {isLoading ? '儲存中...' : '儲存'}
+            {isLoading || loading ? '儲存中...' : '儲存'}
           </button>
         </div>
       </div>
