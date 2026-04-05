@@ -33,7 +33,8 @@ class MrPolar_Order_Hooks {
         return self::$instance;
     }
 
-    public static function deduct_points_for_redemption(int $memberId, int $points, int $orderId): void {
+    // fix: allow explicit operator ID during redemption deductions
+    public static function deduct_points_for_redemption(int $memberId, int $points, int $orderId, ?int $operatedBy = null): void {
         self::instance()->award_points(
             $memberId,
             -abs($points),
@@ -41,7 +42,7 @@ class MrPolar_Order_Hooks {
             $orderId,
             sprintf('訂單 #%d 點數折抵使用', $orderId),
             null,
-            get_current_user_id() ?: null
+            $operatedBy ?? (get_current_user_id() ?: null)
         );
     }
 
@@ -250,6 +251,8 @@ class MrPolar_Order_Hooks {
 
         $orderIdSql = null === $orderId ? 'NULL' : '%d';
         $noteSql    = null === $note ? 'NULL' : '%s';
+        // fix: keep system-generated points logs as NULL operated_by instead of 0
+        $operatedBySql = (null !== $operatedBy && $operatedBy > 0) ? '%d' : 'NULL';
         $params     = [
             $memberId,
             $changeType,
@@ -267,13 +270,16 @@ class MrPolar_Order_Hooks {
             $params[] = $note;
         }
 
-        $params[] = $operatedBy ?? 0;
+        if ('%d' === $operatedBySql) {
+            $params[] = $operatedBy;
+        }
+
         $params[] = $operatedName;
         $params[] = '';
 
         $insertSql = "INSERT INTO {$this->table_points_log}
             (member_id, change_type, points_delta, points_after, order_id, reason, note, operated_by, operated_name, operated_at, ip_address)
-            VALUES (%d, %s, %d, %d, {$orderIdSql}, %s, {$noteSql}, %d, %s, NOW(), %s)";
+            VALUES (%d, %s, %d, %d, {$orderIdSql}, %s, {$noteSql}, {$operatedBySql}, %s, NOW(), %s)";
 
         $inserted = $wpdb->query($wpdb->prepare($insertSql, $params));
 

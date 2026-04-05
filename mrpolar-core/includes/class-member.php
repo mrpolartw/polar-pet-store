@@ -376,7 +376,8 @@ class MrPolar_Member {
             return new WP_Error('mrpolar_invalid_member_id', 'Invalid member ID.', ['status' => 400]);
         }
 
-        $allowed = ['status', 'note', 'tier_id', 'points_balance'];
+        // fix: allow manual tier changes to persist upgrade timestamp
+        $allowed = ['status', 'note', 'tier_id', 'points_balance', 'tier_upgraded_at'];
         $set     = [];
         $params  = [];
 
@@ -408,6 +409,11 @@ class MrPolar_Member {
                 case 'points_balance':
                     $set[]    = 'points_balance = %d';
                     $params[] = max(0, (int) $data[$field]);
+                    break;
+
+                case 'tier_upgraded_at':
+                    $set[]    = 'tier_upgraded_at = %s';
+                    $params[] = sanitize_text_field((string) $data[$field]);
                     break;
             }
         }

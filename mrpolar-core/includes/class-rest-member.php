@@ -35,7 +35,8 @@ class MrPolar_REST_Member {
                 'permission_callback' => [$this, 'permission_callback'],
             ],
             [
-                'methods'             => WP_REST_Server::CREATABLE,
+                // fix: allow both POST and PATCH for member profile updates
+                'methods'             => 'POST, PATCH',
                 'callback'            => [$this, 'update_me'],
                 'permission_callback' => [$this, 'permission_callback'],
             ],

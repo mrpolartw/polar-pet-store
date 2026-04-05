@@ -213,6 +213,8 @@ class MrPolar_Points_Shortcode {
 
         $discount = $points * self::POINTS_TO_NTD_RATE;
         $order    = wc_get_order($orderId);
+        // fix: use the order customer as operator when no logged-in user context exists
+        $wpUserId = $order instanceof WC_Order ? (int) $order->get_customer_id() : 0;
 
         if (!$order instanceof WC_Order) {
             return;
@@ -224,7 +226,7 @@ class MrPolar_Points_Shortcode {
 
         $memberId = $this->get_current_member_id();
         if (null !== $memberId) {
-            MrPolar_Order_Hooks::deduct_points_for_redemption($memberId, $points, $orderId);
+            MrPolar_Order_Hooks::deduct_points_for_redemption($memberId, $points, $orderId, $wpUserId ?: null);
         }
 
         WC()->session->set('mrpolar_redeem_points', 0);

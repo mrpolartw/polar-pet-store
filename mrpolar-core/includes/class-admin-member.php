@@ -66,6 +66,8 @@ class MrPolar_Admin_Member {
         add_action('admin_post_mrpolar_save_columns', [$instance, 'handle_save_columns']);
         add_action('admin_post_mrpolar_export_members', [$instance, 'handle_export_members']);
         add_action('admin_post_mrpolar_adjust_points', [$instance, 'handle_adjust_points']);
+        add_action('admin_post_mrpolar_save_member_note', [$instance, 'handle_save_member_note']);
+        add_action('admin_post_mrpolar_save_member_tier', [$instance, 'handle_save_member_tier']);
         add_action('admin_post_mrpolar_toggle_member_status', [$instance, 'handle_toggle_member_status']);
         add_action('admin_enqueue_scripts', [$instance, 'enqueue_assets']);
     }
@@ -1446,10 +1448,18 @@ class MrPolar_Admin_Member {
 
         $wpdb->query('START TRANSACTION');
 
+        // fix: keep lifetime points in sync for positive admin adjustments
         $updated = $wpdb->query(
             $wpdb->prepare(
-                "UPDATE {$this->table_members} SET points_balance = %d, updated_at = NOW() WHERE id = %d",
+                "UPDATE {$this->table_members}
+                 SET
+                    points_balance = %d,
+                    points_lifetime = IF(%d > 0, points_lifetime + %d, points_lifetime),
+                    updated_at = NOW()
+                 WHERE id = %d",
                 $newBalance,
+                $delta,
+                $delta,
                 $memberId
             )
         );
@@ -1486,6 +1496,84 @@ class MrPolar_Admin_Member {
         $wpdb->query('COMMIT');
 
         wp_safe_redirect($this->with_notice($detailUrl, sprintf('點數已調整：%+d 點', $delta), 'success'));
+        exit;
+    }
+
+    /* ========================================
+     * Save Member Note Handler
+     * ====================================== */
+    public function handle_save_member_note(): void {
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to perform this action.', 'mrpolar-api'));
+        }
+
+        $memberId  = isset($_POST['member_id']) ? intval(wp_unslash((string) $_POST['member_id'])) : 0;
+        $detailUrl = add_query_arg(['page' => 'mrpolar-member', 'id' => $memberId], admin_url('admin.php'));
+
+        if ($memberId <= 0) {
+            wp_safe_redirect($this->with_notice($detailUrl, '無效的會員ID', 'error'));
+            exit;
+        }
+
+        check_admin_referer('mrpolar_save_member_note_' . $memberId);
+
+        $note = isset($_POST['note'])
+            ? sanitize_textarea_field(wp_unslash((string) $_POST['note']))
+            : '';
+
+        $result = MrPolar_Member::update_member_admin_profile($memberId, ['note' => $note]);
+
+        if (is_wp_error($result)) {
+            wp_safe_redirect($this->with_notice($detailUrl, $result->get_error_message(), 'error'));
+            exit;
+        }
+
+        wp_safe_redirect($this->with_notice($detailUrl, '備註已儲存', 'success'));
+        exit;
+    }
+
+    /* ========================================
+     * Save Member Tier Handler
+     * ====================================== */
+    public function handle_save_member_tier(): void {
+        global $wpdb;
+
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to perform this action.', 'mrpolar-api'));
+        }
+
+        $memberId  = isset($_POST['member_id']) ? intval(wp_unslash((string) $_POST['member_id'])) : 0;
+        $tierId    = isset($_POST['tier_id']) ? intval(wp_unslash((string) $_POST['tier_id'])) : 0;
+        $detailUrl = add_query_arg(['page' => 'mrpolar-member', 'id' => $memberId], admin_url('admin.php'));
+
+        if ($memberId <= 0 || $tierId <= 0) {
+            wp_safe_redirect($this->with_notice($detailUrl, '資料無效', 'error'));
+            exit;
+        }
+
+        check_admin_referer('mrpolar_save_member_tier_' . $memberId);
+
+        $tierExists = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$this->table_tiers} WHERE id = %d AND is_active = 1 LIMIT 1",
+            $tierId
+        ));
+
+        if (!$tierExists) {
+            wp_safe_redirect($this->with_notice($detailUrl, '等級不存在', 'error'));
+            exit;
+        }
+
+        $result = MrPolar_Member::update_member_admin_profile($memberId, [
+            'tier_id'          => $tierId,
+            'tier_upgraded_at' => current_time('mysql'),
+        ]);
+
+        if (is_wp_error($result)) {
+            wp_safe_redirect($this->with_notice($detailUrl, $result->get_error_message(), 'error'));
+            exit;
+        }
+
+        wp_safe_redirect($this->with_notice($detailUrl, '會員等級已更新', 'success'));
         exit;
     }
 
