@@ -1,5 +1,30 @@
-const RAW_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
-const API_ROOT = /\/wp-json$/i.test(RAW_BASE_URL) ? RAW_BASE_URL : `${RAW_BASE_URL}/wp-json`
+const normalizeApiRoot = (value) => {
+  const normalized = String(value || '').replace(/\/$/, '')
+
+  if (!normalized) {
+    return ''
+  }
+
+  return /\/wp-json$/i.test(normalized) ? normalized : `${normalized}/wp-json`
+}
+
+const resolveApiRoot = () => {
+  const explicitApiRoot = normalizeApiRoot(
+    import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_WP_API_URL || ''
+  )
+
+  if (explicitApiRoot) {
+    return explicitApiRoot
+  }
+
+  if (import.meta.env.DEV) {
+    return '/wp-json'
+  }
+
+  return normalizeApiRoot(import.meta.env.VITE_WC_URL || '') || '/wp-json'
+}
+
+const API_ROOT = resolveApiRoot()
 const BASE = `${API_ROOT}/mrpolar/v1`
 
 const buildHeaders = (token, headers = {}) => {
@@ -16,15 +41,15 @@ const buildHeaders = (token, headers = {}) => {
 }
 
 const parseResponseBody = async (response) => {
-  if (response.status === 204) {
-    return null
-  }
+  if (response.status === 204) return null
+
+  const text = await response.text()   // 只讀一次
+  if (!text) return null
 
   try {
-    return await response.json()
+    return JSON.parse(text)            // 再 parse
   } catch {
-    const text = await response.text()
-    return text || null
+    return text
   }
 }
 

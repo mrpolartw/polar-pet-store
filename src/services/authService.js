@@ -14,15 +14,15 @@ const createHeaders = (token) => {
 }
 
 const parseResponseBody = async (response) => {
-  if (response.status === 204) {
-    return null
-  }
+  if (response.status === 204) return null
+
+  const text = await response.text()   // 只讀一次
+  if (!text) return null
 
   try {
-    return await response.json()
+    return JSON.parse(text)            // 再 parse
   } catch {
-    const text = await response.text()
-    return text || null
+    return text
   }
 }
 
