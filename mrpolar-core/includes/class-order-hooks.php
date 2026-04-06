@@ -20,9 +20,17 @@ class MrPolar_Order_Hooks {
     }
 
     public static function boot(): void {
-        add_action('woocommerce_order_status_completed', [self::instance(), 'on_order_completed'], 10, 1);
+        // 付款完成立即觸發（支援所有付款方式）
+        add_action('woocommerce_payment_complete',       [self::instance(), 'on_order_paid'], 10, 1);
+        // 訂單直接被標為完成時也觸發（e.g. 貨到付款手動完成）
+        add_action('woocommerce_order_status_completed', [self::instance(), 'on_order_paid'], 10, 1);
+        // 訂單取消 / 退款時扣回
         add_action('woocommerce_order_status_cancelled', [self::instance(), 'on_order_cancelled'], 10, 1);
-        add_action('woocommerce_order_status_refunded', [self::instance(), 'on_order_cancelled'], 10, 1);
+        add_action('woocommerce_order_status_refunded',  [self::instance(), 'on_order_cancelled'], 10, 1);
+        // 每年 1 月 1 日 00:05 執行年度 reset 與保級降等
+        add_action('mrpolar_yearly_tier_reset',          [self::instance(), 'run_yearly_reset']);
+        // 排程若尚未建立則建立
+        add_action('init',                               [self::instance(), 'maybe_schedule_yearly_reset']);
     }
 
     public static function instance(): self {
@@ -33,7 +41,9 @@ class MrPolar_Order_Hooks {
         return self::$instance;
     }
 
-    // fix: allow explicit operator ID during redemption deductions
+    // ───────────────────────────────────────────
+    // 公用：折抵點數扣除
+    // ───────────────────────────────────────────
     public static function deduct_points_for_redemption(int $memberId, int $points, int $orderId, ?int $operatedBy = null): void {
         self::instance()->award_points(
             $memberId,
@@ -46,15 +56,18 @@ class MrPolar_Order_Hooks {
         );
     }
 
-    public function on_order_completed(int $orderId): void {
+    // ───────────────────────────────────────────
+    // 訂單付款完成
+    // ───────────────────────────────────────────
+    public function on_order_paid(int $orderId): void {
         $order = wc_get_order($orderId);
 
         if (!$order instanceof WC_Order || $order->get_customer_id() <= 0) {
             return;
         }
 
-        $alreadyProcessed = (string) $order->get_meta('_mrpolar_points_processed', true);
-        if ('1' === $alreadyProcessed) {
+        // 防止重複處理（payment_complete + status_completed 都掛鉤）
+        if ('1' === (string) $order->get_meta('_mrpolar_points_processed', true)) {
             return;
         }
 
@@ -64,11 +77,14 @@ class MrPolar_Order_Hooks {
         }
 
         $qualifyingAmount = $this->get_qualifying_amount($order);
-        $rate             = $this->get_member_cashback_rate($memberId);
-        $pointsToEarn     = ($qualifyingAmount > 0 && $rate > 0)
+
+        // ── 計算回饋點數 ──
+        $rate         = $this->get_member_cashback_rate($memberId);
+        $pointsToEarn = ($qualifyingAmount > 0 && $rate > 0)
             ? (int) floor($qualifyingAmount * $rate)
             : 0;
 
+        // ── 生日加碼 ──
         $memberBirthday = $this->get_member_birthday($memberId);
         if (null !== $memberBirthday) {
             $birthMonth   = gmdate('m', strtotime($memberBirthday));
@@ -82,6 +98,7 @@ class MrPolar_Order_Hooks {
             }
         }
 
+        // ── 寫入點數 ──
         if ($pointsToEarn > 0) {
             $awarded = $this->award_points(
                 $memberId,
@@ -98,13 +115,16 @@ class MrPolar_Order_Hooks {
             }
         }
 
+        // ── 累加年度消費 + 累計消費 ──
         global $wpdb;
 
         $updated = $wpdb->query(
             $wpdb->prepare(
                 "UPDATE {$this->table_members}
-                 SET yearly_spending = yearly_spending + %f
+                 SET yearly_spending = yearly_spending + %f,
+                     total_spending  = total_spending  + %f
                  WHERE id = %d",
+                $qualifyingAmount,
                 $qualifyingAmount,
                 $memberId
             )
@@ -114,12 +134,16 @@ class MrPolar_Order_Hooks {
             return;
         }
 
+        // ── 即時升等檢查 ──
         $this->maybe_upgrade_tier($memberId);
 
         $order->update_meta_data('_mrpolar_points_processed', '1');
         $order->save();
     }
 
+    // ───────────────────────────────────────────
+    // 訂單取消 / 退款
+    // ───────────────────────────────────────────
     public function on_order_cancelled(int $orderId): void {
         $order = wc_get_order($orderId);
 
@@ -127,13 +151,11 @@ class MrPolar_Order_Hooks {
             return;
         }
 
-        $alreadyProcessed = (string) $order->get_meta('_mrpolar_points_processed', true);
-        if ('1' !== $alreadyProcessed) {
+        if ('1' !== (string) $order->get_meta('_mrpolar_points_processed', true)) {
             return;
         }
 
-        $alreadyReversed = (string) $order->get_meta('_mrpolar_points_reversed', true);
-        if ('1' === $alreadyReversed) {
+        if ('1' === (string) $order->get_meta('_mrpolar_points_reversed', true)) {
             return;
         }
 
@@ -148,8 +170,8 @@ class MrPolar_Order_Hooks {
             $wpdb->prepare(
                 "SELECT id, points_delta
                  FROM {$this->table_points_log}
-                 WHERE member_id = %d
-                   AND order_id = %d
+                 WHERE member_id  = %d
+                   AND order_id   = %d
                    AND change_type = %s
                  LIMIT 1",
                 $memberId,
@@ -180,8 +202,10 @@ class MrPolar_Order_Hooks {
         $wpdb->query(
             $wpdb->prepare(
                 "UPDATE {$this->table_members}
-                 SET yearly_spending = GREATEST(0, yearly_spending - %f)
+                 SET yearly_spending = GREATEST(0, yearly_spending - %f),
+                     total_spending  = GREATEST(0, total_spending  - %f)
                  WHERE id = %d",
+                $qualifyingAmount,
                 $qualifyingAmount,
                 $memberId
             )
@@ -191,6 +215,170 @@ class MrPolar_Order_Hooks {
         $order->save();
     }
 
+    // ───────────────────────────────────────────
+    // 升等邏輯：由高到低掃描，找到最高符合等級（AND 邏輯）
+    // ───────────────────────────────────────────
+    private function maybe_upgrade_tier(int $memberId): void {
+        global $wpdb;
+
+        $member = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT
+                    m.wp_user_id,
+                    m.tier_id,
+                    m.yearly_spending,
+                    m.points_lifetime,
+                    COALESCE(t.sort_order, 0)    AS current_sort_order,
+                    COALESCE(t.is_manual_only, 0) AS current_is_manual_only
+                 FROM {$this->table_members} m
+                 LEFT JOIN {$this->table_tiers} t ON t.id = m.tier_id
+                 WHERE m.id = %d
+                 LIMIT 1",
+                $memberId
+            ),
+            ARRAY_A
+        );
+
+        if (!is_array($member)) {
+            return;
+        }
+
+        // 手動等級不自動變動
+        if ((int) ($member['current_is_manual_only'] ?? 0) === 1) {
+            return;
+        }
+
+        $tiers = $wpdb->get_results(
+            "SELECT id, sort_order, upgrade_min_spending, upgrade_min_orders, upgrade_min_points
+             FROM {$this->table_tiers}
+             WHERE is_active      = 1
+               AND is_manual_only = 0
+               AND (
+                   upgrade_min_spending IS NOT NULL
+                   OR upgrade_min_orders IS NOT NULL
+                   OR upgrade_min_points IS NOT NULL
+               )
+             ORDER BY sort_order DESC",
+            ARRAY_A
+        );
+
+        if (empty($tiers)) {
+            return;
+        }
+
+        $yearlySpending   = (float) ($member['yearly_spending'] ?? 0);
+        $pointsLifetime   = (int)   ($member['points_lifetime'] ?? 0);
+        $wpUserId         = (int)   ($member['wp_user_id'] ?? 0);
+        $currentSortOrder = (int)   ($member['current_sort_order'] ?? 0);
+        $orderCount       = null;
+
+        foreach ($tiers as $tier) {
+            // 每個非 null 的條件都要通過（AND 邏輯）
+            $qualifies = true;
+
+            if (null !== $tier['upgrade_min_spending']) {
+                $qualifies = $qualifies && ($yearlySpending >= (float) $tier['upgrade_min_spending']);
+            }
+
+            if (null !== $tier['upgrade_min_orders']) {
+                if (null === $orderCount) {
+                    $orders = wc_get_orders([
+                        'customer'   => $wpUserId,
+                        'status'     => ['completed'],
+                        'date_after' => gmdate('Y-01-01'),
+                        'return'     => 'ids',
+                        'limit'      => -1,
+                    ]);
+                    $orderCount = is_array($orders) ? count($orders) : 0;
+                }
+                $qualifies = $qualifies && ($orderCount >= (int) $tier['upgrade_min_orders']);
+            }
+
+            if (null !== $tier['upgrade_min_points']) {
+                $qualifies = $qualifies && ($pointsLifetime >= (int) $tier['upgrade_min_points']);
+            }
+
+            if ($qualifies) {
+                $tierSortOrder = (int) ($tier['sort_order'] ?? 0);
+                // 只升不降（降等由年度 reset 負責）
+                if ($tierSortOrder > $currentSortOrder) {
+                    $wpdb->query(
+                        $wpdb->prepare(
+                            "UPDATE {$this->table_members}
+                             SET tier_id = %d, tier_upgraded_at = NOW()
+                             WHERE id = %d",
+                            (int) $tier['id'],
+                            $memberId
+                        )
+                    );
+                }
+                // 最高符合等級找到，停止掃描
+                return;
+            }
+        }
+    }
+
+    // ───────────────────────────────────────────
+    // 年度排程：建立 WP Cron
+    // ───────────────────────────────────────────
+    public function maybe_schedule_yearly_reset(): void {
+        if (!wp_next_scheduled('mrpolar_yearly_tier_reset')) {
+            $nextReset = strtotime(gmdate('Y', strtotime('+1 year')) . '-01-01 00:05:00 Asia/Taipei');
+            wp_schedule_event((int) $nextReset, 'yearly', 'mrpolar_yearly_tier_reset');
+        }
+    }
+
+    // ───────────────────────────────────────────
+    // 年度 reset：保級判斷 + yearly_spending 歸零
+    // ───────────────────────────────────────────
+    public function run_yearly_reset(): void {
+        global $wpdb;
+
+        $members = $wpdb->get_results(
+            "SELECT m.id, m.tier_id, m.yearly_spending,
+                    t.is_manual_only, t.sort_order AS tier_sort_order,
+                    t.downgrade_to_tier_id, t.downgrade_min_spending, t.upgrade_min_spending
+             FROM {$this->table_members} m
+             LEFT JOIN {$this->table_tiers} t ON t.id = m.tier_id
+             WHERE m.tier_id IS NOT NULL",
+            ARRAY_A
+        );
+
+        foreach ((array) $members as $member) {
+            if ((int) ($member['is_manual_only'] ?? 0) === 1) {
+                continue;
+            }
+
+            $memberId    = (int) $member['id'];
+            $yearlySpend = (float) $member['yearly_spending'];
+
+            // 保級門檻：優先用 downgrade_min_spending，fallback 用 upgrade_min_spending
+            $maintainMin = null !== $member['downgrade_min_spending'] && '' !== (string) $member['downgrade_min_spending']
+                ? (float) $member['downgrade_min_spending']
+                : (float) ($member['upgrade_min_spending'] ?? 0);
+
+            if (
+                $maintainMin > 0
+                && $yearlySpend < $maintainMin
+                && !empty($member['downgrade_to_tier_id'])
+            ) {
+                $wpdb->query(
+                    $wpdb->prepare(
+                        "UPDATE {$this->table_members} SET tier_id = %d WHERE id = %d",
+                        (int) $member['downgrade_to_tier_id'],
+                        $memberId
+                    )
+                );
+            }
+        }
+
+        // 全部歸零年度消費
+        $wpdb->query("UPDATE {$this->table_members} SET yearly_spending = 0");
+    }
+
+    // ───────────────────────────────────────────
+    // 私有輔助方法
+    // ───────────────────────────────────────────
     private function award_points(
         int $memberId,
         int $delta,
@@ -213,10 +401,7 @@ class MrPolar_Order_Hooks {
 
         $currentBalance = $wpdb->get_var(
             $wpdb->prepare(
-                "SELECT points_balance
-                 FROM {$this->table_members}
-                 WHERE id = %d
-                 FOR UPDATE",
+                "SELECT points_balance FROM {$this->table_members} WHERE id = %d FOR UPDATE",
                 $memberId
             )
         );
@@ -226,13 +411,13 @@ class MrPolar_Order_Hooks {
             return false;
         }
 
-        $newBalance   = max(0, (int) $currentBalance + $delta);
-        $updated      = $wpdb->query(
+        $newBalance = max(0, (int) $currentBalance + $delta);
+        $updated    = $wpdb->query(
             $wpdb->prepare(
                 "UPDATE {$this->table_members}
-                 SET points_balance = %d,
+                 SET points_balance  = %d,
                      points_lifetime = IF(%d > 0, points_lifetime + %d, points_lifetime),
-                     updated_at = NOW()
+                     updated_at      = NOW()
                  WHERE id = %d",
                 $newBalance,
                 $delta,
@@ -249,31 +434,15 @@ class MrPolar_Order_Hooks {
         $user         = ($operatedBy ?? 0) > 0 ? get_userdata((int) $operatedBy) : false;
         $operatedName = $user instanceof WP_User ? (string) $user->display_name : 'System';
 
-        $orderIdSql = null === $orderId ? 'NULL' : '%d';
-        $noteSql    = null === $note ? 'NULL' : '%s';
-        // fix: keep system-generated points logs as NULL operated_by instead of 0
+        $orderIdSql    = null === $orderId    ? 'NULL' : '%d';
+        $noteSql       = null === $note       ? 'NULL' : '%s';
         $operatedBySql = (null !== $operatedBy && $operatedBy > 0) ? '%d' : 'NULL';
-        $params     = [
-            $memberId,
-            $changeType,
-            $delta,
-            $newBalance,
-        ];
 
-        if (null !== $orderId) {
-            $params[] = $orderId;
-        }
-
+        $params = [$memberId, $changeType, $delta, $newBalance];
+        if (null !== $orderId)           { $params[] = $orderId; }
         $params[] = $reason;
-
-        if (null !== $note) {
-            $params[] = $note;
-        }
-
-        if ('%d' === $operatedBySql) {
-            $params[] = $operatedBy;
-        }
-
+        if (null !== $note)              { $params[] = $note; }
+        if ('%d' === $operatedBySql)     { $params[] = $operatedBy; }
         $params[] = $operatedName;
         $params[] = '';
 
@@ -289,7 +458,6 @@ class MrPolar_Order_Hooks {
         }
 
         $committed = $wpdb->query('COMMIT');
-
         if (false === $committed) {
             $wpdb->query('ROLLBACK');
             return false;
@@ -298,197 +466,56 @@ class MrPolar_Order_Hooks {
         return true;
     }
 
-    private function maybe_upgrade_tier(int $memberId): void {
-        global $wpdb;
-
-        $member = $wpdb->get_row(
-            $wpdb->prepare(
-                "SELECT
-                    m.wp_user_id,
-                    m.tier_id,
-                    m.yearly_spending,
-                    m.points_lifetime,
-                    COALESCE(t.sort_order, 0) AS current_sort_order
-                 FROM {$this->table_members} m
-                 LEFT JOIN {$this->table_tiers} t ON t.id = m.tier_id
-                 WHERE m.id = %d
-                 LIMIT 1",
-                $memberId
-            ),
-            ARRAY_A
-        );
-
-        if (!is_array($member)) {
-            return;
-        }
-
-        $tiers = $wpdb->get_results(
-            "SELECT
-                id,
-                sort_order,
-                upgrade_min_spending,
-                upgrade_min_orders,
-                upgrade_min_points
-             FROM {$this->table_tiers}
-             WHERE is_active = 1
-               AND is_manual_only = 0
-               AND (
-                    upgrade_min_spending IS NOT NULL
-                    OR upgrade_min_orders IS NOT NULL
-                    OR upgrade_min_points IS NOT NULL
-               )
-             ORDER BY sort_order DESC",
-            ARRAY_A
-        );
-
-        if (!is_array($tiers) || [] === $tiers) {
-            return;
-        }
-
-        $currentSortOrder = (int) ($member['current_sort_order'] ?? 0);
-        $yearlySpending   = (float) ($member['yearly_spending'] ?? 0);
-        $pointsLifetime   = (int) ($member['points_lifetime'] ?? 0);
-        $wpUserId         = (int) ($member['wp_user_id'] ?? 0);
-        $orderCount       = null;
-
-        foreach ($tiers as $tier) {
-            $qualifies = false;
-
-            if (null !== $tier['upgrade_min_spending']) {
-                $qualifies = $yearlySpending >= (float) $tier['upgrade_min_spending'];
-            }
-
-            if (null !== $tier['upgrade_min_orders']) {
-                if (null === $orderCount) {
-                    $orders = wc_get_orders([
-                        'customer'   => $wpUserId,
-                        'status'     => 'completed',
-                        'date_after' => date('Y-01-01'),
-                        'return'     => 'ids',
-                        'limit'      => -1,
-                    ]);
-                    $orderCount = is_array($orders) ? count($orders) : 0;
-                }
-
-                $qualifies = $qualifies || ($orderCount >= (int) $tier['upgrade_min_orders']);
-            }
-
-            if (null !== $tier['upgrade_min_points']) {
-                $qualifies = $qualifies || ($pointsLifetime >= (int) $tier['upgrade_min_points']);
-            }
-
-            if ($qualifies && (int) ($tier['sort_order'] ?? 0) > $currentSortOrder) {
-                $wpdb->query(
-                    $wpdb->prepare(
-                        "UPDATE {$this->table_members}
-                         SET tier_id = %d, tier_upgraded_at = NOW()
-                         WHERE id = %d",
-                        (int) $tier['id'],
-                        $memberId
-                    )
-                );
-                return;
-            }
-        }
-    }
-
     private function get_member_id_by_wp_user(int $wpUserId): ?int {
         global $wpdb;
-
-        $memberId = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT id
-                 FROM {$this->table_members}
-                 WHERE wp_user_id = %d
-                 LIMIT 1",
-                $wpUserId
-            )
-        );
-
-        return null === $memberId ? null : (int) $memberId;
+        $id = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$this->table_members} WHERE wp_user_id = %d LIMIT 1",
+            $wpUserId
+        ));
+        return null === $id ? null : (int) $id;
     }
 
     private function get_member_cashback_rate(int $memberId): float {
         global $wpdb;
-
-        $rate = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT t.cashback_rate
-                 FROM {$this->table_members} m
-                 LEFT JOIN {$this->table_tiers} t ON t.id = m.tier_id
-                 WHERE m.id = %d
-                 LIMIT 1",
-                $memberId
-            )
-        );
-
+        $rate = $wpdb->get_var($wpdb->prepare(
+            "SELECT t.cashback_rate
+             FROM {$this->table_members} m
+             LEFT JOIN {$this->table_tiers} t ON t.id = m.tier_id
+             WHERE m.id = %d LIMIT 1",
+            $memberId
+        ));
         return null === $rate ? 0.0 : (float) $rate;
     }
 
     private function get_member_birthday(int $memberId): ?string {
         global $wpdb;
-
-        $birthday = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT birthday
-                 FROM {$this->table_members}
-                 WHERE id = %d
-                 LIMIT 1",
-                $memberId
-            )
-        );
-
+        $birthday = $wpdb->get_var($wpdb->prepare(
+            "SELECT birthday FROM {$this->table_members} WHERE id = %d LIMIT 1",
+            $memberId
+        ));
         if (!is_string($birthday) || '' === $birthday) {
             return null;
         }
-
-        $timestamp = strtotime($birthday);
-
-        return false === $timestamp ? null : gmdate('Y-m-d', $timestamp);
+        $ts = strtotime($birthday);
+        return false === $ts ? null : gmdate('Y-m-d', $ts);
     }
 
     private function get_member_birthday_bonus_rate(int $memberId): float {
         global $wpdb;
-
-        $rate = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT t.birthday_bonus_rate
-                 FROM {$this->table_members} m
-                 LEFT JOIN {$this->table_tiers} t ON t.id = m.tier_id
-                 WHERE m.id = %d
-                 LIMIT 1",
-                $memberId
-            )
-        );
-
+        $rate = $wpdb->get_var($wpdb->prepare(
+            "SELECT t.birthday_bonus_rate
+             FROM {$this->table_members} m
+             LEFT JOIN {$this->table_tiers} t ON t.id = m.tier_id
+             WHERE m.id = %d LIMIT 1",
+            $memberId
+        ));
         return null === $rate ? 0.0 : (float) $rate;
     }
 
-    private function get_member_wp_user_id(int $memberId): int {
-        global $wpdb;
-
-        $wpUserId = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT wp_user_id
-                 FROM {$this->table_members}
-                 WHERE id = %d
-                 LIMIT 1",
-                $memberId
-            )
-        );
-
-        return null === $wpUserId ? 0 : (int) $wpUserId;
-    }
-
     private function get_qualifying_amount(WC_Order $order): float {
-        $orderTotal      = (float) $order->get_total();
-        $shippingTotal   = (float) $order->get_shipping_total();
-        $discountTotal   = (float) $order->get_total_discount();
-        $pointsRedeemed  = (float) $order->get_meta('_mrpolar_points_redeemed_amount', true);
-        $qualifyingAmount = max(0.0, $orderTotal - $shippingTotal - $pointsRedeemed);
-
-        unset($discountTotal);
-
-        return $qualifyingAmount;
+        $orderTotal     = (float) $order->get_total();
+        $shippingTotal  = (float) $order->get_shipping_total();
+        $pointsRedeemed = (float) $order->get_meta('_mrpolar_points_redeemed_amount', true);
+        return max(0.0, $orderTotal - $shippingTotal - $pointsRedeemed);
     }
 }
