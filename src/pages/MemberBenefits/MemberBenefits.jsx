@@ -9,7 +9,7 @@ import {
   Info,
   Star,
 } from 'lucide-react';
-import { useTiers } from '../../hooks/useMember';
+import { useMember, useTiers } from '../../hooks/useMember';
 import './MemberBenefits.css';
 
 const TIER_DATA = [
@@ -134,7 +134,7 @@ const getTierPerks = (tier) => {
     .filter(Boolean);
 };
 
-const buildTierCards = (tiers) => tiers.map((tier, index) => ({
+const BUILD_TIER_CARDS_UNUSED = (tiers) => tiers.map((tier, index) => ({
   key: tier.tier_key || `tier-${tier.id}`,
   icon: TIER_DATA[index]?.icon || '⭐',
   name: tier.tier_name,
@@ -143,14 +143,14 @@ const buildTierCards = (tiers) => tiers.map((tier, index) => ({
   perks: getTierPerks(tier),
 }));
 
-const buildTierTableRows = (tiers) => tiers.map((tier) => ([
+const BUILD_TIER_TABLE_ROWS_UNUSED = (tiers) => tiers.map((tier) => ([
   tier.tier_name,
   formatTierThreshold(tier.upgrade_min_spending),
   formatTierRate(tier.cashback_rate),
   tier.description || '—',
 ]));
 
-const buildUpgradeRows = (tiers) => tiers.map((tier, index) => {
+const BUILD_UPGRADE_ROWS_UNUSED = (tiers) => tiers.map((tier, index) => {
   const nextTier = tiers[index + 1];
 
   return [
@@ -161,10 +161,47 @@ const buildUpgradeRows = (tiers) => tiers.map((tier, index) => {
   ];
 });
 
-const buildPointRateRows = (tiers) => tiers.map((tier) => ([
+const BUILD_POINT_RATE_ROWS_UNUSED = (tiers) => tiers.map((tier) => ([
   tier.tier_name,
   formatTierRate(tier.cashback_rate),
   tier.description || '依會員等級回饋點數',
+]));
+
+const withCurrentTierLabel = (name, tierKey, currentTierKey) => (
+  currentTierKey && tierKey === currentTierKey ? `${name}（目前等級）` : name
+);
+
+const buildTierCardsWithCurrent = (tiers, currentTierKey = '') => tiers.map((tier, index) => ({
+  key: tier.tier_key || `tier-${tier.id}`,
+  icon: TIER_DATA[index]?.icon || '⭐',
+  name: withCurrentTierLabel(tier.tier_name, tier.tier_key, currentTierKey),
+  rate: formatTierRate(tier.cashback_rate),
+  threshold: formatTierThreshold(tier.upgrade_min_spending),
+  perks: getTierPerks(tier),
+}));
+
+const buildTierTableRowsWithCurrent = (tiers, currentTierKey = '') => tiers.map((tier) => ([
+  withCurrentTierLabel(tier.tier_name, tier.tier_key, currentTierKey),
+  formatTierThreshold(tier.upgrade_min_spending),
+  formatTierRate(tier.cashback_rate),
+  tier.description || '請依最新公告為準',
+]));
+
+const buildUpgradeRowsWithCurrent = (tiers, currentTierKey = '') => tiers.map((tier, index) => {
+  const nextTier = tiers[index + 1];
+
+  return [
+    withCurrentTierLabel(tier.tier_name, tier.tier_key, currentTierKey),
+    formatTierThreshold(tier.upgrade_min_spending),
+    nextTier ? `升級至 ${withCurrentTierLabel(nextTier.tier_name, nextTier.tier_key, currentTierKey)}` : '已是最高等級',
+    '依年度累積消費與活動條件調整',
+  ];
+});
+
+const buildPointRateRowsWithCurrent = (tiers, currentTierKey = '') => tiers.map((tier) => ([
+  withCurrentTierLabel(tier.tier_name, tier.tier_key, currentTierKey),
+  formatTierRate(tier.cashback_rate),
+  tier.description || '依會員等級回饋比例計算',
 ]));
 
 function TocLink({ item, activeSection, onClick }) {
@@ -199,18 +236,29 @@ function Chapter({ id, number, title, delay = 0, children }) {
 }
 
 export default function MemberBenefits() {
-  const { tiers, loading } = useTiers();
+  const { member } = useMember();
+  const { tiers, loading, error } = useTiers();
   const [activeSection, setActiveSection] = useState('chapter-1');
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const currentTierKey = member?.tier_key || member?.tierKey || '';
 
   const sortedTiers = !loading && tiers.length > 0
     ? [...tiers].sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))
     : [];
+  const currentTier = sortedTiers.find((tier) => tier.tier_key === currentTierKey);
+  const HERO_KICKER = currentTier ? `目前等級：${currentTier.tier_name}` : '?甈?';
+  const HERO_SUBHEAD = error
+    ? error
+    : loading
+      ? '會員等級資料載入中...'
+      : currentTier
+        ? `你目前的會員等級為 ${currentTier.tier_name}，以下為最新會員權益與升等說明。`
+        : '?扔?????∩遢???砍 繚 ?敺?堆?2026 撟?3 ??23 ??';
 
-  const tierData = sortedTiers.length > 0 ? buildTierCards(sortedTiers) : TIER_DATA;
-  const tierTableRows = sortedTiers.length > 0 ? buildTierTableRows(sortedTiers) : TIER_TABLE_ROWS;
-  const upgradeTableRows = sortedTiers.length > 0 ? buildUpgradeRows(sortedTiers) : UPGRADE_TABLE_ROWS;
-  const pointRateRows = sortedTiers.length > 0 ? buildPointRateRows(sortedTiers) : POINT_RATE_ROWS;
+  const tierData = sortedTiers.length > 0 ? buildTierCardsWithCurrent(sortedTiers, currentTierKey) : TIER_DATA;
+  const tierTableRows = sortedTiers.length > 0 ? buildTierTableRowsWithCurrent(sortedTiers, currentTierKey) : TIER_TABLE_ROWS;
+  const upgradeTableRows = sortedTiers.length > 0 ? buildUpgradeRowsWithCurrent(sortedTiers, currentTierKey) : UPGRADE_TABLE_ROWS;
+  const pointRateRows = sortedTiers.length > 0 ? buildPointRateRowsWithCurrent(sortedTiers, currentTierKey) : POINT_RATE_ROWS;
 
   useEffect(() => {
     const sections = document.querySelectorAll('.mb-chapter');

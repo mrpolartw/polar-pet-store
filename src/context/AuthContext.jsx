@@ -1,257 +1,327 @@
-import { createContext, useState, useEffect, useCallback } from 'react'
-import { auth, mrpolar, setToken, getToken, clearToken } from '../lib/woocommerce'
+import { createContext, useCallback, useEffect, useMemo, useState } from 'react'
+import authService from '../services/authService'
+import {
+  mapMemberToAuthUser,
+  serializePet,
+  updateMember as updateMemberService,
+} from '../services/memberService'
+import { MemberProvider } from './MemberContext'
 
 const AuthContext = createContext(null)
 
+const INVALID_LOGIN_MESSAGE = '帳號或密碼不正確，請再試一次'
+const GENERIC_LOGIN_MESSAGE = '登入時發生錯誤，請稍後再試'
+const GENERIC_REGISTER_MESSAGE = '註冊時發生錯誤，請稍後再試'
+
+const createBasicUser = (payload = {}) => ({
+  id: null,
+  memberId: null,
+  wpUserId: null,
+  name: payload.user_display_name || payload.user_nicename || '',
+  firstName: '',
+  lastName: '',
+  email: payload.user_email || '',
+  phone: '',
+  gender: '',
+  birthday: '',
+  avatar: '',
+  points: 0,
+  pointsLifetime: 0,
+  yearlySpending: 0,
+  totalSpending: 0,
+  tierId: null,
+  tierKey: '',
+  tierName: '',
+  tierColor: '',
+  cashbackRate: 0,
+  status: 'active',
+  registeredAt: '',
+  lineLinked: false,
+  lineDisplayName: '',
+  lineBoundAt: '',
+  pets: [],
+  addresses: [],
+  member: null,
+})
+
+const normalizeRegisterPayload = (userData = {}) => {
+  const displayName = String(userData.name || '').trim()
+  const nameParts = displayName.split(/\s+/).filter(Boolean)
+  const firstName = String(userData.firstName || nameParts[0] || '').trim()
+  const lastName = String(userData.lastName || nameParts.slice(1).join(' ') || '').trim()
+
+  return {
+    email: String(userData.email || '').trim(),
+    password: String(userData.password || ''),
+    first_name: firstName,
+    last_name: lastName,
+    display_name: displayName,
+    phone: String(userData.phone || '').trim(),
+    gender: String(userData.gender || '').trim(),
+    birthday: String(userData.birthday || '').trim(),
+    pets: Array.isArray(userData.pets)
+      ? userData.pets
+        .map((pet) => serializePet(pet))
+        .filter((pet) => pet.name || pet.type || pet.breed || pet.birthday)
+      : [],
+  }
+}
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
+  const [token, setToken] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [authError, setAuthError] = useState('')
 
-  // ──────────────────────────────────────────────
-  // 工具：將 WooCommerce Customer 物件轉換成前台格式
-  // ──────────────────────────────────────────────
-  const mapWcCustomer = (c) => ({
-    id: c.id,
-    name: c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || c.username,
-    firstName: c.first_name || '',
-    lastName: c.last_name || '',
-    email: c.email,
-    phone: c.phone || '',
-    avatar: c.avatar || null,
-    memberSince: c.member_since?.split('T')[0] || '',
-    points: c.points || 0,
-    pets: c.pets || [],
-    gender: c.gender || '',
-    birthday: c.birthday || '',
-    addresses: (c.addresses || []).map(a => ({
-      id: a.id,
-      label: a.label || '地址',
-      name: a.name || '',
-      phone: a.phone || '',
-      city: a.city || '',
-      district: a.district || '',
-      address: a.address || '',
-      isDefault: a.is_default || false,
-    })),
-  })
-
-  // ──────────────────────────────────────────────
-  // 初始化：從 WooCommerce 取得當前登入的會員資訊
-  // ──────────────────────────────────────────────
   useEffect(() => {
-    const wasLoggedIn = localStorage.getItem('polar_logged_in') === '1'
-    const hasToken = !!getToken()
+    let isMounted = true
 
-    if (!wasLoggedIn || !hasToken) {
-      // 旗標存在但 token 不見（分頁已關閉），清除旗標
-      if (wasLoggedIn && !hasToken) {
-        localStorage.removeItem('polar_logged_in')
+    const validateCurrentToken = async () => {
+      if (!token) {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+        return
       }
-      setIsLoading(false)
+
+      setIsLoading(true)
+
+      try {
+        await authService.validate(token)
+      } catch {
+        if (isMounted) {
+          setToken(null)
+          setUser(null)
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    validateCurrentToken()
+
+    return () => {
+      isMounted = false
+    }
+  }, [token])
+
+  const syncUserFromMember = useCallback((member) => {
+    if (!member) {
       return
     }
 
-    const fetchCurrentCustomer = async () => {
-      try {
-        const customer = await mrpolar.getMe()
-        setUser(mapWcCustomer(customer))
-      } catch {
-        clearToken()
-        localStorage.removeItem('polar_logged_in')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-    fetchCurrentCustomer()
+    setUser((previousUser) => mapMemberToAuthUser(member, previousUser || {}))
   }, [])
 
-  // ──────────────────────────────────────────────
-  // 登入
-  // ──────────────────────────────────────────────
-  const login = useCallback(async (email, password) => {
+  const logout = useCallback(async () => {
+    setToken(null)
+    setUser(null)
+    setAuthError('')
+    await authService.logout()
+    return { success: true }
+  }, [])
+
+  const login = useCallback(async (username, password) => {
     setIsLoading(true)
     setAuthError('')
 
     try {
-      // JWT 插件接受 username 或 email
-      const result = await auth.login(email, password)
+      const result = await authService.login(username, password)
 
       if (!result?.token) {
-        setAuthError('帳號或密碼不正確，請再試一次')
-        return { success: false }
+        throw new Error(INVALID_LOGIN_MESSAGE)
       }
 
       setToken(result.token)
+      setUser(createBasicUser(result))
 
-      const customer = await mrpolar.getMe()
-      setUser(mapWcCustomer(customer))
-      localStorage.setItem('polar_logged_in', '1')
       return { success: true }
-    } catch (err) {
-      console.error('Login error:', err)
-      const msg = err?.message || ''
-      if (
-        msg.toLowerCase().includes('incorrect') ||
-        msg.toLowerCase().includes('invalid') ||
-        err?.code === '[jwt_auth] incorrect_password' ||
-        err?.code === '[jwt_auth] invalid_username'
-      ) {
-        setAuthError('帳號或密碼不正確，請再試一次')
-      } else {
-        setAuthError('登入時發生錯誤，請稍後再試')
+    } catch (error) {
+      const message = String(error?.message || '')
+      const isInvalidCredentials = error?.status === 403
+        || message.toLowerCase().includes('incorrect')
+        || message.toLowerCase().includes('invalid')
+
+      setToken(null)
+      setUser(null)
+      setAuthError(isInvalidCredentials ? INVALID_LOGIN_MESSAGE : (message || GENERIC_LOGIN_MESSAGE))
+
+      return {
+        success: false,
+        message: isInvalidCredentials ? INVALID_LOGIN_MESSAGE : (message || GENERIC_LOGIN_MESSAGE),
       }
-      return { success: false }
     } finally {
       setIsLoading(false)
     }
   }, [])
 
-  // ──────────────────────────────────────────────
-  // 註冊
-  // ──────────────────────────────────────────────
-  const register = async (userData) => {
+  const register = useCallback(async (userData) => {
     setIsLoading(true)
     setAuthError('')
 
     try {
-      const {
-        email, password, name, firstName, lastName,
-        phone, gender, birthday, pets,
-      } = userData
+      const payload = normalizeRegisterPayload(userData)
 
-      const first = firstName || (name ? name.split(' ')[0] : '') || ''
-      const last  = lastName  || (name ? name.split(' ').slice(1).join(' ') : '') || ''
+      await authService.register(payload)
 
-      // 呼叫自定義公開註冊 endpoint
-      await mrpolar.register({
-        email,
-        password,
-        first_name: first,
-        last_name:  last,
-        phone:    phone    || '',
-        gender:   gender   || '',
-        birthday: birthday || '',
-        pets:     pets     || [],
-      })
+      const loginResult = await authService.login(payload.email, payload.password)
 
-      // 註冊成功後自動登入
-      const result = await auth.login(email, password)
-      if (!result?.token) throw new Error('自動登入失敗')
-
-      setToken(result.token)
-      const customer = await mrpolar.getMe()
-      setUser(mapWcCustomer(customer))
-      localStorage.setItem('polar_logged_in', '1')
-      return { success: true }
-    } catch (err) {
-      console.error('Register error:', err)
-      const msg = err?.message || ''
-      if (
-        msg.includes('已被註冊') ||
-        err?.code === 'email_exists' ||
-        msg.toLowerCase().includes('exists')
-      ) {
-        setAuthError('此電子郵件已被註冊，請直接登入')
-      } else {
-        setAuthError('註冊時發生錯誤：' + (msg || '請稍後再試'))
+      if (!loginResult?.token) {
+        throw new Error('註冊成功，但自動登入失敗')
       }
-      return { success: false }
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
-  // ──────────────────────────────────────────────
-  // 登出
-  // ──────────────────────────────────────────────
-  const logout = async () => {
-    clearToken()
-    setUser(null)
-    localStorage.removeItem('polar_logged_in')
-  }
+      setToken(loginResult.token)
+      setUser(createBasicUser(loginResult))
 
-  // ──────────────────────────────────────────────
-  // 更新個人資料
-  // ──────────────────────────────────────────────
-  const updateProfile = async (updates) => {
-    setIsLoading(true)
-    try {
-      const payload = {}
-      if (updates.name) {
-        const parts = updates.name.split(' ')
-        payload.first_name = parts[0]
-        payload.last_name  = parts.slice(1).join(' ') || ''
+      return { success: true }
+    } catch (error) {
+      const message = String(error?.message || '')
+      const normalizedMessage = message.toLowerCase().includes('exists')
+        ? '此電子郵件已被註冊，請直接登入'
+        : (message || GENERIC_REGISTER_MESSAGE)
+
+      setAuthError(normalizedMessage)
+
+      return {
+        success: false,
+        message: normalizedMessage,
       }
-      if (updates.firstName !== undefined) payload.first_name = updates.firstName
-      if (updates.lastName  !== undefined) payload.last_name  = updates.lastName
-      if (updates.phone     !== undefined) payload.phone      = updates.phone
-      if (updates.gender    !== undefined) payload.gender     = updates.gender
-      if (updates.birthday  !== undefined) payload.birthday   = updates.birthday
-
-      const customer = await mrpolar.updateMe(payload)
-      setUser(mapWcCustomer(customer))
-      return { success: true }
-    } catch (err) {
-      console.error('Update profile error:', err)
-      return { success: false, message: err?.message }
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
-  // ──────────────────────────────────────────────
-  // 更新毛孩資料
-  // ──────────────────────────────────────────────
-  const updatePets = async (newPets) => {
+  const updateProfile = useCallback(async (updates = {}) => {
+    const localOnlyUpdates = {}
+    const memberUpdates = {}
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'name')) {
+      memberUpdates.name = updates.name
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'phone')) {
+      memberUpdates.phone = updates.phone
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'gender')) {
+      memberUpdates.gender = updates.gender
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'birthday')) {
+      memberUpdates.birthday = updates.birthday
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'avatar_url') || Object.prototype.hasOwnProperty.call(updates, 'avatar')) {
+      memberUpdates.avatar_url = updates.avatar_url ?? updates.avatar
+    }
+
+    ;['lineLinked', 'lineDisplayName', 'lineBoundAt'].forEach((field) => {
+      if (Object.prototype.hasOwnProperty.call(updates, field)) {
+        localOnlyUpdates[field] = updates[field]
+      }
+    })
+
     setIsLoading(true)
-    try {
-      const { pets } = await mrpolar.updatePets(newPets)
-      setUser(prev => ({ ...prev, pets }))
-      return { success: true }
-    } catch (err) {
-      console.error('Update pets error:', err)
-      return { success: false, message: '儲存毛孩資料失敗' }
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
-  // ──────────────────────────────────────────────
-  // 變更密碼
-  // ──────────────────────────────────────────────
-  const changePassword = async (oldPassword, newPassword) => {
-    setIsLoading(true)
     try {
-      await mrpolar.changePassword(oldPassword, newPassword)
-      // 密碼修改後 token 仍有效，但建議重新登入
+      let nextUser = user ? { ...user } : createBasicUser({})
+
+      if (token && Object.keys(memberUpdates).length > 0) {
+        const nextMember = await updateMemberService(token, memberUpdates)
+        nextUser = mapMemberToAuthUser(nextMember, nextUser)
+      }
+
+      if (Object.keys(localOnlyUpdates).length > 0) {
+        nextUser = {
+          ...nextUser,
+          ...localOnlyUpdates,
+        }
+      }
+
+      setUser(nextUser)
       return { success: true }
-    } catch (err) {
-      console.error('Change password error:', err)
-      const msg = err?.message || '更新密碼失敗，請再試一次'
-      return { success: false, message: msg }
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.message || '更新會員資料失敗',
+      }
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [token, user])
+
+  const updatePets = useCallback(async (newPets) => {
+    setUser((previousUser) => ({
+      ...(previousUser || createBasicUser({})),
+      pets: Array.isArray(newPets) ? newPets : [],
+    }))
+
+    return { success: true }
+  }, [])
+
+  const changePassword = useCallback(async (oldPassword, newPassword) => {
+    if (!token) {
+      return {
+        success: false,
+        message: '請先登入會員帳號',
+      }
+    }
+
+    setIsLoading(true)
+
+    try {
+      await authService.changePassword(token, oldPassword, newPassword)
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        message: error?.message || '更新密碼失敗',
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [token])
+
+  const value = useMemo(() => ({
+    user,
+    token,
+    isLoading,
+    authError,
+    setAuthError,
+    login,
+    register,
+    logout,
+    updateProfile,
+    updatePets,
+    changePassword,
+    isLoggedIn: Boolean(token),
+  }), [
+    user,
+    token,
+    isLoading,
+    authError,
+    login,
+    register,
+    logout,
+    updateProfile,
+    updatePets,
+    changePassword,
+  ])
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        authError,
-        setAuthError,
-        login,
-        register,
-        logout,
-        updateProfile,
-        updatePets,
-        changePassword,
-        isLoggedIn: !!user,
-      }}
-    >
-      {children}
+    <AuthContext.Provider value={value}>
+      <MemberProvider
+        auth={{
+          token,
+          isLoggedIn: Boolean(token),
+          logout,
+          syncUserFromMember,
+        }}
+      >
+        {children}
+      </MemberProvider>
     </AuthContext.Provider>
   )
 }

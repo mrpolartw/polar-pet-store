@@ -20,7 +20,7 @@ const EMPTY_PET_FORM = {
 
 const PET_EMOJI = { cat: '🐱', dog: '🐶', other: '🐾' }
 const PET_TYPE_LABEL = { cat: '貓咪', dog: '狗狗', other: '其他' }
-const PET_GENDER_LABEL = { male: '公', female: '母' }
+const PET_GENDER_LABEL = { male: '男生', female: '女生', other: '其他' }
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -101,7 +101,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                       PET_TYPE_LABEL[petForm.petType],
                       petForm.petBreed,
                       PET_GENDER_LABEL[petForm.petGender],
-                    ].filter(Boolean).join('・') || '填寫更多資訊，建立完整毛孩檔案'}
+                    ].filter(Boolean).join(' · ') || '請填寫毛孩的基本資料'}
                   </div>
                 </div>
               </div>
@@ -112,7 +112,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                   <input
                     type="text"
                     className="apple-input"
-                    placeholder="例如 Momo"
+                    placeholder="例如：Momo"
                     value={petForm.petName}
                     onChange={(e) => setPetForm((prev) => ({ ...prev, petName: e.target.value }))}
                   />
@@ -140,8 +140,8 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                       onChange={(e) => setPetForm((prev) => ({ ...prev, petGender: e.target.value }))}
                     >
                       <option value="">請選擇</option>
-                      <option value="male">公</option>
-                      <option value="female">母</option>
+                      <option value="male">男生</option>
+                      <option value="female">女生</option>
                       <option value="other">其他</option>
                     </select>
                   </div>
@@ -152,7 +152,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                   <input
                     type="text"
                     className="apple-input"
-                    placeholder="例如 柴犬、英國短毛貓"
+                    placeholder="例如：米克斯、英國短毛貓"
                     value={petForm.petBreed}
                     onChange={(e) => setPetForm((prev) => ({ ...prev, petBreed: e.target.value }))}
                   />
@@ -176,7 +176,7 @@ function PetModal({ show, onClose, petForm, setPetForm, editingPet, onSave, petE
                     <input
                       type="text"
                       className="apple-input"
-                      placeholder="例如 3.5"
+                      placeholder="例如：3.5"
                       value={petForm.petWeight}
                       onChange={(e) => setPetForm((prev) => ({ ...prev, petWeight: e.target.value }))}
                     />
@@ -215,10 +215,12 @@ export default function AccountPets() {
   const {
     pets,
     loading,
+    error,
     add: addPetApi,
     update: updatePetApi,
     remove: removePetApi,
   } = usePets()
+  const petList = Array.isArray(pets) ? pets : []
 
   const [isPetModalOpen, setIsPetModalOpen] = useState(false)
   const [petForm, setPetForm] = useState(EMPTY_PET_FORM)
@@ -252,9 +254,9 @@ export default function AccountPets() {
 
   const handleSavePet = async () => {
     try {
-      const error = validatePetForm()
-      if (error) {
-        setPetError(error)
+      const nextError = validatePetForm()
+      if (nextError) {
+        setPetError(nextError)
         return
       }
 
@@ -270,17 +272,17 @@ export default function AccountPets() {
 
       closePetModal()
     } catch (err) {
-      toast.error(err?.message || '操作失敗，請稍後再試')
+      toast.error(err?.message || '毛孩資料儲存失敗，請稍後再試')
     }
   }
 
   const handleDeletePet = async (id) => {
     try {
-      if (!window.confirm('確定要刪除此毛孩資料嗎？')) return
+      if (!window.confirm('確定要刪除這筆毛孩資料嗎？')) return
       await removePetApi(id)
       toast.success('毛孩資料已刪除')
     } catch (err) {
-      toast.error(err?.message || '操作失敗，請稍後再試')
+      toast.error(err?.message || '毛孩資料刪除失敗，請稍後再試')
     }
   }
 
@@ -288,7 +290,7 @@ export default function AccountPets() {
     <motion.div key="pets" {...fadeUp}>
       <h2 className="account-section-title">
         <PawPrint size={22} className="account-nav-icon" />
-        我的毛孩
+        毛孩資料
       </h2>
 
       <PetModal
@@ -301,18 +303,32 @@ export default function AccountPets() {
         petError={petError}
       />
 
-      {!loading && pets.length === 0 ? (
+      {!loading && !error && petList.length === 0 ? (
         <EmptyState
           className="account-empty-state"
           icon="🐾"
-          title="目前還沒有毛孩資料"
-          description="新增毛孩後，可以在會員中心更方便管理生日、品種與基本資訊。"
+          title="還沒有毛孩資料"
+          description="新增毛孩後，可以更方便地管理生日、體重與品種資訊。"
           actionLabel="新增毛孩"
           onAction={openAddPetModal}
         />
       ) : (
         <div className="address-grid">
-          {pets.map((pet) => {
+          {loading && petList.length === 0 && (
+            <div className="address-card">
+              <div className="address-name">資料載入中...</div>
+              <div className="address-detail">正在取得毛孩資料。</div>
+            </div>
+          )}
+
+          {error && petList.length === 0 && (
+            <div className="address-card">
+              <div className="address-name">載入失敗</div>
+              <div className="address-detail">{error}</div>
+            </div>
+          )}
+
+          {petList.map((pet) => {
             const petView = mapPetToForm(pet)
 
             return (
@@ -324,8 +340,8 @@ export default function AccountPets() {
                   <div>
                     <div className="address-name">{petView.petName}</div>
                     <div style={{ fontSize: 12, color: 'var(--color-gray-dark)', marginTop: 2 }}>
-                      {PET_TYPE_LABEL[petView.petType] || '未分類'}
-                      {petView.petBreed && ` ・ ${petView.petBreed}`}
+                      {PET_TYPE_LABEL[petView.petType] || '未設定類型'}
+                      {petView.petBreed && ` · ${petView.petBreed}`}
                     </div>
                   </div>
                 </div>
@@ -339,7 +355,7 @@ export default function AccountPets() {
                   {petView.petWeight && <span>{petView.petWeight} kg</span>}
                   {petView.petBirthday && <span>{petView.petBirthday}</span>}
                   {!petView.petGender && !petView.petAge && !petView.petWeight && !petView.petBirthday && (
-                    <span style={{ color: 'var(--color-gray-dark)', fontStyle: 'italic' }}>尚未填寫更多資訊</span>
+                    <span style={{ color: 'var(--color-gray-dark)', fontStyle: 'italic' }}>尚未填寫完整資料</span>
                   )}
                 </div>
 

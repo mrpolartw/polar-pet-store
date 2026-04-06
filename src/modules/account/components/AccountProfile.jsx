@@ -27,7 +27,7 @@ const getNextTierPoints = (points) => {
 
 const getInitials = (name) => (name ? name.slice(0, 2).toUpperCase() : 'PL')
 
-function AccountProfileCard({ user, tier, onAvatarUpload }) {
+function AccountProfileCard({ user, tier, onAvatarUpload, statusText }) {
   const inputRef = useRef(null)
 
   return (
@@ -50,8 +50,8 @@ function AccountProfileCard({ user, tier, onAvatarUpload }) {
           <Camera size={18} />
         </span>
       </button>
-      <div className="account-user-name">{`哈囉，${user?.name ?? '會員'}`}</div>
-      <div className="account-user-email">點擊頭像可上傳新的會員照片</div>
+      <div className="account-user-name">{`您好，${user?.name ?? '會員'}`}</div>
+      <div className="account-user-email">{statusText || user?.email || ''}</div>
       <div className="account-tier-badge" style={{ background: tier.bg, color: tier.color }}>
         <span>會員等級 {tier.label}</span>
       </div>
@@ -67,7 +67,7 @@ function AccountProfileCard({ user, tier, onAvatarUpload }) {
 
 export default function AccountProfile() {
   const { user, isLoading } = useAuth()
-  const { member, loading, updateMember } = useMember()
+  const { member, loading, error, updateMember } = useMember()
   const toast = useToast()
 
   const [profileForm, setProfileForm] = useState({
@@ -107,6 +107,11 @@ export default function AccountProfile() {
   const nextTierPoints = getNextTierPoints(points)
   const progressPct = nextTierPoints ? Math.min((points / nextTierPoints) * 100, 100) : 100
   const remainingToNextTier = nextTierPoints ? Math.max(nextTierPoints - points, 0) : 0
+  const statusText = error
+    ? error
+    : loading
+      ? '會員資料載入中…'
+      : (profileUser?.email || '')
 
   const handleUpdateProfile = async () => {
     try {
@@ -117,9 +122,9 @@ export default function AccountProfile() {
         birthday: profileForm.birthday,
         avatar_url: profileForm.avatar,
       })
-      toast.success('資料已更新')
-    } catch (err) {
-      toast.error(err?.message || '更新失敗，請稍後再試')
+      toast.success('會員資料已更新')
+    } catch (nextError) {
+      toast.error(nextError?.message || '更新失敗，請稍後再試')
     }
   }
 
@@ -130,7 +135,7 @@ export default function AccountProfile() {
     if (!file) return
 
     if (!SUPPORTED_AVATAR_TYPES.includes(file.type)) {
-      toast.error('請上傳 JPG / PNG / WebP / GIF 圖片')
+      toast.error('僅支援 JPG / PNG / WebP / GIF 格式')
       return
     }
 
@@ -146,19 +151,19 @@ export default function AccountProfile() {
         const avatar = typeof reader.result === 'string' ? reader.result : ''
 
         if (!avatar) {
-          throw new Error('無法讀取頭像檔案')
+          throw new Error('讀取圖片失敗')
         }
 
         await updateMember({ avatar_url: avatar })
         setProfileForm((prev) => ({ ...prev, avatar }))
         toast.success('頭像已更新')
-      } catch (err) {
-        toast.error(err?.message || '更新失敗，請稍後再試')
+      } catch (nextError) {
+        toast.error(nextError?.message || '更新失敗，請稍後再試')
       }
     }
 
     reader.onerror = () => {
-      toast.error('無法讀取頭像檔案')
+      toast.error('讀取圖片失敗')
     }
 
     reader.readAsDataURL(file)
@@ -175,6 +180,7 @@ export default function AccountProfile() {
         user={profileUser}
         tier={tier}
         onAvatarUpload={handleAvatarUpload}
+        statusText={statusText}
       />
 
       <div className="tier-progress-section">
@@ -186,8 +192,8 @@ export default function AccountProfile() {
           </span>
           <span>
             {nextTierPoints
-              ? `距離下一個等級還差 ${remainingToNextTier.toLocaleString()} 點`
-              : '你已經是最高等級會員'}
+              ? `距離下一級還差 ${remainingToNextTier.toLocaleString()} 點`
+              : '您已是目前最高會員等級'}
           </span>
         </div>
         <div className="tier-progress-bar">
@@ -198,12 +204,12 @@ export default function AccountProfile() {
       <div className="profile-form">
         <div className="profile-form-row">
           <div className="profile-field">
-            <label>暱稱</label>
+            <label>顯示名稱</label>
             <input
               type="text"
               className="apple-input"
               value={profileForm.name}
-              onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
+              onChange={(event) => setProfileForm((prev) => ({ ...prev, name: event.target.value }))}
             />
           </div>
           <div className="profile-field">
@@ -212,7 +218,7 @@ export default function AccountProfile() {
               type="tel"
               className="apple-input"
               value={profileForm.phone}
-              onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
+              onChange={(event) => setProfileForm((prev) => ({ ...prev, phone: event.target.value }))}
             />
           </div>
         </div>
@@ -233,7 +239,7 @@ export default function AccountProfile() {
                   padding: '1px 8px',
                 }}
               >
-                目前無法在此修改
+                目前為唯讀
               </span>
             </label>
             <input
@@ -259,7 +265,7 @@ export default function AccountProfile() {
                   padding: '1px 8px',
                 }}
               >
-                目前由客服協助修改
+                目前由系統維護
               </span>
             </label>
             <input
@@ -277,12 +283,13 @@ export default function AccountProfile() {
           <select
             className="apple-input select-input"
             value={profileForm.gender}
-            onChange={(e) => setProfileForm((prev) => ({ ...prev, gender: e.target.value }))}
+            onChange={(event) => setProfileForm((prev) => ({ ...prev, gender: event.target.value }))}
           >
             <option value="">請選擇</option>
             <option value="male">男性</option>
             <option value="female">女性</option>
             <option value="other">其他</option>
+            <option value="prefer_not_to_say">不願透露</option>
           </select>
         </div>
 

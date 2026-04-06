@@ -1,240 +1,114 @@
-import { useState, useEffect, useCallback } from 'react'
-import {
-  getMe,
-  updateMe,
-  getAddresses,
-  createAddress,
-  updateAddress,
-  deleteAddress,
-  getPets,
-  createPet,
-  updatePet,
-  deletePet,
-  getPoints,
-  getTiers,
-} from '../api/memberApi'
+import { useContext, useEffect } from 'react'
+import { MemberContext } from '../context/MemberContext'
+
+const useMemberContext = () => {
+  const context = useContext(MemberContext)
+
+  if (!context) {
+    throw new Error('useMember 必須在 MemberProvider 內使用')
+  }
+
+  return context
+}
 
 export function useMember() {
-  const [member, setMember] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  const fetchMember = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const data = await getMe()
-      setMember(data)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const context = useMemberContext()
 
   useEffect(() => {
-    fetchMember()
-  }, [fetchMember])
-
-  const updateMember = useCallback(async (updates) => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      const data = await updateMe(updates)
-      setMember(data)
-      return data
-    } catch (err) {
-      setError(err.message)
-      throw err
-    } finally {
-      setLoading(false)
+    if (!context.isLoggedIn || context.loaded.member || context.loading.member) {
+      return
     }
-  }, [])
+
+    context.fetchMember().catch(() => {})
+  }, [context])
 
   return {
-    member,
-    loading,
-    error,
-    refetch: fetchMember,
-    updateMember,
+    member: context.member,
+    loading: context.loading.member,
+    error: context.error,
+    refetch: context.fetchMember,
+    updateMember: context.updateMember,
   }
 }
 
 export function useAddresses() {
-  const [addresses, setAddresses] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      setAddresses(await getAddresses())
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const context = useMemberContext()
 
   useEffect(() => {
-    fetch()
-  }, [fetch])
+    if (!context.isLoggedIn || context.loaded.addresses || context.loading.addresses) {
+      return
+    }
 
-  const add = useCallback(async (data) => {
-    const row = await createAddress(data)
-    setAddresses((prev) => {
-      const next = row?.is_default || row?.isDefault
-        ? prev.map((address) => ({ ...address, is_default: false, isDefault: false }))
-        : prev
-
-      return [...next, row]
-    })
-    return row
-  }, [])
-
-  const update = useCallback(async (id, data) => {
-    const row = await updateAddress(id, data)
-    setAddresses((prev) => prev.map((address) => {
-      if (row?.is_default || row?.isDefault) {
-        if (Number(address.id) === Number(row.id)) {
-          return row
-        }
-
-        return { ...address, is_default: false, isDefault: false }
-      }
-
-      return Number(address.id) === Number(row.id) ? row : address
-    }))
-    return row
-  }, [])
-
-  const remove = useCallback(async (id) => {
-    await deleteAddress(id)
-    setAddresses((prev) => prev.filter((address) => Number(address.id) !== Number(id)))
-  }, [])
+    context.fetchAddresses().catch(() => {})
+  }, [context])
 
   return {
-    addresses,
-    loading,
-    error,
-    refetch: fetch,
-    add,
-    update,
-    remove,
+    addresses: context.addresses,
+    loading: context.loading.addresses,
+    error: context.error,
+    refetch: context.fetchAddresses,
+    add: context.createAddress,
+    update: context.updateAddress,
+    remove: context.deleteAddress,
   }
 }
 
 export function usePets() {
-  const [pets, setPets] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      setPets(await getPets())
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const context = useMemberContext()
 
   useEffect(() => {
-    fetch()
-  }, [fetch])
+    if (!context.isLoggedIn || context.loaded.pets || context.loading.pets) {
+      return
+    }
 
-  const add = useCallback(async (data) => {
-    const row = await createPet(data)
-    setPets((prev) => [...prev, row])
-    return row
-  }, [])
-
-  const update = useCallback(async (id, data) => {
-    const row = await updatePet(id, data)
-    setPets((prev) => prev.map((pet) => (
-      Number(pet.id) === Number(row.id) ? row : pet
-    )))
-    return row
-  }, [])
-
-  const remove = useCallback(async (id) => {
-    await deletePet(id)
-    setPets((prev) => prev.filter((pet) => Number(pet.id) !== Number(id)))
-  }, [])
+    context.fetchPets().catch(() => {})
+  }, [context])
 
   return {
-    pets,
-    loading,
-    error,
-    refetch: fetch,
-    add,
-    update,
-    remove,
+    pets: context.pets,
+    loading: context.loading.pets,
+    error: context.error,
+    refetch: context.fetchPets,
+    add: context.createPet,
+    update: context.updatePet,
+    remove: context.deletePet,
   }
 }
 
 export function usePoints() {
-  const [points, setPoints] = useState({ balance: 0, lifetime: 0, logs: [] })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      setPoints(await getPoints())
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const context = useMemberContext()
 
   useEffect(() => {
-    fetch()
-  }, [fetch])
+    if (!context.isLoggedIn || context.loaded.points || context.loading.points) {
+      return
+    }
+
+    context.fetchPoints().catch(() => {})
+  }, [context])
 
   return {
-    points,
-    loading,
-    error,
-    refetch: fetch,
+    points: context.points,
+    loading: context.loading.points,
+    error: context.error,
+    refetch: context.fetchPoints,
   }
 }
 
 export function useTiers() {
-  const [tiers, setTiers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-
-  const fetch = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
-      setTiers(await getTiers())
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const context = useMemberContext()
 
   useEffect(() => {
-    fetch()
-  }, [fetch])
+    if (context.loaded.tiers || context.loading.tiers) {
+      return
+    }
+
+    context.fetchTiers().catch(() => {})
+  }, [context])
 
   return {
-    tiers,
-    loading,
-    error,
+    tiers: context.tiers,
+    loading: context.loading.tiers,
+    error: context.error,
+    refetch: context.fetchTiers,
   }
 }

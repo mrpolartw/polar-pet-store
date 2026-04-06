@@ -1,105 +1,96 @@
-import { mockAuthHandlers } from '../mocks/mockHandlers';
+import { API_ROOT } from '../api/memberApi'
+import { getMember, updateMember } from '../api/memberApi'
 
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
+const createHeaders = (token) => {
+  const headers = {
+    'Content-Type': 'application/json',
+  }
 
-if (USE_MOCK && import.meta.env.PROD) {
-  console.error('⛔ [authService] MOCK MODE IS ACTIVE IN PRODUCTION! Set VITE_USE_MOCK=false')
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  return headers
 }
 
-/**
- * Authenticate a customer with email and password.
- *
- * @param {string} email - Customer email.
- * @param {string} password - Customer password.
- * @returns {Promise<unknown>} Customer payload from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
-export const login = async (email, password) => {
-  if (USE_MOCK) return mockAuthHandlers.login(email, password);
-  // TODO BACKEND 串接時，替換為：
-  // import apiClient from '../utils/apiClient'
-  // import API from '../constants/api'
-  // return apiClient.post(API.AUTH_LOGIN, { email, password })
-  throw new Error('TODO: [BACKEND] authService.login - 需後端 API 串接');
-};
+const parseResponseBody = async (response) => {
+  if (response.status === 204) {
+    return null
+  }
 
-/**
- * Register a new customer account.
- *
- * @param {Object} userData - Registration payload.
- * @returns {Promise<unknown>} Customer payload from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
-export const register = async (userData) => {
-  if (USE_MOCK) return mockAuthHandlers.register(userData);
-  throw new Error('TODO: [BACKEND] authService.register - 需後端 API 串接');
-};
+  try {
+    return await response.json()
+  } catch {
+    const text = await response.text()
+    return text || null
+  }
+}
 
-/**
- * Sign out the current customer.
- *
- * @returns {Promise<unknown>} Logout result from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
-export const logout = async () => {
-  if (USE_MOCK) return mockAuthHandlers.logout();
-  throw new Error('TODO: [BACKEND] authService.logout - 需後端 API 串接');
-};
+const requestJson = async (path, options = {}) => {
+  const response = await fetch(`${API_ROOT}${path}`, {
+    method: options.method || 'GET',
+    headers: createHeaders(options.token),
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  })
 
-/**
- * Fetch the current authenticated customer profile.
- *
- * @returns {Promise<unknown>} Customer payload from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
-export const getMe = async () => {
-  if (USE_MOCK) return mockAuthHandlers.getMe();
-  throw new Error('TODO: [BACKEND] authService.getMe - 需後端 API 串接');
-};
+  const body = await parseResponseBody(response)
 
-/**
- * Update the current customer profile.
- *
- * @param {Object} data - Profile update payload.
- * @returns {Promise<unknown>} Updated customer payload from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
-export const updateProfile = async (data) => {
-  if (USE_MOCK) return mockAuthHandlers.updateProfile(data);
-  throw new Error('TODO: [BACKEND] authService.updateProfile - 需後端 API 串接');
-};
+  if (!response.ok) {
+    const message = typeof body === 'string'
+      ? body
+      : body?.message || body?.data?.message || `HTTP ${response.status}`
 
-/**
- * Change the current customer password.
- *
- * @param {string} oldPassword - Existing password.
- * @param {string} newPassword - New password.
- * @returns {Promise<unknown>} Password change result from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
-export const changePassword = async (oldPassword, newPassword) => {
-  if (USE_MOCK) return mockAuthHandlers.changePassword(oldPassword, newPassword);
-  throw new Error('TODO: [BACKEND] authService.changePassword - 需後端 API 串接');
-};
+    const error = new Error(message)
+    error.status = response.status
+    error.code = body?.code
+    error.body = body
+    throw error
+  }
 
-/**
- * Request a password reset email.
- *
- * @param {string} email - Customer email.
- * @returns {Promise<unknown>} Password reset result from mock or backend.
- * @throws {Error} Throws an unimplemented backend integration error when mock mode is disabled.
- */
-export const requestPasswordReset = async (email) => {
-  if (USE_MOCK) return mockAuthHandlers.requestPasswordReset(email);
-  throw new Error('TODO: [BACKEND] authService.requestPasswordReset - 需後端 API 串接');
-};
+  return body
+}
+
+export const login = async (username, password) => requestJson('/jwt-auth/v1/token', {
+  method: 'POST',
+  body: { username, password },
+})
+
+export const validate = async (token) => requestJson('/jwt-auth/v1/token/validate', {
+  method: 'POST',
+  token,
+})
+
+export const register = async (userData) => requestJson('/mrpolar/v1/register', {
+  method: 'POST',
+  body: userData,
+})
+
+export const logout = async () => ({ success: true })
+
+export const getMe = async (token) => getMember(token)
+
+export const updateProfile = async (token, data) => updateMember(token, data)
+
+export const changePassword = async (token, oldPassword, newPassword) => requestJson('/mrpolar/v1/change-password', {
+  method: 'POST',
+  token,
+  body: {
+    old_password: oldPassword,
+    new_password: newPassword,
+  },
+})
+
+export const requestPasswordReset = async () => {
+  throw new Error('Reset password API 尚未接入')
+}
 
 export default {
   login,
+  validate,
   register,
   logout,
   getMe,
   updateProfile,
   changePassword,
   requestPasswordReset,
-};
+}

@@ -10,37 +10,16 @@ import {
   ShoppingBag,
 } from 'lucide-react'
 
-const MEDUSA_API_URL = import.meta.env.VITE_MEDUSA_API_URL || 'http://localhost:9000';
-const MEDUSA_API_KEY = import.meta.env.VITE_MEDUSA_API_KEY || '';
-
-// ── 呼叫後端訂單查詢 API ──
-const fetchOrders = async ({ order_id, phone }) => {
-    const params = new URLSearchParams();
-    if (order_id) params.set('order_id', order_id);
-    if (phone)    params.set('phone', phone);
-
-    const res = await fetch(
-        `${MEDUSA_API_URL}/store/orders/query?${params.toString()}`,
-        {
-            headers: {
-                'x-publishable-api-key': MEDUSA_API_KEY,
-                'Content-Type': 'application/json',
-            },
-        }
-    );
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || '查詢失敗');
-    return data.orders; // array
-};
+import { EmptyState, ErrorState, LoadingSpinner } from '../../components/common'
+import orderService from '../../services/orderService'
+import './OrderQuery.css'
 
 const STATUS_MAP = {
-    ordered:    { label: '訂單成立', color: '#003153' },
-    processing: { label: '備貨中',   color: '#8B5A2B' },
-    shipped:    { label: '運送中',   color: '#c48c58' },
-    delivered:  { label: '已完成',   color: '#2e7d32' },
-    cancelled:  { label: '已取消',   color: '#9e9e9e' },
-};
+  ordered: { label: '訂單成立', color: '#003153' },
+  processing: { label: '付款已確認', color: '#8B5A2B' },
+  shipped: { label: '商品準備出貨', color: '#c48c58' },
+  delivered: { label: '已配送完成', color: '#2e7d32' },
+}
 
 const PAYMENT_LABELS = {
   credit: '信用卡一次付清',
@@ -115,149 +94,139 @@ const normalizeOrder = (order) => {
 function OrderResult({ order, searchMode }) {
   const currentStatus = STATUS_MAP[order.status]
 
-    return (
-        <div className="oq-order-block">
-            {/* Status Banner */}
-            <div className="oq-banner">
-                <div className="oq-banner-inner">
-                    <span className="oq-status-badge" style={{ background: currentStatus?.color }}>
-                        {currentStatus?.label}
-                    </span>
-                    <div className="oq-banner-meta">
-                        {/* ✦ 以訂單編號查詢 → 顯示訂單編號；以電話查詢 → 不顯示 */}
-                        {searchMode === 'orderId' && (
-                            <span>訂單編號：<strong>{order.id}</strong></span>
-                        )}
-                        <span>訂單日期：{formatDate(order.date)}</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* Grid */}
-            <div className="oq-grid">
-
-                {/* Left Column */}
-                <div className="oq-main-col">
-
-                    {/* Timeline */}
-                    <div className="oq-card">
-                        <h3 className="oq-card-title">
-                            <Package size={20} style={{ marginRight: 8 }} />
-                            訂單進度
-                        </h3>
-                        <div className="oq-timeline">
-                            {order.timeline.map((step, i) => (
-                                <div key={i} className={`oq-step ${step.done ? 'done' : 'pending'}`}>
-                                    <div className="oq-step-dot">
-                                        {step.done ? <CheckCircle2 size={20} /> : <Clock size={20} />}
-                                    </div>
-                                    {i < order.timeline.length - 1 && (
-                                        <div className={`oq-step-line ${order.timeline[i + 1].done ? 'done' : ''}`} />
-                                    )}
-                                    <div className="oq-step-body">
-                                        <span className="oq-step-label">{step.label}</span>
-                                        <span className="oq-step-time">{step.time}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Items */}
-                    <div className="oq-card">
-                        <h3 className="oq-card-title">
-                            <ShoppingBag size={20} style={{ marginRight: 8 }} />
-                            訂購商品
-                        </h3>
-                        <div className="oq-items">
-                            {order.items.map((item) => (
-                                <div key={item.id} className="oq-item-row">
-                                    <img src={item.image} alt={item.name} className="oq-item-img" />
-                                    <div className="oq-item-info">
-                                        <p className="oq-item-name">{item.name}</p>
-                                        <p className="oq-item-specs">{item.specs}</p>
-                                        <p className="oq-item-qty">數量：{item.quantity}</p>
-                                    </div>
-                                    <span className="oq-item-price">
-                                        {formatPrice(item.price * item.quantity)}
-                                    </span>
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Price Summary */}
-                        <div className="oq-price-summary">
-                            <div className="oq-price-row">
-                                <span>商品小計</span>
-                                <span>{formatPrice(order.subtotal)}</span>
-                            </div>
-                            <div className="oq-price-row">
-                                <span>運費</span>
-                                <span>{order.shippingFee === 0 ? '免運費' : formatPrice(order.shippingFee)}</span>
-                            </div>
-                            {order.discount > 0 && (
-                                <div className="oq-price-row discount">
-                                    <span>折扣（{order.promoCode}）</span>
-                                    <span>－{formatPrice(order.discount)}</span>
-                                </div>
-                            )}
-                            <div className="oq-price-row total">
-                                <span>訂單總計</span>
-                                <span>{formatPrice(order.total)}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right Sidebar */}
-                <div className="oq-sidebar-col">
-
-                    {/* ✦ 配送資訊：僅顯示配送方式 + 遮罩收件人 */}
-                    <div className="oq-card">
-                        <h3 className="oq-card-title">
-                            <Truck size={20} style={{ marginRight: 8 }} />
-                            配送資訊
-                        </h3>
-                        <div className="oq-info-rows">
-                            <div className="oq-info-row">
-                                <span className="oq-info-label">配送方式</span>
-                                <span className="oq-info-value">
-                                    {order.shippingMethod === 'store' ? '超商取貨' : '宅配到府'}
-                                </span>
-                            </div>
-                            <div className="oq-info-row">
-                                <span className="oq-info-label">收件人</span>
-                                <span className="oq-info-value">{maskName(order.recipient.name)}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Payment */}
-                    <div className="oq-card">
-                        <h3 className="oq-card-title">付款資訊</h3>
-                        <div className="oq-info-rows">
-                            <div className="oq-info-row">
-                                <span className="oq-info-label">付款方式</span>
-                                <span className="oq-info-value">
-                                    {order.paymentLabel || PAYMENT_LABELS[order.paymentMethod] || '線上付款'}
-                                </span>
-                            </div>
-                            <div className="oq-info-row">
-                                <span className="oq-info-label">付款狀態</span>
-                                <span className="oq-paid-badge">已付款</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Help */}
-                    <div className="oq-card oq-help-card">
-                        <p className="oq-help-text">如有任何訂單問題，歡迎聯絡我們的客服團隊</p>
-                        <a href="/contact" className="btn-blue oq-help-btn">聯絡客服</a>
-                    </div>
-                </div>
-            </div>
+  return (
+    <div className="oq-order-block">
+      <div className="oq-banner">
+        <div className="oq-banner-inner">
+          <span className="oq-status-badge" style={{ background: currentStatus?.color }}>
+            {currentStatus?.label}
+          </span>
+          <div className="oq-banner-meta">
+            {searchMode === 'orderId' && (
+              <span>
+                訂單編號：<strong>{order.id}</strong>
+              </span>
+            )}
+            <span>訂單日期：{formatDate(order.date)}</span>
+          </div>
         </div>
-    )
+      </div>
+
+      <div className="oq-grid">
+        <div className="oq-main-col">
+          <div className="oq-card">
+            <h3 className="oq-card-title">
+              <Package size={20} className="oq-card-icon" aria-hidden="true" />
+              訂單進度
+            </h3>
+            <div className="oq-timeline">
+              {order.timeline.map((step, index) => (
+                <div key={index} className={`oq-step ${step.done ? 'done' : 'pending'}`}>
+                  <div className="oq-step-dot">
+                    {step.done ? <CheckCircle2 size={20} /> : <Clock size={20} />}
+                  </div>
+                  {index < order.timeline.length - 1 && (
+                    <div className={`oq-step-line ${order.timeline[index + 1].done ? 'done' : ''}`} />
+                  )}
+                  <div className="oq-step-body">
+                    <span className="oq-step-label">{step.label}</span>
+                    <span className="oq-step-time">{step.time}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="oq-card">
+            <h3 className="oq-card-title">
+              <ShoppingBag size={20} className="oq-card-icon" aria-hidden="true" />
+              訂購商品
+            </h3>
+            <div className="oq-items">
+              {order.items.map((item) => (
+                <div key={item.id} className="oq-item-row">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="oq-item-img"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <div className="oq-item-info">
+                    <p className="oq-item-name">{item.name}</p>
+                    <p className="oq-item-specs">{item.specs}</p>
+                    <p className="oq-item-qty">數量：{item.quantity}</p>
+                  </div>
+                  <span className="oq-item-price">{formatPrice(item.price * item.quantity)}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="oq-price-summary">
+              <div className="oq-price-row">
+                <span>商品小計</span>
+                <span>{formatPrice(order.subtotal)}</span>
+              </div>
+              <div className="oq-price-row">
+                <span>運費</span>
+                <span>{order.shippingFee === 0 ? '免運費' : formatPrice(order.shippingFee)}</span>
+              </div>
+              {order.discount > 0 && (
+                <div className="oq-price-row discount">
+                  <span>優惠折抵（{order.promoCode}）</span>
+                  <span>-{formatPrice(order.discount)}</span>
+                </div>
+              )}
+              <div className="oq-price-row total">
+                <span>訂單總額</span>
+                <span>{formatPrice(order.total)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="oq-sidebar-col">
+          <div className="oq-card">
+            <h3 className="oq-card-title">
+              <Truck size={20} className="oq-card-icon" aria-hidden="true" />
+              收件資訊
+            </h3>
+            <div className="oq-info-rows">
+              <div className="oq-info-row">
+                <span className="oq-info-label">配送方式</span>
+                <span className="oq-info-value">
+                  {order.shippingMethod === 'store' ? '超商門市取貨' : '宅配到府'}
+                </span>
+              </div>
+              <div className="oq-info-row">
+                <span className="oq-info-label">收件人</span>
+                <span className="oq-info-value">{maskName(order.recipient.name)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="oq-card">
+            <h3 className="oq-card-title">付款資訊</h3>
+            <div className="oq-info-rows">
+              <div className="oq-info-row">
+                <span className="oq-info-label">付款方式</span>
+                <span className="oq-info-value">{PAYMENT_LABELS[order.paymentMethod]}</span>
+              </div>
+              <div className="oq-info-row">
+                <span className="oq-info-label">付款狀態</span>
+                <span className="oq-paid-badge">已確認付款</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="oq-card oq-help-card">
+            <p className="oq-help-text">若您需要修改訂單或配送資訊，歡迎聯絡客服協助處理。</p>
+            <a href="/contact" className="btn-blue oq-help-btn">聯絡客服</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function OrderQuery() {
@@ -300,8 +269,9 @@ export default function OrderQuery() {
 
     try {
       if (mode === 'orderId') {
-        const orders = await fetchOrders({ order_id: trimmedId })
-        const normalizedOrder = normalizeOrder((orders ?? [])[0] ?? null)
+        // TODO: [BACKEND] orderService.getOrder 需後端實作
+        const data = await orderService.getOrder(trimmedId)
+        const normalizedOrder = normalizeOrder(data?.order ?? data)
 
         if (normalizedOrder) {
           setOrderData(normalizedOrder)
@@ -312,8 +282,9 @@ export default function OrderQuery() {
         return
       }
 
-      const orders = await fetchOrders({ phone: trimmedPhone })
-      const remoteOrders = (orders ?? [])
+      // TODO: [BACKEND] orderService.getOrders 需後端實作
+      const data = await orderService.getOrders({ phone: trimmedPhone })
+      const remoteOrders = (data?.orders ?? [])
         .map(normalizeOrder)
         .filter((order) => order?.phone === trimmedPhone)
 
@@ -399,7 +370,7 @@ export default function OrderQuery() {
                 </span>
               ) : (
                 <>
-                  <Search size={18} style={{ marginRight: 8 }} />
+                  <Search size={18} className="oq-card-icon" aria-hidden="true" />
                   查詢訂單
                 </>
               )}

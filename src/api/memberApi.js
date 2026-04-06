@@ -1,118 +1,102 @@
-const BASE = `${import.meta.env.VITE_WP_API_URL}/mrpolar/v1`
+const RAW_BASE_URL = String(import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '')
+const API_ROOT = /\/wp-json$/i.test(RAW_BASE_URL) ? RAW_BASE_URL : `${RAW_BASE_URL}/wp-json`
+const BASE = `${API_ROOT}/mrpolar/v1`
 
-async function apiFetch(path, options = {}) {
-  const url = BASE + path
-  const headers = {
+const buildHeaders = (token, headers = {}) => {
+  const nextHeaders = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...headers,
   }
 
-  if (window.mrpolarData?.nonce) {
-    headers['X-WP-Nonce'] = window.mrpolarData.nonce
+  if (token) {
+    nextHeaders.Authorization = `Bearer ${token}`
   }
 
-  const res = await fetch(url, {
-    credentials: 'include',
-    ...options,
-    headers,
-  })
+  return nextHeaders
+}
 
-  if (!res.ok) {
-    let message = `HTTP ${res.status}`
-
-    try {
-      const body = await res.json()
-      message = body?.message || body?.data?.message || message
-    } catch {
-      // Ignore JSON parse failures and keep the HTTP status fallback.
-    }
-
-    throw new Error(message)
-  }
-
-  if (res.status === 204) {
+const parseResponseBody = async (response) => {
+  if (response.status === 204) {
     return null
   }
 
-  return res.json()
-}
-
-export async function getMe() {
-  return apiFetch('/member/me')
-}
-
-export async function updateMe(data) {
   try {
-    return await apiFetch('/member/me', {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    })
-  } catch (error) {
-    if (String(error?.message || '').startsWith('HTTP 404') || String(error?.message || '').startsWith('HTTP 405')) {
-      return apiFetch('/member/me', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      })
-    }
-
-    throw error
+    return await response.json()
+  } catch {
+    const text = await response.text()
+    return text || null
   }
 }
 
-export async function getAddresses() {
-  return apiFetch('/member/me/addresses')
-}
-
-export async function createAddress(data) {
-  return apiFetch('/member/me/addresses', {
-    method: 'POST',
-    body: JSON.stringify(data),
+async function apiFetch(path, token, options = {}) {
+  const response = await fetch(`${BASE}${path}`, {
+    method: options.method || 'GET',
+    headers: buildHeaders(token, options.headers),
+    body: options.body,
   })
+
+  const body = await parseResponseBody(response)
+
+  if (!response.ok) {
+    const message = typeof body === 'string'
+      ? body
+      : body?.message || body?.data?.message || `HTTP ${response.status}`
+
+    const error = new Error(message)
+    error.status = response.status
+    error.body = body
+    throw error
+  }
+
+  return body
 }
 
-export async function updateAddress(id, data) {
-  return apiFetch(`/member/me/addresses/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  })
-}
+// 會員資料
+export const getMember = (token) => apiFetch('/member/me', token)
 
-export async function deleteAddress(id) {
-  return apiFetch(`/member/me/addresses/${id}`, {
-    method: 'DELETE',
-  })
-}
+export const updateMember = (token, data) => apiFetch('/member/me', token, {
+  method: 'POST',
+  body: JSON.stringify(data),
+})
 
-export async function getPets() {
-  return apiFetch('/member/me/pets')
-}
+// 地址
+export const getAddresses = (token) => apiFetch('/member/me/addresses', token)
 
-export async function createPet(data) {
-  return apiFetch('/member/me/pets', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
-}
+export const createAddress = (token, data) => apiFetch('/member/me/addresses', token, {
+  method: 'POST',
+  body: JSON.stringify(data),
+})
 
-export async function updatePet(id, data) {
-  return apiFetch(`/member/me/pets/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
-  })
-}
+export const updateAddress = (token, id, data) => apiFetch(`/member/me/addresses/${id}`, token, {
+  method: 'PUT',
+  body: JSON.stringify(data),
+})
 
-export async function deletePet(id) {
-  return apiFetch(`/member/me/pets/${id}`, {
-    method: 'DELETE',
-  })
-}
+export const deleteAddress = (token, id) => apiFetch(`/member/me/addresses/${id}`, token, {
+  method: 'DELETE',
+})
 
-export async function getPoints() {
-  return apiFetch('/member/me/points')
-}
+// 毛孩
+export const getPets = (token) => apiFetch('/member/me/pets', token)
 
-export async function getTiers() {
-  return apiFetch('/tiers')
-}
+export const createPet = (token, data) => apiFetch('/member/me/pets', token, {
+  method: 'POST',
+  body: JSON.stringify(data),
+})
 
-export { apiFetch }
+export const updatePet = (token, id, data) => apiFetch(`/member/me/pets/${id}`, token, {
+  method: 'PUT',
+  body: JSON.stringify(data),
+})
+
+export const deletePet = (token, id) => apiFetch(`/member/me/pets/${id}`, token, {
+  method: 'DELETE',
+})
+
+// 點數
+export const getPoints = (token) => apiFetch('/member/me/points', token)
+
+// 等級
+export const getTiers = () => apiFetch('/tiers', null)
+
+export { API_ROOT, BASE, apiFetch }
