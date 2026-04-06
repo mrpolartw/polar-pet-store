@@ -67,20 +67,31 @@
     background: var(--mp-surface);
     border-radius: var(--mp-radius);
     box-shadow: var(--mp-shadow);
-    padding: 0;
+    padding: 20px 24px;
     margin-bottom: 20px;
     overflow: hidden;
 }
 .mrpolar-wrap .mrpolar-card-padded {
-    padding: 20px;
+    padding: 20px 24px;
 }
-.mrpolar-wrap .mrpolar-card h3 {
+/* Card 標題：底線分隔 */
+.mrpolar-wrap .mrpolar-card > h3,
+.mrpolar-wrap .mrpolar-card-padded > h3 {
     font-size: 14px;
     font-weight: 600;
     color: var(--mp-text);
     margin: 0 0 16px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--mp-border);
+}
+/* 卡片內的 table-wrap 讓表格橫向滾動時不受 card padding 影響 */
+.mrpolar-wrap .mrpolar-card .mrpolar-table-wrap {
+    margin: -20px -24px;
+}
+.mrpolar-wrap .mrpolar-card .mrpolar-table-wrap:first-child {
+    margin-top: 0;
+    border-radius: var(--mp-radius) var(--mp-radius) 0 0;
+    overflow: hidden;
 }
 
 /* ── Buttons ── */
@@ -100,12 +111,12 @@
     transition: background 0.15s, border-color 0.15s, color 0.15s;
     white-space: nowrap;
 }
-.mrpolar-wrap .mrpolar-btn-primary  { background: var(--mp-primary); color: #fff; }
-.mrpolar-wrap .mrpolar-btn-primary:hover { background: var(--mp-primary-hover); color: #fff; }
+.mrpolar-wrap .mrpolar-btn-primary   { background: var(--mp-primary); color: #fff; }
+.mrpolar-wrap .mrpolar-btn-primary:hover  { background: var(--mp-primary-hover); color: #fff; }
 .mrpolar-wrap .mrpolar-btn-secondary { background: #fff; color: var(--mp-text); border: 1px solid var(--mp-border); }
 .mrpolar-wrap .mrpolar-btn-secondary:hover { border-color: #9ca3af; background: #f9fafb; }
-.mrpolar-wrap .mrpolar-btn-danger   { background: var(--mp-danger); color: #fff; }
-.mrpolar-wrap .mrpolar-btn-danger:hover { background: #b91c1c; color: #fff; }
+.mrpolar-wrap .mrpolar-btn-danger    { background: var(--mp-danger); color: #fff; }
+.mrpolar-wrap .mrpolar-btn-danger:hover  { background: #b91c1c; color: #fff; }
 .mrpolar-wrap .mrpolar-btn-sm { height: 28px; padding: 0 10px; font-size: 12px; }
 
 /* ── Table ── */
@@ -117,7 +128,7 @@
 }
 .mrpolar-wrap .mrpolar-table th {
     text-align: left;
-    padding: 9px 12px;
+    padding: 9px 14px;
     background: #f3f4f6;
     font-size: 11px;
     font-weight: 600;
@@ -128,7 +139,7 @@
     white-space: nowrap;
 }
 .mrpolar-wrap .mrpolar-table td {
-    padding: 11px 12px;
+    padding: 11px 14px;
     border-bottom: 1px solid #f3f4f6;
     vertical-align: middle;
 }
@@ -140,7 +151,7 @@
     color: var(--mp-text-muted);
     font-size: 14px;
 }
-.mrpolar-wrap .col-drag { width: 36px; text-align: center; }
+.mrpolar-wrap .col-drag { width: 40px; text-align: center; }
 .mrpolar-wrap .col-mono { font-variant-numeric: tabular-nums; }
 .mrpolar-wrap .mrpolar-code {
     background: #f3f4f6;
@@ -151,20 +162,23 @@
     color: #374151;
 }
 
-/* 拖曳手柄 */
+/* ── Drag handle ── */
 .mrpolar-wrap .mrpolar-drag-handle {
     cursor: grab;
     color: var(--mp-text-muted);
-    padding: 4px;
+    padding: 6px 8px;
     user-select: none;
     font-size: 16px;
     display: inline-block;
     line-height: 1;
     transition: color 0.1s;
+    border-radius: 4px;
 }
-.mrpolar-wrap .mrpolar-drag-handle:hover { color: var(--mp-primary); }
+.mrpolar-wrap .mrpolar-drag-handle:hover  { color: var(--mp-primary); background: #f3f4f6; }
 .mrpolar-wrap .mrpolar-drag-handle:active { cursor: grabbing; }
-.mrpolar-wrap .sortable-ghost { opacity: 0.4; background: #e0f2fe !important; }
+.mrpolar-wrap .mrpolar-table tbody tr.ui-sortable-helper { background: #fff; box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+.mrpolar-wrap .mrpolar-sortable-placeholder,
+.mrpolar-wrap .ui-sortable-placeholder { height: 44px; background: #e0f2fe !important; visibility: visible !important; }
 
 /* 表格內操作按鈕組 */
 .mrpolar-wrap .mrpolar-row-actions {
@@ -250,7 +264,7 @@
     gap: 12px;
     align-items: flex-end;
     background: var(--mp-surface);
-    padding: 16px;
+    padding: 16px 20px;
     border-radius: var(--mp-radius);
     box-shadow: var(--mp-shadow);
     margin-bottom: 20px;
@@ -274,7 +288,7 @@
     color: var(--mp-text);
 }
 
-/* ── Form inputs (shared) ── */
+/* ── Form focus ── */
 .mrpolar-wrap .mrpolar-filters input:focus,
 .mrpolar-wrap .mrpolar-filters select:focus,
 .mrpolar-wrap .mrpolar-form-row input:focus,
@@ -321,7 +335,7 @@
     gap: 16px;
 }
 
-/* ── Member detail ── */
+/* ── Member detail header ── */
 .mrpolar-wrap .mrpolar-member-header {
     display: flex;
     align-items: center;
@@ -349,7 +363,7 @@
     flex-wrap: wrap;
 }
 .mrpolar-wrap .mrpolar-tab {
-    padding: 10px 16px;
+    padding: 10px 18px;
     font-size: 13px;
     font-weight: 500;
     color: var(--mp-text-muted);
@@ -366,7 +380,7 @@
 .mrpolar-wrap .mrpolar-tab-content.active { display: block; }
 
 /* ── Progress ── */
-.mrpolar-wrap .mrpolar-progress-wrap { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--mp-border); }
+.mrpolar-wrap .mrpolar-progress-wrap { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--mp-border); }
 .mrpolar-wrap .mrpolar-progress-label { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--mp-text-muted); margin-bottom: 6px; }
 .mrpolar-wrap .mrpolar-progress { height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
 .mrpolar-wrap .mrpolar-progress-bar { height: 100%; background: var(--mp-primary); border-radius: 999px; transition: width .3s ease; }
@@ -426,8 +440,6 @@
     transition: background 0.1s;
 }
 .mrpolar-wrap .mrpolar-modal-close:hover { background: #f3f4f6; color: var(--mp-text); }
-
-/* Modal 內容區域 padding */
 .mrpolar-wrap .mrpolar-modal form {
     padding: 20px 24px;
 }
@@ -451,7 +463,7 @@
     padding-top: 0;
 }
 
-/* Form rows */
+/* ── Form rows ── */
 .mrpolar-wrap .mrpolar-form-row {
     margin-bottom: 14px;
 }
@@ -471,6 +483,12 @@
     border-radius: 6px;
     font-size: 13px;
     color: var(--mp-text);
+    background: #fff;
+}
+.mrpolar-wrap .mrpolar-form-row input:disabled {
+    background: #f9fafb;
+    color: var(--mp-text-muted);
+    cursor: not-allowed;
 }
 .mrpolar-wrap .mrpolar-form-row textarea {
     min-height: 72px;
@@ -483,7 +501,7 @@
     display: block;
 }
 
-/* Checkbox row */
+/* ── Checkbox row ── */
 .mrpolar-wrap .mrpolar-checkbox-row {
     display: flex;
     gap: 20px;
@@ -498,7 +516,7 @@
     cursor: pointer;
 }
 
-/* Form actions */
+/* ── Form actions ── */
 .mrpolar-wrap .mrpolar-form-actions {
     display: flex;
     gap: 8px;
@@ -506,6 +524,25 @@
     margin-top: 20px;
     padding-top: 16px;
     border-top: 1px solid var(--mp-border);
+}
+
+/* ── Notice ── */
+.mrpolar-wrap .mrpolar-notice {
+    padding: 12px 16px;
+    border-radius: var(--mp-radius);
+    margin-bottom: 16px;
+    font-size: 13px;
+    border: 1px solid transparent;
+}
+.mrpolar-wrap .mrpolar-notice.success {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+}
+.mrpolar-wrap .mrpolar-notice.error {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
 }
 
 /* ── Chat ── */
@@ -540,9 +577,11 @@
     .mrpolar-wrap .mrpolar-grid-2,
     .mrpolar-wrap .mrpolar-grid-3 { grid-template-columns: 1fr; }
     .mrpolar-wrap .mrpolar-member-quick-actions { min-width: 100%; flex-direction: row; flex-wrap: wrap; }
+    .mrpolar-wrap .mrpolar-card .mrpolar-table-wrap { margin: -16px -16px; }
 }
 @media (max-width: 782px) {
     .mrpolar-wrap { padding: 16px 12px; }
+    .mrpolar-wrap .mrpolar-card { padding: 16px; }
     .mrpolar-wrap .mrpolar-filters { flex-direction: column; align-items: stretch; }
     .mrpolar-wrap .mrpolar-tabs { overflow-x: auto; }
     .mrpolar-wrap .mrpolar-modal { max-width: 100%; }

@@ -26,6 +26,8 @@ class MrPolar_Admin_Tiers {
         add_action('admin_post_mrpolar_save_tier',     [$instance, 'handle_save_tier']);
         add_action('admin_post_mrpolar_delete_tier',   [$instance, 'handle_delete_tier']);
         add_action('admin_post_mrpolar_reorder_tiers', [$instance, 'handle_reorder_tiers']);
+        // ★ 修正：讓等級設定頁也能 enqueue admin.css / admin.js
+        add_action('admin_enqueue_scripts',            [$instance, 'enqueue_assets']);
     }
 
     public static function instance(): self {
@@ -33,6 +35,34 @@ class MrPolar_Admin_Tiers {
             self::$instance = new self();
         }
         return self::$instance;
+    }
+
+    public function enqueue_assets(): void {
+        if (!current_user_can('manage_woocommerce')) {
+            return;
+        }
+        $page = isset($_GET['page']) ? sanitize_key(wp_unslash((string) $_GET['page'])) : '';
+        if (self::PAGE_SLUG !== $page) {
+            return;
+        }
+        wp_enqueue_style(
+            'mrpolar-admin',
+            plugins_url('../assets/admin.css', __FILE__),
+            [],
+            defined('MRPOLAR_API_VERSION') ? MRPOLAR_API_VERSION : '1.0.0'
+        );
+        wp_enqueue_script('jquery-ui-sortable');
+        wp_enqueue_script(
+            'mrpolar-admin',
+            plugins_url('../assets/admin.js', __FILE__),
+            ['jquery', 'jquery-ui-sortable'],
+            defined('MRPOLAR_API_VERSION') ? MRPOLAR_API_VERSION : '1.0.0',
+            true
+        );
+        wp_localize_script('mrpolar-admin', 'mrpolarAdmin', [
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce'   => wp_create_nonce('mrpolar_admin_nonce'),
+        ]);
     }
 
     public static function register_menus(): void {
@@ -133,7 +163,6 @@ class MrPolar_Admin_Tiers {
                                 $tierKey         = (string) ($tier['tier_key'] ?? '');
                                 $tierColor       = sanitize_hex_color((string) ($tier['tier_color'] ?? '')) ?: '#888888';
                                 $cashbackRate    = (float) ($tier['cashback_rate'] ?? 0);
-                                $welcomePoints   = intval($tier['welcome_points'] ?? 0);
                                 $birthdayRate    = (float) ($tier['birthday_bonus_rate'] ?? 0);
                                 $freeShipping    = $tier['free_shipping_threshold'] ?? null;
                                 $isActive        = intval($tier['is_active'] ?? 0) === 1;
@@ -147,7 +176,9 @@ class MrPolar_Admin_Tiers {
                                 $tierJson = esc_attr((string) wp_json_encode($tier));
                                 ?>
                                 <tr data-tier-id="<?php echo esc_attr((string) $tierId); ?>">
-                                    <td class="col-drag"><span class="mrpolar-drag-handle" title="拖曳調整順序" aria-hidden="true">☰</span></td>
+                                    <td class="col-drag">
+                                        <span class="mrpolar-drag-handle" title="拖曳調整順序" aria-hidden="true">☰</span>
+                                    </td>
                                     <td>
                                         <span class="tier-dot" style="background:<?php echo esc_attr($tierColor); ?>"></span>
                                         <strong><?php echo esc_html($tierName); ?></strong>
@@ -177,7 +208,7 @@ class MrPolar_Admin_Tiers {
                                             <button type="button"
                                                 class="mrpolar-btn mrpolar-btn-sm mrpolar-btn-secondary mrpolar-edit-tier-btn"
                                                 data-tier-json="<?php echo $tierJson; ?>">編輯</button>
-                                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline">
+                                            <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:inline;margin:0;">
                                                 <input type="hidden" name="action" value="mrpolar_delete_tier">
                                                 <input type="hidden" name="tier_id" value="<?php echo esc_attr((string) $tierId); ?>">
                                                 <?php wp_nonce_field('mrpolar_delete_tier_' . $tierId); ?>
@@ -195,7 +226,7 @@ class MrPolar_Admin_Tiers {
                 </div>
             </div>
 
-            <!-- 拖曳排序用隐藏表單 -->
+            <!-- 拖曳排序用隱藏表單 -->
             <form id="mrpolar-reorder-form" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="display:none;">
                 <input type="hidden" name="action" value="mrpolar_reorder_tiers">
                 <?php wp_nonce_field('mrpolar_reorder_tiers', 'mrpolar_reorder_nonce'); ?>
@@ -208,7 +239,7 @@ class MrPolar_Admin_Tiers {
 
                     <div class="mrpolar-modal-header">
                         <h2 id="mrpolar-modal-title">新增等級</h2>
-                        <button type="button" id="mrpolar-close-tier-modal" class="mrpolar-modal-close" aria-label="關閉">&times;</button>
+                        <button type="button" class="mrpolar-modal-close" data-close-modal aria-label="關閉">&times;</button>
                     </div>
 
                     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" id="mrpolar-tier-form">
@@ -216,7 +247,6 @@ class MrPolar_Admin_Tiers {
                         <input type="hidden" name="action" value="mrpolar_save_tier">
                         <input type="hidden" name="tier_id" id="mrpolar-tier-id" value="0">
 
-                        <!-- 基本設定 -->
                         <div class="mrpolar-section-label">基本設定</div>
                         <div class="mrpolar-form-row">
                             <label for="mrpolar-tier-name">等級名稱 <span class="required">*</span></label>
@@ -249,7 +279,6 @@ class MrPolar_Admin_Tiers {
                             </label>
                         </div>
 
-                        <!-- 升等條件 -->
                         <div class="mrpolar-section-label">
                             升等條件
                             <span class="mrpolar-badge-info">AND 邏輯：所有填寫的條件同時達標才升等</span>
@@ -269,7 +298,6 @@ class MrPolar_Admin_Tiers {
                             </div>
                         </div>
 
-                        <!-- 保級 / 降等 -->
                         <div class="mrpolar-section-label">
                             保級條件
                             <span class="mrpolar-badge-info">每年 1/1 歸零年度消費後判斷</span>
@@ -291,7 +319,6 @@ class MrPolar_Admin_Tiers {
                             </div>
                         </div>
 
-                        <!-- 等級效益 -->
                         <div class="mrpolar-section-label">等級效益</div>
                         <div class="mrpolar-grid-2">
                             <div class="mrpolar-form-row">
@@ -315,113 +342,25 @@ class MrPolar_Admin_Tiers {
                             </div>
                         </div>
 
-                        <!-- 說明 -->
                         <div class="mrpolar-form-row">
                             <label for="mrpolar-tier-description">等級說明（前台顯示）</label>
                             <textarea id="mrpolar-tier-description" name="description" rows="3" placeholder="例：年度消費累積 NT$6,000 即可升級，享有 5% 消費回饋點數與生日雙倍加碼。"></textarea>
                         </div>
 
                         <div class="mrpolar-form-actions">
-                            <button type="button" id="mrpolar-cancel-tier-modal" class="mrpolar-btn mrpolar-btn-secondary">取消</button>
+                            <button type="button" data-close-modal class="mrpolar-btn mrpolar-btn-secondary">取消</button>
                             <button type="submit" class="mrpolar-btn mrpolar-btn-primary" id="mrpolar-tier-submit">儲存等級</button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-
-        <script>
-        /* 等待 DOM 就緒 */
-        document.addEventListener('DOMContentLoaded', function () {
-
-            var modal   = document.getElementById('mrpolar-tier-modal');
-            var form    = document.getElementById('mrpolar-tier-form');
-            var title   = document.getElementById('mrpolar-modal-title');
-            var submit  = document.getElementById('mrpolar-tier-submit');
-
-            function openModal() { modal.classList.add('open'); }
-            function closeModal() {
-                modal.classList.remove('open');
-                form.reset();
-                document.getElementById('mrpolar-tier-id').value = '0';
-                title.textContent  = '新增等級';
-                submit.textContent = '儲存等級';
-            }
-
-            document.getElementById('mrpolar-open-tier-modal').addEventListener('click', openModal);
-            document.getElementById('mrpolar-close-tier-modal').addEventListener('click', closeModal);
-            document.getElementById('mrpolar-cancel-tier-modal').addEventListener('click', closeModal);
-            modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
-
-            /* 編輯按鈕 */
-            document.querySelectorAll('.mrpolar-edit-tier-btn').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    var tier = JSON.parse(this.dataset.tierJson || '{}');
-
-                    title.textContent  = '編輯等級：' + (tier.tier_name || '');
-                    submit.textContent = '更新等級';
-
-                    function setVal(id, v) {
-                        var el = document.getElementById(id);
-                        if (el) el.value = (v !== null && v !== undefined) ? v : '';
-                    }
-                    function setChk(name, v) {
-                        var el = form.querySelector('[name="' + name + '"]');
-                        if (el) el.checked = !!+v;
-                    }
-
-                    document.getElementById('mrpolar-tier-id').value = tier.id || 0;
-                    setVal('mrpolar-tier-name',  tier.tier_name);
-                    setVal('mrpolar-tier-key',   tier.tier_key);
-                    setVal('mrpolar-tier-color', tier.tier_color || '#888888');
-                    setVal('mrpolar-tier-sort',  tier.sort_order);
-                    setChk('is_active',     tier.is_active);
-                    setChk('is_manual_only', tier.is_manual_only);
-
-                    setVal('mrpolar-upgrade-spending', tier.upgrade_min_spending);
-                    setVal('mrpolar-upgrade-orders',   tier.upgrade_min_orders);
-                    setVal('mrpolar-upgrade-points',   tier.upgrade_min_points);
-                    setVal('mrpolar-maintain-spending', tier.downgrade_min_spending);
-
-                    var ddSel = document.getElementById('mrpolar-downgrade-to');
-                    if (ddSel) ddSel.value = tier.downgrade_to_tier_id || '';
-
-                    /* 率值: DB 儲 0.05 → 顯示 5.00 */
-                    setVal('mrpolar-cashback-rate',  tier.cashback_rate     != null ? (parseFloat(tier.cashback_rate)     * 100).toFixed(2) : '');
-                    setVal('mrpolar-welcome-points', tier.welcome_points);
-                    setVal('mrpolar-birthday-bonus', tier.birthday_bonus_rate != null ? (parseFloat(tier.birthday_bonus_rate) * 100).toFixed(2) : '');
-                    setVal('mrpolar-free-shipping',  tier.free_shipping_threshold);
-                    setVal('mrpolar-tier-description', tier.description);
-
-                    openModal();
-                });
-            });
-
-            /* SortableJS 拖曳排序 */
-            if (typeof Sortable !== 'undefined') {
-                var tbody = document.getElementById('mrpolar-tiers-tbody');
-                if (tbody) {
-                    Sortable.create(tbody, {
-                        handle: '.mrpolar-drag-handle',
-                        animation: 150,
-                        ghostClass: 'sortable-ghost',
-                        onEnd: function () {
-                            var ids = Array.from(tbody.querySelectorAll('tr[data-tier-id]'))
-                                          .map(function (tr) { return tr.dataset.tierId; });
-                            document.getElementById('mrpolar-tier-order').value = ids.join(',');
-                            document.getElementById('mrpolar-reorder-form').submit();
-                        }
-                    });
-                }
-            }
-        });
-        </script>
         <?php
         return (string) ob_get_clean();
     }
 
     // ══════════════════════════════════════════════
-    // 儲存等級（修正 $formats 對齊 + nullable 安全處理）
+    // 儲存等級
     // ══════════════════════════════════════════════
     public function handle_save_tier(): void {
         if (!current_user_can('manage_woocommerce')) {
@@ -440,24 +379,19 @@ class MrPolar_Admin_Tiers {
         $isActive     = isset($_POST['is_active']) ? 1 : 0;
         $isManualOnly = isset($_POST['is_manual_only']) ? 1 : 0;
 
-        // nullable float
         $upgradeMinSpending = $this->parse_nullable_float($_POST['upgrade_min_spending'] ?? null);
         $downgradeMinSpend  = $this->parse_nullable_float($_POST['downgrade_min_spending'] ?? null);
         $freeShipping       = $this->parse_nullable_float($_POST['free_shipping_threshold'] ?? null);
-
-        // nullable int
-        $upgradeMinOrders  = $this->parse_nullable_int($_POST['upgrade_min_orders'] ?? null);
-        $upgradeMinPoints  = $this->parse_nullable_int($_POST['upgrade_min_points'] ?? null);
-        $downgradeToTierId = $this->parse_nullable_int($_POST['downgrade_to_tier_id'] ?? null);
+        $upgradeMinOrders   = $this->parse_nullable_int($_POST['upgrade_min_orders'] ?? null);
+        $upgradeMinPoints   = $this->parse_nullable_int($_POST['upgrade_min_points'] ?? null);
+        $downgradeToTierId  = $this->parse_nullable_int($_POST['downgrade_to_tier_id'] ?? null);
         if ($downgradeToTierId === 0) { $downgradeToTierId = null; }
 
-        // 率值：前台傳百分比，儲 decimal (0~1)
         $cashbackRate      = max(0.0, min(1.0, (float) wp_unslash((string) ($_POST['cashback_rate'] ?? '0')) / 100));
         $birthdayBonusRate = max(0.0, min(1.0, (float) wp_unslash((string) ($_POST['birthday_bonus_rate'] ?? '0')) / 100));
         $welcomePoints     = max(0, absint(wp_unslash((string) ($_POST['welcome_points'] ?? '0'))));
         $description       = sanitize_textarea_field(wp_unslash((string) ($_POST['description'] ?? '')));
 
-        // 驗證
         if ('' === $tierName) {
             wp_safe_redirect($this->with_notice($this->get_tier_page_url(), '等級名稱不可為空', 'error')); exit;
         }
@@ -468,8 +402,6 @@ class MrPolar_Admin_Tiers {
             wp_safe_redirect($this->with_notice($this->get_tier_page_url(), '降等目標不可指向自己', 'error')); exit;
         }
 
-        // 寫入資料：用 %s 處理所有欄位以支援 NULL
-        // wpdb->insert/update 對於 NULL 值必須用 %s 才能正確寫入 SQL NULL
         $data = [
             'tier_name'               => $tierName,
             'tier_key'                => $tierKey,
@@ -488,8 +420,6 @@ class MrPolar_Admin_Tiers {
             'free_shipping_threshold' => $freeShipping,
             'description'             => $description,
         ];
-        // 所有欄位統一用 %s：讓 wpdb 自行根據 PHP 形態轉換型別，
-        // 同時支援 null 寫入 SQL NULL（%d/%f 無法寫入 NULL）
         $formats = array_fill(0, count($data), '%s');
 
         if ($tierId > 0) {
@@ -584,24 +514,13 @@ class MrPolar_Admin_Tiers {
     // ══════════════════════════════════════════════
     // 輔助方法
     // ══════════════════════════════════════════════
-
-    /**
-     * 輸入空白/null 回傳 null，否則回傳非負 float
-     */
     private function parse_nullable_float(mixed $v): ?float {
-        if (null === $v || '' === (string) $v) {
-            return null;
-        }
+        if (null === $v || '' === (string) $v) { return null; }
         return max(0.0, (float) wp_unslash((string) $v));
     }
 
-    /**
-     * 輸入空白/null 回傳 null，否則回傳非負 int
-     */
     private function parse_nullable_int(mixed $v): ?int {
-        if (null === $v || '' === (string) $v) {
-            return null;
-        }
+        if (null === $v || '' === (string) $v) { return null; }
         return max(0, absint(wp_unslash((string) $v)));
     }
 
@@ -613,9 +532,7 @@ class MrPolar_Admin_Tiers {
     private function render_notice(): string {
         $msg  = isset($_GET['mrpolar_notice'])      ? sanitize_text_field(wp_unslash((string) $_GET['mrpolar_notice'])) : '';
         $type = isset($_GET['mrpolar_notice_type']) ? sanitize_key(wp_unslash((string) $_GET['mrpolar_notice_type'])) : 'success';
-        if ('' === $msg) {
-            return '';
-        }
+        if ('' === $msg) { return ''; }
         $class = 'error' === $type ? 'notice-error' : 'notice-success';
         return '<div class="notice ' . esc_attr($class) . ' is-dismissible"><p>' . esc_html(urldecode($msg)) . '</p></div>';
     }
