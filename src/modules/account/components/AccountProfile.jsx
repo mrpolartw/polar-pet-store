@@ -1,16 +1,22 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, User } from 'lucide-react'
 import { CONFIG } from '../../../constants/config'
 import { useAuth } from '../../../context/useAuth'
-import { useToast } from '../../../context/ToastContext'
 import { getMemberTier } from '../../../context/authUtils'
-import { useMember } from '../../../hooks/useMember'
-import { MEMBER_TIER_THRESHOLD } from '../../../utils/constants'
+import { useToast } from '../../../context/ToastContext'
+import { useMember, useTiers } from '../../../hooks/useMember'
 
 const SUPPORTED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_AVATAR_FILE_SIZE = CONFIG.MAX_AVATAR_SIZE ?? 5 * 1024 * 1024
 const MAX_AVATAR_SIZE_MB = Math.round(MAX_AVATAR_FILE_SIZE / 1024 / 1024)
+
+const FALLBACK_SPENDING_TIERS = [
+  { tier_key: 'basic', tier_name: '一般會員', tier_color: '#8A7E71', upgrade_min_spending: 0, sort_order: 10 },
+  { tier_key: 'silver', tier_name: '銀卡會員', tier_color: '#6B7280', upgrade_min_spending: 6000, sort_order: 20 },
+  { tier_key: 'gold', tier_name: '金卡會員', tier_color: '#8B5A2B', upgrade_min_spending: 30000, sort_order: 30 },
+  { tier_key: 'black', tier_name: '黑卡會員', tier_color: '#1F2937', upgrade_min_spending: 60000, sort_order: 40 },
+]
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -18,14 +24,58 @@ const fadeUp = {
   transition: { duration: 0.4, ease: [0.25, 1, 0.5, 1] },
 }
 
-const getNextTierPoints = (points) => {
-  if (points >= MEMBER_TIER_THRESHOLD.DIAMOND) return null
-  if (points >= MEMBER_TIER_THRESHOLD.GOLD) return MEMBER_TIER_THRESHOLD.DIAMOND
-  if (points >= MEMBER_TIER_THRESHOLD.SILVER) return MEMBER_TIER_THRESHOLD.GOLD
-  return MEMBER_TIER_THRESHOLD.SILVER
+const getInitials = (name) => (name ? name.slice(0, 2).toUpperCase() : 'PL')
+
+const normalizeTierKey = (value) => {
+  const key = String(value || '').trim().toLowerCase()
+
+  if (!key) return ''
+  if (['member', 'family', 'general', 'default'].includes(key)) return 'basic'
+  if (['diamond'].includes(key)) return 'black'
+
+  return key
 }
 
-const getInitials = (name) => (name ? name.slice(0, 2).toUpperCase() : 'PL')
+const normalizeTierName = (value) => String(value || '').trim()
+
+const formatCurrency = (value) => `NT$${Math.max(0, Math.round(Number(value) || 0)).toLocaleString()}`
+
+const buildTierPalette = (tierColor, fallbackTier) => ({
+  ...fallbackTier,
+  color: tierColor || fallbackTier.color,
+})
+
+const resolveTierList = (tiers) => {
+  const rows = Array.isArray(tiers) && tiers.length > 0 ? tiers : FALLBACK_SPENDING_TIERS
+
+  return [...rows]
+    .map((tier, index) => ({
+      tier_key: normalizeTierKey(tier.tier_key || tier.key),
+      tier_name: normalizeTierName(tier.tier_name || tier.name),
+      tier_color: tier.tier_color || tier.color || FALLBACK_SPENDING_TIERS[index]?.tier_color || '#8A7E71',
+      upgrade_min_spending: Number(tier.upgrade_min_spending || 0),
+      sort_order: Number(tier.sort_order || (index + 1) * 10),
+    }))
+    .sort((a, b) => a.sort_order - b.sort_order)
+}
+
+const resolveCurrentTier = (member, tierList, yearlySpending) => {
+  const currentTierKey = normalizeTierKey(member?.tier_key || member?.tier?.key || member?.tierKey)
+  const currentTierName = normalizeTierName(member?.tier_name || member?.tier?.name || member?.tierName)
+
+  if (currentTierKey) {
+    const foundByKey = tierList.find((tier) => tier.tier_key === currentTierKey)
+    if (foundByKey) return foundByKey
+  }
+
+  if (currentTierName) {
+    const foundByName = tierList.find((tier) => tier.tier_name === currentTierName)
+    if (foundByName) return foundByName
+  }
+
+  const qualified = tierList.filter((tier) => yearlySpending >= Number(tier.upgrade_min_spending || 0))
+  return qualified.at(-1) || tierList[0] || null
+}
 
 function AccountProfileCard({ user, tier, onAvatarUpload, statusText }) {
   const inputRef = useRef(null)
@@ -56,9 +106,9 @@ function AccountProfileCard({ user, tier, onAvatarUpload, statusText }) {
         <span>會員等級 {tier.label}</span>
       </div>
       <div className="account-points-row">
-        <span>目前點數</span>
+        <span>會員點數</span>
         <span className="account-points-value">
-          {(user?.points || 0).toLocaleString()}
+          {user?.points || 0}
         </span>
       </div>
     </div>
@@ -68,6 +118,7 @@ function AccountProfileCard({ user, tier, onAvatarUpload, statusText }) {
 export default function AccountProfile() {
   const { user, isLoading } = useAuth()
   const { member, loading, error, updateMember } = useMember()
+  const { tiers } = useTiers()
   const toast = useToast()
 
   const [profileForm, setProfileForm] = useState({
@@ -91,7 +142,7 @@ export default function AccountProfile() {
     }))
   }, [member])
 
-  const profileUser = {
+  const profileUser = useMemo(() => ({
     ...user,
     name: member?.display_name || user?.name || '',
     email: member?.email || user?.email || '',
@@ -100,17 +151,74 @@ export default function AccountProfile() {
     gender: member?.gender || user?.gender || '',
     avatar: member?.avatar_url || profileForm.avatar || user?.avatar || '',
     points: Number(member?.points_balance ?? user?.points ?? 0),
-  }
+    yearlySpending: Number(member?.yearly_spending ?? user?.yearlySpending ?? 0),
+    tierName: member?.tier_name || member?.tier?.name || user?.tierName || '',
+    tierColor: member?.tier_color || member?.tier?.color || user?.tierColor || '',
+    tierKey: member?.tier_key || member?.tier?.key || user?.tierKey || '',
+  }), [member, profileForm.avatar, user])
 
-  const points = profileUser?.points || 0
-  const tier = getMemberTier(points)
-  const nextTierPoints = getNextTierPoints(points)
-  const progressPct = nextTierPoints ? Math.min((points / nextTierPoints) * 100, 100) : 100
-  const remainingToNextTier = nextTierPoints ? Math.max(nextTierPoints - points, 0) : 0
+  const fallbackTier = getMemberTier(profileUser?.points || 0)
+  const displayTier = buildTierPalette(profileUser?.tierColor, {
+    ...fallbackTier,
+    label: profileUser?.tierName || fallbackTier.label,
+  })
+
+  const spendingProgress = useMemo(() => {
+    const yearlySpending = Number(profileUser?.yearlySpending || 0)
+    const tierList = resolveTierList(tiers)
+    const currentTier = resolveCurrentTier(profileUser, tierList, yearlySpending)
+
+    if (!currentTier) {
+      return {
+        currentTierName: displayTier.label,
+        nextTierName: '',
+        yearlySpending,
+        progressPct: 0,
+        progressTitle: displayTier.label,
+        progressValue: formatCurrency(yearlySpending),
+        remainingLabel: '尚未取得升級門檻資料',
+      }
+    }
+
+    const currentIndex = Math.max(tierList.findIndex((tier) => tier.tier_key === currentTier.tier_key), 0)
+    const nextTier = tierList[currentIndex + 1] || null
+
+    if (!nextTier) {
+      return {
+        currentTierName: currentTier.tier_name,
+        nextTierName: '',
+        yearlySpending,
+        progressPct: 100,
+        progressTitle: `${currentTier.tier_name} -> 最高等級`,
+        progressValue: formatCurrency(yearlySpending),
+        remainingLabel: '已是最高等級',
+      }
+    }
+
+    const currentThreshold = Number(currentTier.upgrade_min_spending || 0)
+    const nextThreshold = Number(nextTier.upgrade_min_spending || 0)
+    const thresholdRange = Math.max(nextThreshold - currentThreshold, 1)
+    const progressPct = Math.min(
+      Math.max(((yearlySpending - currentThreshold) / thresholdRange) * 100, 0),
+      100
+    )
+    const remaining = Math.max(nextThreshold - yearlySpending, 0)
+
+    return {
+      currentTierName: currentTier.tier_name,
+      nextTierName: nextTier.tier_name,
+      yearlySpending,
+      progressPct,
+      progressTitle: `${currentTier.tier_name} -> ${nextTier.tier_name}`,
+      progressValue: `${formatCurrency(yearlySpending)} / ${formatCurrency(nextThreshold)}`,
+      remainingLabel: `距離${nextTier.tier_name}還差 ${formatCurrency(remaining)}`,
+    }
+  }, [displayTier.label, profileUser, tiers])
+
   const statusText = error
     ? error
     : loading
-      ? '會員資料載入中…'
+      ? '會員資料載入中...'
       : (profileUser?.email || '')
 
   const handleUpdateProfile = async () => {
@@ -151,7 +259,7 @@ export default function AccountProfile() {
         const avatar = typeof reader.result === 'string' ? reader.result : ''
 
         if (!avatar) {
-          throw new Error('讀取圖片失敗')
+          throw new Error('圖片讀取失敗')
         }
 
         await updateMember({ avatar_url: avatar })
@@ -163,7 +271,7 @@ export default function AccountProfile() {
     }
 
     reader.onerror = () => {
-      toast.error('讀取圖片失敗')
+      toast.error('圖片讀取失敗')
     }
 
     reader.readAsDataURL(file)
@@ -178,7 +286,7 @@ export default function AccountProfile() {
 
       <AccountProfileCard
         user={profileUser}
-        tier={tier}
+        tier={displayTier}
         onAvatarUpload={handleAvatarUpload}
         statusText={statusText}
       />
@@ -187,17 +295,20 @@ export default function AccountProfile() {
         <div className="tier-progress-label">
           <span>
             <strong style={{ color: 'var(--color-brand-coffee)' }}>
-              {points.toLocaleString()} 點
+              {spendingProgress.progressTitle}
             </strong>
           </span>
-          <span>
-            {nextTierPoints
-              ? `距離下一級還差 ${remainingToNextTier.toLocaleString()} 點`
-              : '您已是目前最高會員等級'}
-          </span>
+          <span>{spendingProgress.progressValue}</span>
+        </div>
+        <div
+          className="tier-progress-label"
+          style={{ marginTop: 6, fontSize: 13, color: 'var(--color-gray-dark)' }}
+        >
+          <span>{spendingProgress.remainingLabel}</span>
+          <span />
         </div>
         <div className="tier-progress-bar">
-          <div className="tier-progress-fill" style={{ width: `${progressPct}%` }} />
+          <div className="tier-progress-fill" style={{ width: `${spendingProgress.progressPct}%` }} />
         </div>
       </div>
 
@@ -239,7 +350,7 @@ export default function AccountProfile() {
                   padding: '1px 8px',
                 }}
               >
-                目前為唯讀
+                目前不可修改
               </span>
             </label>
             <input
@@ -265,7 +376,7 @@ export default function AccountProfile() {
                   padding: '1px 8px',
                 }}
               >
-                目前由系統維護
+                目前不可修改
               </span>
             </label>
             <input
@@ -289,7 +400,7 @@ export default function AccountProfile() {
             <option value="male">男性</option>
             <option value="female">女性</option>
             <option value="other">其他</option>
-            <option value="prefer_not_to_say">不願透露</option>
+            <option value="prefer_not_to_say">不透露</option>
           </select>
         </div>
 

@@ -122,6 +122,7 @@ export function MemberProvider({ children, auth }) {
       syncUserFromMember(nextMember)
       return nextMember
     } catch (nextError) {
+      setLoadedState('member', true)
       return handleError(nextError)
     } finally {
       setLoadingState('member', false)
@@ -157,6 +158,7 @@ export function MemberProvider({ children, auth }) {
       setLoadedState('addresses', true)
       return nextAddresses
     } catch (nextError) {
+      setLoadedState('addresses', true)
       return handleError(nextError)
     } finally {
       setLoadingState('addresses', false)
@@ -228,6 +230,7 @@ export function MemberProvider({ children, auth }) {
       setLoadedState('pets', true)
       return nextPets
     } catch (nextError) {
+      setLoadedState('pets', true)
       return handleError(nextError)
     } finally {
       setLoadingState('pets', false)
@@ -299,6 +302,7 @@ export function MemberProvider({ children, auth }) {
       setLoadedState('points', true)
       return nextPoints
     } catch (nextError) {
+      setLoadedState('points', true)
       return handleError(nextError)
     } finally {
       setLoadingState('points', false)
@@ -314,6 +318,7 @@ export function MemberProvider({ children, auth }) {
       setLoadedState('tiers', true)
       return nextTiers
     } catch (nextError) {
+      setLoadedState('tiers', true)
       setError(nextError?.message || '等級資料讀取失敗')
       throw nextError
     } finally {

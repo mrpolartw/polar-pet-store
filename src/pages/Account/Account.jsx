@@ -35,7 +35,14 @@ export default function Account() {
 
   if (!user) return <Navigate to="/login" state={{ from: '/account' }} replace />
 
-  const tier = getMemberTier(user?.points || 0)
+  const fallbackTier = getMemberTier(user?.points || 0)
+  const tier = user?.tierName
+    ? {
+      ...fallbackTier,
+      label: user.tierName,
+      color: user.tierColor || fallbackTier.color,
+    }
+    : fallbackTier
   const ActiveComponent = TAB_CONFIG.find((tab) => tab.key === activeTab)?.component ?? AccountProfile
 
   const handleLogout = async () => {

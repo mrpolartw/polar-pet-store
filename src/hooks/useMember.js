@@ -5,7 +5,7 @@ const useMemberContext = () => {
   const context = useContext(MemberContext)
 
   if (!context) {
-    throw new Error('useMember 必須在 MemberProvider 內使用')
+    throw new Error('useMember must be used within MemberProvider.')
   }
 
   return context
@@ -13,14 +13,15 @@ const useMemberContext = () => {
 
 export function useMember() {
   const context = useMemberContext()
+  const { isLoggedIn, loaded, loading, fetchMember } = context
 
   useEffect(() => {
-    if (!context.isLoggedIn || context.loaded.member || context.loading.member) {
+    if (!isLoggedIn || loaded.member || loading.member) {
       return
     }
 
-    context.fetchMember().catch(() => {})
-  }, [context])
+    fetchMember().catch(() => {})
+  }, [isLoggedIn, loaded.member, loading.member, fetchMember])
 
   return {
     member: context.member,
@@ -33,14 +34,15 @@ export function useMember() {
 
 export function useAddresses() {
   const context = useMemberContext()
+  const { isLoggedIn, loaded, loading, fetchAddresses } = context
 
   useEffect(() => {
-    if (!context.isLoggedIn || context.loaded.addresses || context.loading.addresses) {
+    if (!isLoggedIn || loaded.addresses || loading.addresses) {
       return
     }
 
-    context.fetchAddresses().catch(() => {})
-  }, [context])
+    fetchAddresses().catch(() => {})
+  }, [isLoggedIn, loaded.addresses, loading.addresses, fetchAddresses])
 
   return {
     addresses: context.addresses,
@@ -55,14 +57,15 @@ export function useAddresses() {
 
 export function usePets() {
   const context = useMemberContext()
+  const { isLoggedIn, loaded, loading, fetchPets } = context
 
   useEffect(() => {
-    if (!context.isLoggedIn || context.loaded.pets || context.loading.pets) {
+    if (!isLoggedIn || loaded.pets || loading.pets) {
       return
     }
 
-    context.fetchPets().catch(() => {})
-  }, [context])
+    fetchPets().catch(() => {})
+  }, [isLoggedIn, loaded.pets, loading.pets, fetchPets])
 
   return {
     pets: context.pets,
@@ -77,14 +80,15 @@ export function usePets() {
 
 export function usePoints() {
   const context = useMemberContext()
+  const { isLoggedIn, loaded, loading, fetchPoints } = context
 
   useEffect(() => {
-    if (!context.isLoggedIn || context.loaded.points || context.loading.points) {
+    if (!isLoggedIn || loaded.points || loading.points) {
       return
     }
 
-    context.fetchPoints().catch(() => {})
-  }, [context])
+    fetchPoints().catch(() => {})
+  }, [isLoggedIn, loaded.points, loading.points, fetchPoints])
 
   return {
     points: context.points,
@@ -96,14 +100,15 @@ export function usePoints() {
 
 export function useTiers() {
   const context = useMemberContext()
+  const { loaded, loading, fetchTiers } = context
 
   useEffect(() => {
-    if (context.loaded.tiers || context.loading.tiers) {
+    if (loaded.tiers || loading.tiers) {
       return
     }
 
-    context.fetchTiers().catch(() => {})
-  }, [context])
+    fetchTiers().catch(() => {})
+  }, [loaded.tiers, loading.tiers, fetchTiers])
 
   return {
     tiers: context.tiers,

@@ -33,17 +33,39 @@ const toNumber = (value, fallback = 0) => {
 const toString = (value) => (value == null ? '' : String(value))
 const toBoolean = (value) => value === true || value === 1 || value === '1'
 
+const extractTier = (member = {}) => {
+  const tier = member?.tier && typeof member.tier === 'object' ? member.tier : {}
+
+  return {
+    tier_id: toNumber(member.tier_id ?? tier.id, 0),
+    tier_key: toString(member.tier_key ?? tier.key ?? tier.tier_key),
+    tier_name: toString(member.tier_name ?? tier.name ?? tier.tier_name),
+    tier_color: toString(member.tier_color ?? tier.color ?? tier.tier_color),
+    cashback_rate: toNumber(member.cashback_rate ?? tier.cashback_rate, 0),
+    welcome_points: toNumber(member.welcome_points ?? tier.welcome_points, 0),
+    birthday_bonus_rate: toNumber(member.birthday_bonus_rate ?? tier.birthday_bonus_rate, 0),
+    free_shipping_threshold: toNumber(member.free_shipping_threshold ?? tier.free_shipping_threshold, 0),
+    tier_sort_order: toNumber(member.tier_sort_order ?? tier.sort_order, 0),
+    upgrade_min_spending: toNumber(member.upgrade_min_spending ?? tier.upgrade_min_spending, 0),
+    description: toString(member.tier_description ?? tier.description),
+  }
+}
+
 export const normalizeMember = (member = {}) => {
+  const tier = extractTier(member)
+  const memberId = toNumber(member.member_id ?? member.id, 0)
+
   const normalized = {
     ...member,
-    id: toNumber(member.id, member.id ?? 0),
+    id: memberId,
+    member_id: memberId,
     wp_user_id: toNumber(member.wp_user_id, 0),
-    tier_id: toNumber(member.tier_id, 0),
-    cashback_rate: toNumber(member.cashback_rate, 0),
+    tier_id: tier.tier_id,
+    cashback_rate: tier.cashback_rate,
     points_balance: toNumber(member.points_balance, 0),
     points_lifetime: toNumber(member.points_lifetime, 0),
-    yearly_spending: toNumber(member.yearly_spending, 0),
-    total_spending: toNumber(member.total_spending, 0),
+    yearly_spending: toNumber(member.yearly_spending ?? member.yearlySpending, 0),
+    total_spending: toNumber(member.total_spending ?? member.totalSpending, 0),
     display_name: toString(member.display_name),
     first_name: toString(member.first_name),
     last_name: toString(member.last_name),
@@ -51,19 +73,35 @@ export const normalizeMember = (member = {}) => {
     phone: toString(member.phone),
     gender: toString(member.gender),
     birthday: toString(member.birthday),
-    avatar_url: toString(member.avatar_url),
-    tier_key: toString(member.tier_key),
-    tier_name: toString(member.tier_name),
-    tier_color: toString(member.tier_color),
+    avatar_url: toString(member.avatar_url ?? member.avatar),
+    tier_key: tier.tier_key,
+    tier_name: tier.tier_name,
+    tier_color: tier.tier_color,
+    tier_sort_order: tier.tier_sort_order,
+    upgrade_min_spending: tier.upgrade_min_spending,
+    next_tier_min_spending: toNumber(member.next_tier_min_spending, 0),
     status: toString(member.status),
-    registered_at: toString(member.registered_at),
-    name: toString(member.display_name),
-    avatar: toString(member.avatar_url),
+    registered_at: toString(member.registered_at ?? member.member_since),
+    name: toString(member.name ?? member.display_name),
+    avatar: toString(member.avatar_url ?? member.avatar),
     points: toNumber(member.points_balance, 0),
     pointsLifetime: toNumber(member.points_lifetime, 0),
-    yearlySpending: toNumber(member.yearly_spending, 0),
-    totalSpending: toNumber(member.total_spending, 0),
+    yearlySpending: toNumber(member.yearly_spending ?? member.yearlySpending, 0),
+    totalSpending: toNumber(member.total_spending ?? member.totalSpending, 0),
     lineLinked: Boolean(member.line_user_id),
+    tier: {
+      id: tier.tier_id,
+      key: tier.tier_key,
+      name: tier.tier_name,
+      color: tier.tier_color,
+      cashback_rate: tier.cashback_rate,
+      welcome_points: tier.welcome_points,
+      birthday_bonus_rate: tier.birthday_bonus_rate,
+      free_shipping_threshold: tier.free_shipping_threshold,
+      sort_order: tier.tier_sort_order,
+      upgrade_min_spending: tier.upgrade_min_spending,
+      description: tier.description,
+    },
   }
 
   return normalized
@@ -226,8 +264,8 @@ export const serializePet = (pet = {}) => ({
 })
 
 export const normalizePoints = (points = {}) => ({
-  balance: toNumber(points.balance, 0),
-  lifetime: toNumber(points.lifetime, 0),
+  balance: toNumber(points.balance ?? points.points_balance ?? points.points, 0),
+  lifetime: toNumber(points.lifetime ?? points.points_lifetime, 0),
   logs: Array.isArray(points.logs)
     ? points.logs.map((row) => ({
       ...row,
@@ -259,32 +297,38 @@ export const updateMember = async (token, updates) => normalizeMember(
 )
 
 export const fetchAddresses = async (token) => {
-  const rows = await getAddressesApi(token)
+  const response = await getAddressesApi(token)
+  const rows = Array.isArray(response) ? response : response?.addresses
   return Array.isArray(rows) ? rows.map(normalizeAddress) : []
 }
 
-export const createAddress = async (token, address) => normalizeAddress(
-  await createAddressApi(token, serializeAddress(address))
-)
+export const createAddress = async (token, address) => {
+  const response = await createAddressApi(token, serializeAddress(address))
+  return normalizeAddress(response?.address ?? response)
+}
 
-export const updateAddress = async (token, id, address) => normalizeAddress(
-  await updateAddressApi(token, id, serializeAddress(address))
-)
+export const updateAddress = async (token, id, address) => {
+  const response = await updateAddressApi(token, id, serializeAddress(address))
+  return normalizeAddress(response?.address ?? response)
+}
 
 export const deleteAddress = async (token, id) => deleteAddressApi(token, id)
 
 export const fetchPets = async (token) => {
-  const rows = await getPetsApi(token)
+  const response = await getPetsApi(token)
+  const rows = Array.isArray(response) ? response : response?.pets
   return Array.isArray(rows) ? rows.map(normalizePet) : []
 }
 
-export const createPet = async (token, pet) => normalizePet(
-  await createPetApi(token, serializePet(pet))
-)
+export const createPet = async (token, pet) => {
+  const response = await createPetApi(token, serializePet(pet))
+  return normalizePet(response?.pet ?? response)
+}
 
-export const updatePet = async (token, id, pet) => normalizePet(
-  await updatePetApi(token, id, serializePet(pet))
-)
+export const updatePet = async (token, id, pet) => {
+  const response = await updatePetApi(token, id, serializePet(pet))
+  return normalizePet(response?.pet ?? response)
+}
 
 export const deletePet = async (token, id) => deletePetApi(token, id)
 

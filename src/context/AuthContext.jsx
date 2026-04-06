@@ -9,9 +9,61 @@ import { MemberProvider } from './MemberContext'
 
 const AuthContext = createContext(null)
 
-const INVALID_LOGIN_MESSAGE = '帳號或密碼不正確，請再試一次'
-const GENERIC_LOGIN_MESSAGE = '登入時發生錯誤，請稍後再試'
-const GENERIC_REGISTER_MESSAGE = '註冊時發生錯誤，請稍後再試'
+const INVALID_LOGIN_MESSAGE = 'Email or password is incorrect.'
+const GENERIC_LOGIN_MESSAGE = 'Unable to sign in right now.'
+const GENERIC_REGISTER_MESSAGE = 'Unable to complete registration right now.'
+const PROFILE_UPDATE_ERROR_MESSAGE = 'Unable to update profile.'
+const PASSWORD_CHANGE_ERROR_MESSAGE = 'Unable to change password.'
+const AUTH_REQUIRED_MESSAGE = 'Please sign in first.'
+
+const STORAGE_TOKEN_KEY = 'mrpolar_auth_token'
+const STORAGE_USER_KEY = 'mrpolar_auth_user'
+
+const readSessionStorage = (key) => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  try {
+    return window.sessionStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+const writeSessionStorage = (key, value) => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    if (value == null || value === '') {
+      window.sessionStorage.removeItem(key)
+      return
+    }
+
+    window.sessionStorage.setItem(key, value)
+  } catch {
+    // ignore session storage errors
+  }
+}
+
+const readStoredToken = () => readSessionStorage(STORAGE_TOKEN_KEY)
+
+const readStoredUser = () => {
+  const raw = readSessionStorage(STORAGE_USER_KEY)
+
+  if (!raw) {
+    return null
+  }
+
+  try {
+    return JSON.parse(raw)
+  } catch {
+    writeSessionStorage(STORAGE_USER_KEY, null)
+    return null
+  }
+}
 
 const createBasicUser = (payload = {}) => ({
   id: null,
@@ -68,10 +120,21 @@ const normalizeRegisterPayload = (userData = {}) => {
 }
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
-  const [token, setToken] = useState(null)
+  const [user, setUser] = useState(() => readStoredUser())
+  const [token, setToken] = useState(() => readStoredToken())
   const [isLoading, setIsLoading] = useState(true)
   const [authError, setAuthError] = useState('')
+
+  useEffect(() => {
+    writeSessionStorage(STORAGE_TOKEN_KEY, token || null)
+  }, [token])
+
+  useEffect(() => {
+    writeSessionStorage(
+      STORAGE_USER_KEY,
+      user ? JSON.stringify(user) : null
+    )
+  }, [user])
 
   useEffect(() => {
     let isMounted = true
@@ -144,13 +207,17 @@ export const AuthProvider = ({ children }) => {
         || message.toLowerCase().includes('incorrect')
         || message.toLowerCase().includes('invalid')
 
+      const nextMessage = isInvalidCredentials
+        ? INVALID_LOGIN_MESSAGE
+        : (message || GENERIC_LOGIN_MESSAGE)
+
       setToken(null)
       setUser(null)
-      setAuthError(isInvalidCredentials ? INVALID_LOGIN_MESSAGE : (message || GENERIC_LOGIN_MESSAGE))
+      setAuthError(nextMessage)
 
       return {
         success: false,
-        message: isInvalidCredentials ? INVALID_LOGIN_MESSAGE : (message || GENERIC_LOGIN_MESSAGE),
+        message: nextMessage,
       }
     } finally {
       setIsLoading(false)
@@ -169,7 +236,7 @@ export const AuthProvider = ({ children }) => {
       const loginResult = await authService.login(payload.email, payload.password)
 
       if (!loginResult?.token) {
-        throw new Error('註冊成功，但自動登入失敗')
+        throw new Error('Registration succeeded but auto sign-in failed.')
       }
 
       setToken(loginResult.token)
@@ -179,7 +246,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       const message = String(error?.message || '')
       const normalizedMessage = message.toLowerCase().includes('exists')
-        ? '此電子郵件已被註冊，請直接登入'
+        ? 'This email is already registered.'
         : (message || GENERIC_REGISTER_MESSAGE)
 
       setAuthError(normalizedMessage)
@@ -245,7 +312,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error?.message || '更新會員資料失敗',
+        message: error?.message || PROFILE_UPDATE_ERROR_MESSAGE,
       }
     } finally {
       setIsLoading(false)
@@ -265,7 +332,7 @@ export const AuthProvider = ({ children }) => {
     if (!token) {
       return {
         success: false,
-        message: '請先登入會員帳號',
+        message: AUTH_REQUIRED_MESSAGE,
       }
     }
 
@@ -277,7 +344,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       return {
         success: false,
-        message: error?.message || '更新密碼失敗',
+        message: error?.message || PASSWORD_CHANGE_ERROR_MESSAGE,
       }
     } finally {
       setIsLoading(false)
