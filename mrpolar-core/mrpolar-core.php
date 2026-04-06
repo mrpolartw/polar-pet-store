@@ -54,14 +54,52 @@ function mrpolar_api_init(): void {
     MrPolar_Points_Shortcode::boot();
 
     if (is_admin()) {
-        class_exists('MrPolar_Admin_Member');
-        class_exists('MrPolar_Admin_Tiers');
+        MrPolar_Admin_Member::boot();
+        MrPolar_Admin_Tiers::boot();
 
-        add_action('admin_menu', ['MrPolar_Admin_Member', 'register_menus']);
-        add_action('admin_menu', ['MrPolar_Admin_Tiers', 'register_menus']);
+        add_action('admin_menu',            ['MrPolar_Admin_Member', 'register_menus']);
+        add_action('admin_menu',            ['MrPolar_Admin_Tiers',  'register_menus']);
+        add_action('admin_enqueue_scripts', 'mrpolar_enqueue_admin_assets');
     }
 }
 add_action('plugins_loaded', 'mrpolar_api_init', 10);
+
+/**
+ * 後台資產載入：css + js + SortableJS
+ */
+function mrpolar_enqueue_admin_assets(string $hook): void {
+    // 只在 MrPolar 管理頁面載入
+    if (
+        strpos($hook, 'mrpolar') === false &&
+        strpos($hook, 'page_mrpolar') === false
+    ) {
+        return;
+    }
+
+    wp_enqueue_style(
+        'mrpolar-admin',
+        MRPOLAR_API_PLUGIN_URL . 'assets/admin.css',
+        [],
+        MRPOLAR_API_VERSION
+    );
+
+    // SortableJS 由 CDN 載入
+    wp_enqueue_script(
+        'sortablejs',
+        'https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js',
+        [],
+        '1.15.3',
+        true
+    );
+
+    wp_enqueue_script(
+        'mrpolar-admin',
+        MRPOLAR_API_PLUGIN_URL . 'assets/admin.js',
+        ['jquery', 'sortablejs'],
+        MRPOLAR_API_VERSION,
+        true
+    );
+}
 
 function mrpolar_api_activate(): void {
     flush_rewrite_rules();
