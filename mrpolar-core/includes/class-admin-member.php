@@ -66,6 +66,7 @@ class MrPolar_Admin_Member {
         add_action('admin_post_mrpolar_save_columns', [$instance, 'handle_save_columns']);
         add_action('admin_post_mrpolar_export_members', [$instance, 'handle_export_members']);
         add_action('admin_post_mrpolar_adjust_points', [$instance, 'handle_adjust_points']);
+        add_action('admin_post_mrpolar_save_member_profile', [$instance, 'handle_save_member_profile']);
         add_action('admin_post_mrpolar_save_member_note', [$instance, 'handle_save_member_note']);
         add_action('admin_post_mrpolar_save_member_tier', [$instance, 'handle_save_member_tier']);
         add_action('admin_post_mrpolar_toggle_member_status', [$instance, 'handle_toggle_member_status']);
@@ -886,6 +887,8 @@ class MrPolar_Admin_Member {
                 </div>
             </div>
 
+            <?php echo $this->render_notice(); ?>
+
             <div class="mrpolar-member-header">
                 <?php echo $this->render_avatar_cell($member); ?>
                 <div class="mrpolar-member-info">
@@ -983,7 +986,7 @@ class MrPolar_Admin_Member {
         $totalSpending  = (float) ($member['total_spending'] ?? 0);
         $userLogin      = (string) ($member['user_login'] ?? '');
         $backUrl        = $this->get_list_page_url();
-        $userEditUrl    = add_query_arg(['user_id' => $wpUserId], admin_url('user-edit.php'));
+        $userEditUrl    = add_query_arg(['page' => self::DETAIL_PAGE_SLUG, 'id' => $memberId], admin_url('admin.php')) . '#mrpolar-member-profile-form';
         $isActive       = 'active' === $status;
         $toggleStatus   = $isActive ? 'suspended' : 'active';
         $toggleLabel    = $isActive ? '停用會員' : '啟用會員';
@@ -998,6 +1001,7 @@ class MrPolar_Admin_Member {
         $nextTier       = MrPolar_Member::get_next_tier(intval($member['tier_sort_order'] ?? 0));
         $nextTierName   = (string) ($nextTier['tier_name'] ?? '');
         $nextTierMin    = isset($nextTier['upgrade_min_spending']) ? (float) $nextTier['upgrade_min_spending'] : 0.0;
+        $tierOptions    = $this->get_tier_options();
 
         if ($nextTierMin <= 0 && isset($member['next_tier_min_spending'])) {
             $nextTierMin = (float) $member['next_tier_min_spending'];
@@ -1091,6 +1095,68 @@ class MrPolar_Admin_Member {
                                 '性別'     => (string) ($member['gender'] ?? ''),
                                 '生日'     => (string) ($member['birthday'] ?? ''),
                             ]); ?>
+                            <form id="mrpolar-member-profile-form" class="mrpolar-inline-form open" method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                                <input type="hidden" name="action" value="mrpolar_save_member_profile">
+                                <input type="hidden" name="member_id" value="<?php echo esc_attr((string) $memberId); ?>">
+                                <?php echo wp_nonce_field('mrpolar_save_member_profile_' . $memberId, '_wpnonce', true, false); ?>
+                                <div class="mrpolar-grid-2">
+                                    <div class="mrpolar-form-row">
+                                        <label for="mrpolar_display_name"><?php echo esc_html('顯示名稱'); ?></label>
+                                        <input type="text" id="mrpolar_display_name" name="display_name" value="<?php echo esc_attr($displayName); ?>" required>
+                                    </div>
+                                    <div class="mrpolar-form-row">
+                                        <label for="mrpolar_email"><?php echo esc_html('Email'); ?></label>
+                                        <input type="email" id="mrpolar_email" value="<?php echo esc_attr($email); ?>" disabled>
+                                    </div>
+                                    <div class="mrpolar-form-row">
+                                        <label for="mrpolar_phone"><?php echo esc_html('電話'); ?></label>
+                                        <input type="text" id="mrpolar_phone" name="phone" value="<?php echo esc_attr($phone); ?>">
+                                    </div>
+                                    <div class="mrpolar-form-row">
+                                        <label for="mrpolar_birthday"><?php echo esc_html('生日'); ?></label>
+                                        <input type="date" id="mrpolar_birthday" name="birthday" value="<?php echo esc_attr((string) ($member['birthday'] ?? '')); ?>">
+                                    </div>
+                                    <div class="mrpolar-form-row">
+                                        <label for="mrpolar_gender"><?php echo esc_html('性別'); ?></label>
+                                        <select id="mrpolar_gender" name="gender">
+                                            <option value="" <?php selected((string) ($member['gender'] ?? ''), ''); ?>><?php echo esc_html('請選擇'); ?></option>
+                                            <option value="male" <?php selected((string) ($member['gender'] ?? ''), 'male'); ?>><?php echo esc_html('男'); ?></option>
+                                            <option value="female" <?php selected((string) ($member['gender'] ?? ''), 'female'); ?>><?php echo esc_html('女'); ?></option>
+                                            <option value="other" <?php selected((string) ($member['gender'] ?? ''), 'other'); ?>><?php echo esc_html('其他'); ?></option>
+                                            <option value="prefer_not_to_say" <?php selected((string) ($member['gender'] ?? ''), 'prefer_not_to_say'); ?>><?php echo esc_html('不透露'); ?></option>
+                                        </select>
+                                    </div>
+                                    <div class="mrpolar-form-row">
+                                        <label for="mrpolar_avatar_url"><?php echo esc_html('Avatar URL'); ?></label>
+                                        <input type="url" id="mrpolar_avatar_url" name="avatar_url" value="<?php echo esc_attr((string) ($member['avatar_url'] ?? '')); ?>">
+                                    </div>
+                                    <div class="mrpolar-form-row">
+                                        <label for="mrpolar_tier_id"><?php echo esc_html('會員等級'); ?></label>
+                                        <select id="mrpolar_tier_id" name="tier_id">
+                                            <?php foreach ($tierOptions as $tierOption) : ?>
+                                                <option value="<?php echo esc_attr((string) intval($tierOption['id'])); ?>" <?php selected(intval($member['tier_id'] ?? 0), intval($tierOption['id'])); ?>>
+                                                    <?php echo esc_html((string) ($tierOption['name'] ?? '')); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="mrpolar-form-row">
+                                        <label for="mrpolar_status"><?php echo esc_html('帳號狀態'); ?></label>
+                                        <select id="mrpolar_status" name="status">
+                                            <option value="active" <?php selected($status, 'active'); ?>><?php echo esc_html('啟用中'); ?></option>
+                                            <option value="suspended" <?php selected($status, 'suspended'); ?>><?php echo esc_html('停用中'); ?></option>
+                                            <option value="deleted" <?php selected($status, 'deleted'); ?>><?php echo esc_html('已刪除'); ?></option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mrpolar-form-row">
+                                    <label for="mrpolar_note"><?php echo esc_html('備註'); ?></label>
+                                    <textarea id="mrpolar_note" name="note"><?php echo esc_textarea((string) ($member['note'] ?? '')); ?></textarea>
+                                </div>
+                                <div class="mrpolar-form-actions">
+                                    <button type="submit" class="mrpolar-btn mrpolar-btn-primary"><?php echo esc_html('儲存會員資料'); ?></button>
+                                </div>
+                            </form>
                             <div class="mrpolar-progress-wrap">
                                 <?php if (!empty($nextTierName) && $nextTierMin > 0) : ?>
                                     <div class="mrpolar-progress-label">
@@ -1496,6 +1562,79 @@ class MrPolar_Admin_Member {
         $wpdb->query('COMMIT');
 
         wp_safe_redirect($this->with_notice($detailUrl, sprintf('點數已調整：%+d 點', $delta), 'success'));
+        exit;
+    }
+
+    public function handle_save_member_profile(): void {
+        global $wpdb;
+
+        if (!current_user_can('manage_woocommerce')) {
+            wp_die(esc_html__('You do not have permission to perform this action.', 'mrpolar-api'));
+        }
+
+        $memberId  = isset($_POST['member_id']) ? intval(wp_unslash((string) $_POST['member_id'])) : 0;
+        $detailUrl = add_query_arg(['page' => self::DETAIL_PAGE_SLUG, 'id' => $memberId], admin_url('admin.php'));
+
+        if ($memberId <= 0) {
+            wp_safe_redirect($this->with_notice($detailUrl, '無效的會員 ID', 'error'));
+            exit;
+        }
+
+        check_admin_referer('mrpolar_save_member_profile_' . $memberId);
+
+        $displayName = isset($_POST['display_name']) ? sanitize_text_field(wp_unslash((string) $_POST['display_name'])) : '';
+        $phone       = isset($_POST['phone']) ? sanitize_text_field(wp_unslash((string) $_POST['phone'])) : '';
+        $gender      = isset($_POST['gender']) ? sanitize_text_field(wp_unslash((string) $_POST['gender'])) : '';
+        $birthday    = isset($_POST['birthday']) ? sanitize_text_field(wp_unslash((string) $_POST['birthday'])) : '';
+        $avatarUrl   = isset($_POST['avatar_url']) ? esc_url_raw(wp_unslash((string) $_POST['avatar_url'])) : '';
+        $tierId      = isset($_POST['tier_id']) ? intval(wp_unslash((string) $_POST['tier_id'])) : 0;
+        $status      = isset($_POST['status']) ? sanitize_text_field(wp_unslash((string) $_POST['status'])) : 'active';
+        $note        = isset($_POST['note']) ? sanitize_textarea_field(wp_unslash((string) $_POST['note'])) : '';
+
+        if ('' === $displayName) {
+            wp_safe_redirect($this->with_notice($detailUrl, '顯示名稱不可為空白', 'error'));
+            exit;
+        }
+
+        if ($tierId > 0) {
+            $tierExists = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT id FROM {$this->table_tiers} WHERE id = %d AND is_active = 1 LIMIT 1",
+                    $tierId
+                )
+            );
+
+            if (!$tierExists) {
+                wp_safe_redirect($this->with_notice($detailUrl, '會員等級不存在', 'error'));
+                exit;
+            }
+        }
+
+        $payload = [
+            'display_name' => $displayName,
+            'phone'        => $phone,
+            'gender'       => $gender,
+            'birthday'     => $birthday,
+            'avatar_url'   => $avatarUrl,
+            'tier_id'      => $tierId,
+            'status'       => $status,
+            'note'         => $note,
+        ];
+
+        $currentMember = MrPolar_Member::get_member_by_id($memberId);
+
+        if ($tierId > 0 && intval($currentMember['tier_id'] ?? 0) !== $tierId) {
+            $payload['tier_upgraded_at'] = current_time('mysql');
+        }
+
+        $result = MrPolar_Member::update_member_admin_profile($memberId, $payload);
+
+        if (is_wp_error($result)) {
+            wp_safe_redirect($this->with_notice($detailUrl, $result->get_error_message(), 'error'));
+            exit;
+        }
+
+        wp_safe_redirect($this->with_notice($detailUrl, '會員資料已更新', 'success'));
         exit;
     }
 

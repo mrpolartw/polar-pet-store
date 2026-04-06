@@ -370,56 +370,8 @@ class MrPolar_Member {
     }
 
     public static function update_member_admin_profile(int $id, array $data) {
-        global $wpdb;
-
         if ($id <= 0) {
             return new WP_Error('mrpolar_invalid_member_id', 'Invalid member ID.', ['status' => 400]);
-        }
-
-        // fix: allow manual tier changes to persist upgrade timestamp
-        $allowed = ['status', 'note', 'tier_id', 'points_balance', 'tier_upgraded_at'];
-        $set     = [];
-        $params  = [];
-
-        foreach ($allowed as $field) {
-            if (!array_key_exists($field, $data)) {
-                continue;
-            }
-
-            switch ($field) {
-                case 'status':
-                    $status = self::normalize_member_status($data[$field]);
-                    if (is_wp_error($status)) {
-                        return $status;
-                    }
-                    $set[]    = 'status = %s';
-                    $params[] = $status;
-                    break;
-
-                case 'note':
-                    $set[]    = 'note = %s';
-                    $params[] = sanitize_textarea_field(wp_unslash((string) $data[$field]));
-                    break;
-
-                case 'tier_id':
-                    $set[]    = 'tier_id = %d';
-                    $params[] = max(0, (int) $data[$field]);
-                    break;
-
-                case 'points_balance':
-                    $set[]    = 'points_balance = %d';
-                    $params[] = max(0, (int) $data[$field]);
-                    break;
-
-                case 'tier_upgraded_at':
-                    $set[]    = 'tier_upgraded_at = %s';
-                    $params[] = sanitize_text_field((string) $data[$field]);
-                    break;
-            }
-        }
-
-        if (empty($set)) {
-            return true;
         }
 
         $member = self::get_member_by_id($id);
@@ -427,24 +379,44 @@ class MrPolar_Member {
             return new WP_Error('mrpolar_member_not_found', 'Member not found.', ['status' => 404]);
         }
 
-        $params[] = $id;
+        $update = [];
 
-        $updated = $wpdb->query(
-            $wpdb->prepare(
-                "UPDATE {$wpdb->prefix}mrpolar_members
-                 SET " . implode(', ', $set) . ", updated_at = NOW()
-                 WHERE id = %d",
-                $params
-            )
-        );
-
-        if (false === $updated) {
-            return new WP_Error('mrpolar_member_update_failed', 'Unable to update member.', ['status' => 500]);
+        if (array_key_exists('display_name', $data)) {
+            $update['display_name'] = sanitize_text_field(wp_unslash((string) $data['display_name']));
+        }
+        if (array_key_exists('phone', $data)) {
+            $update['phone'] = sanitize_text_field(wp_unslash((string) $data['phone']));
+        }
+        if (array_key_exists('gender', $data)) {
+            $update['gender'] = self::normalize_member_gender($data['gender']);
+        }
+        if (array_key_exists('birthday', $data)) {
+            $update['birthday'] = self::normalize_date_or_null($data['birthday']);
+        }
+        if (array_key_exists('avatar_url', $data)) {
+            $update['avatar_url'] = self::normalize_url_or_null($data['avatar_url'], true);
+        }
+        if (array_key_exists('status', $data)) {
+            $update['status'] = self::normalize_member_status($data['status']);
+        }
+        if (array_key_exists('note', $data)) {
+            $update['note'] = sanitize_textarea_field(wp_unslash((string) $data['note']));
+        }
+        if (array_key_exists('tier_id', $data)) {
+            $update['tier_id'] = max(0, (int) $data['tier_id']);
+        }
+        if (array_key_exists('points_balance', $data)) {
+            $update['points_balance'] = max(0, (int) $data['points_balance']);
+        }
+        if (array_key_exists('tier_upgraded_at', $data)) {
+            $update['tier_upgraded_at'] = sanitize_text_field((string) $data['tier_upgraded_at']);
         }
 
-        self::sync_legacy_user_meta(self::get_member_by_id($id));
+        if (empty($update)) {
+            return true;
+        }
 
-        return true;
+        return self::update_member_record($id, $update, true);
     }
 
     public static function get_next_tier(int $currentTierSortOrder): array {
