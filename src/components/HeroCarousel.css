@@ -1,0 +1,213 @@
+.hero-carousel {
+    position: relative;
+    width: 100%;
+    /* 在小螢幕時享受 100% 滿版 */
+    max-width: 1220px;
+    /* 在大螢幕時限制在圖片原始寬度，剛好對齊上方 1200px 的導覽列內容 */
+    margin: 0 auto 60px auto;
+    /* 置中並與下方區塊保持舒適距離 */
+    aspect-ratio: 2 / 1;
+    /* 100% 保持圖片原始比例，完美呈現不裁切 */
+    overflow: hidden;
+    /* 移除任何 border-radius 與浮誇陰影，確保為純淨方形 */
+}
+
+.carousel-inner {
+    display: flex;
+    height: 100%;
+    transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.carousel-item {
+    flex: 0 0 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.carousel-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    /* 因為外層已經設定 aspect-ratio 2:1 等同圖片比利，Cover 就不會切到圖片了 */
+    background-position: center;
+    background-repeat: no-repeat;
+    z-index: 1;
+}
+
+.carousel-content {
+    position: relative;
+    z-index: 2;
+    color: var(--color-text-dark);
+    padding: 0 20px;
+    max-width: 800px;
+    margin-top: 60px;
+    /* 為了閃避 navbar */
+    /* 保證文字邊緣銳利清晰 */
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.carousel-content .headline-pro {
+    color: #fff;
+}
+
+.carousel-content .subhead-pro {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.carousel-content .description-pro {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.3s ease;
+}
+
+.carousel-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-btn.prev {
+    left: 20px;
+}
+
+.carousel-btn.next {
+    right: 20px;
+}
+
+.carousel-indicators {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 10;
+}
+
+.indicator-dot {
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    min-height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.45);
+    border: none;
+    cursor: pointer;
+    /* 只 transition background 和 opacity，不 transition 尺寸 */
+    transition: background 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+    padding: 0;
+    flex-shrink: 0;
+    display: block;
+    box-sizing: content-box;
+}
+
+.indicator-dot.active {
+    background: #ffffff;
+    transform: scale(1.5);
+    opacity: 1;
+}
+
+.carousel-badges {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.carousel-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 980px;
+    padding: 8px 18px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.carousel-badge:hover {
+    background: rgba(255, 255, 255, 0.28);
+    transform: translateY(-2px);
+}
+
+.carousel-badge-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.carousel-badge-text {
+    white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+    .hero-carousel {
+        margin-bottom: 32px;
+    }
+
+    .carousel-btn {
+        width: 40px;
+        height: 40px;
+    }
+
+    .carousel-btn.prev {
+        left: 12px;
+    }
+
+    .carousel-btn.next {
+        right: 12px;
+    }
+
+    .carousel-indicators {
+        bottom: 18px;
+        gap: 8px;
+    }
+
+    .indicator-dot {
+        width: 7px;
+        height: 7px;
+        min-width: 7px;
+        min-height: 7px;
+    }
+
+    .carousel-badges {
+        gap: 8px;
+    }
+
+    .carousel-badge {
+        font-size: 13px;
+        padding: 6px 14px;
+    }
+}

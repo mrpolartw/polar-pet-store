@@ -1,0 +1,78 @@
+.about-page {
+    padding-top: 44px;
+    /* offset navbar */
+    color: var(--color-text-light);
+    background-color: var(--color-bg-light);
+    min-height: 80vh;
+}
+
+.about-hero {
+    padding: 100px 20px;
+    text-align: center;
+    background-color: var(--color-bg-white);
+    border-bottom: 1px solid #e5e5ea;
+}
+
+.about-story {
+    padding: 100px 20px;
+    display: flex;
+    justify-content: center;
+    background-color: var(--color-bg-light);
+}
+
+.story-content {
+    max-width: 800px;
+    width: 100%;
+}
+
+.story-content p {
+    margin-bottom: 24px;
+}
+
+.about-values {
+    padding: 100px 20px;
+    background-color: var(--color-bg-white);
+    display: flex;
+    justify-content: center;
+}
+
+.values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 40px;
+    max-width: 1024px;
+    width: 100%;
+}
+
+.value-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 40px 20px;
+    background-color: var(--color-bg-light);
+    border-radius: 24px;
+    box-shadow: 0 10px 30px var(--color-shadow-light);
+    transition: transform 0.4s ease;
+}
+
+.value-item:hover {
+    transform: translateY(-8px);
+}
+
+.value-icon {
+    font-size: 40px;
+    margin-bottom: 16px;
+}
+
+.value-item h3 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.value-item p {
+    font-size: 17px;
+    color: var(--color-gray-dark);
+    line-height: 1.5;
+}

@@ -1,0 +1,1423 @@
+/* ============================================
+   Account Dashboard — 會員中心
+   延伸 Polar 設計語言
+   ============================================ */
+
+.account-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 60px 20px 100px;
+  min-height: 80vh;
+}
+
+.account-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .account-layout {
+    grid-template-columns: 1fr;
+  }
+  .account-page {
+    padding: 40px 16px 80px;
+  }
+}
+
+/* ── 側邊欄 ── */
+.account-sidebar {
+  position: sticky;
+  top: 80px;
+}
+
+.account-profile-card {
+  background-color: var(--color-bg-white);
+  border: 1px solid var(--color-gray-light);
+  border-radius: var(--pet-border-radius);
+  padding: 32px 24px;
+  text-align: center;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 20px var(--color-shadow-light);
+}
+
+.account-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-brand-blue) 0%, var(--color-brand-coffee) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 700;
+  color: white;
+  margin: 0 auto 16px;
+  letter-spacing: -1px;
+}
+
+.account-avatar-button {
+  position: relative;
+  overflow: hidden;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  appearance: none;
+}
+
+.account-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.account-avatar-input {
+  display: none;
+}
+
+.account-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(17, 24, 39, 0.38);
+  color: white;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.account-avatar-button:hover .account-avatar-overlay,
+.account-avatar-button:focus-visible .account-avatar-overlay {
+  opacity: 1;
+}
+
+.account-user-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 4px;
+}
+
+.account-user-email {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+  margin-bottom: 14px;
+}
+
+.account-tier-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 980px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  letter-spacing: 0.02em;
+}
+
+.account-points-row {
+  background: var(--color-bg-light);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--color-gray-dark);
+}
+
+.account-points-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-brand-coffee);
+}
+
+/* 側邊導航 */
+.account-nav {
+  background-color: var(--color-bg-white);
+  border: 1px solid var(--color-gray-light);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px var(--color-shadow-light);
+}
+
+.account-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-dark);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  transition: all var(--transition-fast);
+  border-bottom: 1px solid var(--color-gray-light);
+}
+
+.account-nav-item:last-child {
+  border-bottom: none;
+}
+
+.account-nav-item:hover {
+  background-color: var(--color-bg-light);
+  color: var(--color-brand-coffee);
+}
+
+.account-nav-item.active {
+  background-color: var(--color-bg-light);
+  color: var(--color-brand-blue);
+  font-weight: 600;
+}
+
+.account-nav-item.active .account-nav-icon {
+  color: var(--color-brand-blue);
+}
+
+.account-nav-icon {
+  color: var(--color-gray-dark);
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+
+.account-nav-item:hover .account-nav-icon {
+  color: var(--color-brand-coffee);
+}
+
+.account-nav-item.logout-btn:hover {
+  background-color: #fff5f5;
+  color: #e74c3c;
+}
+
+.account-nav-item.logout-btn:hover .account-nav-icon {
+  color: #e74c3c;
+}
+
+/* 手機版 Tab Bar */
+.account-mobile-tabs {
+  display: none;
+  overflow-x: auto;
+  gap: 8px;
+  padding: 0 0 16px;
+  margin-bottom: 24px;
+  scrollbar-width: none;
+}
+
+.account-mobile-tabs::-webkit-scrollbar { display: none; }
+
+@media (max-width: 860px) {
+  .account-sidebar { display: none; }
+  .account-mobile-tabs { display: flex; }
+}
+
+.account-mobile-tab {
+  flex-shrink: 0;
+  padding: 8px 18px;
+  border-radius: 980px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1.5px solid var(--color-gray-light);
+  background: white;
+  color: var(--color-text-dark);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.account-mobile-tab.active {
+  background: var(--color-brand-blue);
+  border-color: var(--color-brand-blue);
+  color: white;
+}
+
+/* ── 主內容區 ── */
+.account-content {
+  background-color: var(--color-bg-white);
+  border: 1px solid var(--color-gray-light);
+  border-radius: var(--pet-border-radius);
+  padding: 40px;
+  min-height: 500px;
+  box-shadow: 0 4px 20px var(--color-shadow-light);
+}
+
+@media (max-width: 600px) {
+  .account-content {
+    padding: 24px 16px;
+    border-radius: 20px;
+  }
+
+  .address-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px;
+    /* 加入底部安全區域的間距 */
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  
+}
+
+.account-section-title {
+  font-family: var(--font-family-display);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-gray-light);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ── 個人資料表單 ── */
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.profile-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .profile-form-row { grid-template-columns: 1fr; }
+}
+
+.profile-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-bottom: 6px;
+}
+
+.profile-save-btn {
+  align-self: flex-start;
+  margin-top: 8px;
+}
+
+/* ── 訂單列表 ── */
+.order-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-card {
+  border: 1px solid var(--color-gray-light);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: box-shadow var(--transition-fast);
+}
+
+.order-card:hover {
+  box-shadow: 0 4px 20px var(--color-shadow-light);
+}
+
+.order-card-header {
+  padding: 16px 20px;
+  background: var(--color-bg-light);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-id {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.order-date {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+}
+
+.order-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 980px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.order-status-badge.delivered {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.order-status-badge.processing {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.order-status-badge.shipping {
+  background: #fefce8;
+  color: #854d0e;
+}
+
+.order-status-badge.cancelled {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.order-card-body {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.order-items-preview {
+  display: flex;
+  gap: -8px;
+  flex-shrink: 0;
+}
+
+.order-item-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  border: 2px solid white;
+  object-fit: cover;
+  margin-left: -8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+.order-item-img:first-child { margin-left: 0; }
+
+.order-info {
+  flex: 1;
+}
+
+.order-total {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.order-item-count {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+  margin-top: 2px;
+}
+
+.order-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-order-action {
+  padding: 8px 16px;
+  border-radius: 980px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1.5px solid var(--color-brand-blue);
+  background: transparent;
+  color: var(--color-brand-blue);
+}
+
+.btn-order-action:hover {
+  background: var(--color-brand-blue);
+  color: white;
+}
+
+.btn-order-action.primary {
+  background: var(--color-brand-blue);
+  color: white;
+}
+
+.btn-order-action.primary:hover {
+  background: var(--color-brand-coffee);
+  border-color: var(--color-brand-coffee);
+}
+
+/* ── 空狀態 ── */
+.account-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--color-gray-dark);
+}
+
+.account-empty-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.account-empty-state h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 8px;
+}
+
+.account-empty-state p {
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+/* ── 地址管理 ── */
+.address-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.address-card {
+  border: 1.5px solid var(--color-gray-light);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  cursor: pointer;
+}
+
+.address-card:hover {
+  border-color: var(--color-brand-blue);
+  box-shadow: 0 4px 16px var(--color-shadow-light);
+}
+
+.address-card.default {
+  border-color: var(--color-brand-coffee);
+}
+
+.address-default-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--color-brand-coffee);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 980px;
+}
+
+.address-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-gray-dark);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.address-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 4px;
+}
+
+.address-detail {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+  line-height: 1.6;
+}
+
+.address-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-gray-light);
+}
+
+.btn-address-action {
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 980px;
+  border: 1px solid var(--color-gray-light);
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-dark);
+  transition: all var(--transition-fast);
+}
+
+.btn-address-action:hover {
+  background: var(--color-bg-light);
+  border-color: var(--color-brand-blue);
+  color: var(--color-brand-blue);
+}
+
+.btn-add-address {
+  border: 2px dashed var(--color-gray-light);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-gray-dark);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  min-height: 130px;
+}
+
+.btn-add-address:hover {
+  border-color: var(--color-brand-blue);
+  color: var(--color-brand-blue);
+  background: var(--color-bg-light);
+}
+
+/* ── 帳號安全 ── */
+.security-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.security-item {
+  border: 1px solid var(--color-gray-light);
+  border-radius: 16px;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.security-item-info h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 4px;
+}
+
+.security-item-info p {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+}
+
+/* ── 點數進度條 ── */
+.tier-progress-section {
+  background: var(--color-bg-light);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.tier-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--color-gray-dark);
+  margin-bottom: 8px;
+}
+
+.tier-progress-bar {
+  height: 6px;
+  background: var(--color-gray-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.tier-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--color-brand-blue), var(--color-brand-coffee));
+  transition: width 1s ease;
+}
+
+/* 通知 */
+.account-toast {
+  position: fixed;
+  bottom: 32px;
+  right: 24px;
+  background: var(--color-text-dark);
+  color: white;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* ── 地址類型標籤 ── */
+.address-type-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 980px;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+
+.address-type-badge.type-711 {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.address-type-badge.type-home {
+  background: var(--color-bg-light);
+  color: var(--color-gray-dark);
+  border: 1px solid var(--color-gray-light);
+}
+
+
+/* ── 地址 Modal ── */
+
+.address-modal-wrapper {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;      /* 垂直置中 */
+  justify-content: center;
+  z-index: 1001;
+  pointer-events: none;
+  padding: 24px 16px;       /* 上下留邊，確保不貼邊 */
+  overflow-y: auto;         /* 容器可捲動，而非 modal 本身 */
+}
+
+.address-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+}
+
+.address-modal {
+  width: 100%;
+  max-width: 520px;
+  background: var(--color-bg-white);
+  border-radius: 24px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+  padding: 32px;
+  pointer-events: all;
+}
+
+.address-modal::-webkit-scrollbar { width: 4px; }
+.address-modal::-webkit-scrollbar-thumb {
+  background: var(--color-gray-light);
+  border-radius: 2px;
+}
+
+@media (max-width: 600px) {
+  .address-modal-wrapper {
+    align-items: flex-end;   /* 手機版改為底部對齊 */
+  }
+  .address-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px;
+  }
+}
+
+/* Modal 標題列 */
+.address-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.address-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-dark);
+  margin: 0;
+}
+
+.address-modal-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--color-gray-light);
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-gray-dark);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.address-modal-close:hover {
+  background: var(--color-bg-light);
+  border-color: var(--color-brand-blue);
+  color: var(--color-brand-blue);
+}
+
+/* 類型選擇區 */
+.address-type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.address-type-btn {
+  padding: 14px 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  background: var(--color-bg-white);
+  border: 1.5px solid var(--color-gray-light);
+  transition: all 0.2s ease;
+}
+
+.address-type-btn:hover {
+  border-color: var(--color-brand-blue);
+  background: var(--color-bg-light);
+}
+
+.address-type-btn.active {
+  border: 2px solid var(--color-brand-blue);
+  background: var(--color-bg-light);
+}
+
+.address-type-btn-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin-bottom: 4px;
+  transition: color 0.2s;
+}
+
+.address-type-btn.active .address-type-btn-label {
+  color: var(--color-brand-blue);
+}
+
+.address-type-btn-desc {
+  font-size: 11px;
+  color: var(--color-gray-dark);
+  line-height: 1.4;
+}
+
+/* Modal 表單欄位 */
+.address-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.address-form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-bottom: 6px;
+}
+
+.address-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .address-form-row {
+    grid-template-columns: 1fr;
+  }
+  .address-type-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* 標籤快選按鈕 */
+.address-label-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.address-label-tag {
+  padding: 5px 14px;
+  border-radius: 980px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1.5px solid var(--color-gray-light);
+  background: transparent;
+  color: var(--color-text-dark);
+  font-weight: 400;
+  transition: all 0.15s;
+}
+
+.address-label-tag:hover {
+  border-color: var(--color-brand-blue);
+  color: var(--color-brand-blue);
+}
+
+.address-label-tag.active {
+  border-color: var(--color-brand-blue);
+  background: var(--color-bg-light);
+  color: var(--color-brand-blue);
+  font-weight: 600;
+}
+
+/* 7-11 選店區塊 */
+.store-picker-box {
+  background: var(--color-bg-light);
+  border: 1.5px dashed var(--color-gray-light);
+  border-radius: 14px;
+  padding: 24px 16px;
+  text-align: center;
+  transition: border-color var(--transition-fast);
+}
+
+.store-picker-box:hover {
+  border-color: var(--color-brand-blue);
+}
+
+.store-picker-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text-dark);
+  margin-bottom: 2px;
+}
+
+.store-picker-id {
+  font-size: 12px;
+  color: var(--color-gray-dark);
+  margin-bottom: 10px;
+}
+
+.store-picker-desc {
+  font-size: 14px;
+  color: var(--color-gray-dark);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.store-picker-reselect {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-brand-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* 超商取件說明 */
+.store-notice {
+  font-size: 12px;
+  color: var(--color-gray-dark);
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  line-height: 1.6;
+  background: var(--color-bg-light);
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-gray-light);
+}
+
+/* 設為預設 Checkbox */
+.address-default-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-dark);
+}
+
+.address-default-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-brand-blue);
+  cursor: pointer;
+}
+
+/* 錯誤提示 */
+.address-form-error {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #e74c3c;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fef2f2;
+  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid #fecaca;
+}
+
+/* Modal 按鈕列 */
+.address-modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-modal-cancel {
+  flex: 1;
+  padding: 13px;
+  border-radius: 12px;
+  border: 1.5px solid var(--color-gray-light);
+  background: transparent;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--color-text-dark);
+  transition: all var(--transition-fast);
+}
+
+.btn-modal-cancel:hover {
+  background: var(--color-bg-light);
+  border-color: var(--color-brand-blue);
+  color: var(--color-brand-blue);
+}
+
+.btn-modal-submit {
+  flex: 2;
+  padding: 13px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+/* ── 卡片預覽 ── */
+.card-preview {
+  background: linear-gradient(135deg, var(--color-brand-blue) 0%, #1a3a5c 100%);
+  border-radius: 16px;
+  padding: 24px 22px 20px;
+  margin-bottom: 24px;
+  color: white;
+  box-shadow: 0 8px 24px rgba(30, 64, 100, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.card-preview::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+}
+
+.card-preview::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: -20px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.04);
+}
+
+.card-preview-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.card-preview-number {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  margin-bottom: 20px;
+  font-family: 'Courier New', monospace;
+  color: rgba(255,255,255,0.95);
+}
+
+.card-preview-bottom {
+  display: flex;
+  gap: 32px;
+}
+
+.card-preview-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 3px;
+}
+
+.card-preview-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.95);
+  letter-spacing: 0.04em;
+}
+
+/* ── 安全說明 ── */
+.card-security-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-gray-dark);
+  background: var(--color-bg-light);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 16px;
+  border: 1px solid var(--color-gray-light);
+}
+
+/* =============================================
+   iPhone SE / 小螢幕修正 (max-width: 390px)
+   ============================================= */
+@media (max-width: 390px) {
+
+  /* 1. 頁面外框 — 收緊 padding */
+  .account-page {
+    padding: 20px 12px 60px;
+  }
+
+  /* 2. 頂部 Tab 橫向捲動列 — 加右側留白避免最後一個 tab 被截 */
+  .account-mobile-tabs {
+    padding: 0 12px 12px;
+    gap: 6px;
+  }
+
+  .account-mobile-tab {
+    padding: 7px 14px;
+    font-size: 13px;
+  }
+
+  /* 最後一個 tab 右側留白 */
+  .account-mobile-tab:last-child {
+    margin-right: 12px;
+  }
+
+  /* 3. Profile 卡片 — 防止文字溢出 */
+  .account-profile-card {
+    padding: 24px 16px;
+  }
+
+  .account-user-name {
+    font-size: 16px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
+  .account-user-email {
+    font-size: 12px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+  }
+
+  /* 4. 歡迎副標題（如有）— 防止溢出 */
+  .account-profile-card p,
+  .account-profile-card span {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    max-width: 100%;
+  }
+
+  /* 5. 積分列 — 防止數字被擠出 */
+  .account-points-row {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .account-points-value {
+    font-size: 18px;
+  }
+
+  /* 6. 主內容區 — 收緊 padding */
+  .account-content {
+    padding: 20px 12px;
+    border-radius: 16px;
+  }
+
+  /* 7. section 標題 — 縮小字體 */
+  .account-section-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  /* 8. 等級進度區 — 防止文字換行擠壓 */
+  .tier-progress-section {
+    padding: 16px 12px;
+  }
+
+  .tier-progress-label {
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  /* 9. 訂單卡片 — 避免 actions 按鈕被截 */
+  .order-card-header {
+    padding: 12px 14px;
+  }
+
+  .order-card-body {
+    padding: 12px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  /* 10. 地址卡片 grid — 強制單欄 */
+  .address-grid {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+/* =============================================
+   overflow 安全網 — 防止所有頁面意外橫向捲動
+   ============================================= */
+.account-page,
+.account-content,
+.account-profile-card,
+.account-mobile-tabs-wrapper {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+@media (max-width: 480px) {
+  .account-page {
+    padding: 28px 12px 64px;
+    overflow-x: clip;
+  }
+
+  .account-layout,
+  .account-layout > *,
+  .account-content,
+  .account-profile-card,
+  .tier-progress-section,
+  .profile-form,
+  .profile-form-row,
+  .profile-form-row > *,
+  .order-card,
+  .address-card,
+  .security-item,
+  .card-preview {
+    min-width: 0;
+  }
+
+  .account-mobile-tabs {
+    margin: 0 -12px 16px;
+    padding: 0 12px 12px;
+    gap: 10px;
+  }
+
+  .account-mobile-tab {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .account-profile-card {
+    padding: 24px 16px;
+    border-radius: 20px;
+  }
+
+  .account-user-name {
+    font-size: 17px;
+  }
+
+  .account-user-email {
+    font-size: 12px;
+  }
+
+  .account-points-row {
+    padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .account-content {
+    padding: 20px 14px;
+    min-height: auto;
+    border-radius: 20px;
+  }
+
+  .account-section-title {
+    font-size: 18px;
+    gap: 10px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+  }
+
+  .tier-progress-section {
+    padding: 16px 14px;
+  }
+
+  .tier-progress-label {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    line-height: 1.5;
+  }
+
+  .tier-progress-label span {
+    display: block;
+    width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .profile-form {
+    gap: 16px;
+  }
+
+  .profile-form-row {
+    gap: 16px;
+  }
+
+  .order-card-header,
+  .order-card-body,
+  .address-card,
+  .security-item {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .order-card-body {
+    gap: 12px;
+  }
+
+  .order-actions,
+  .address-actions,
+  .card-preview-top,
+  .card-preview-bottom {
+    flex-wrap: wrap;
+  }
+
+  .card-preview {
+    padding: 20px 16px 18px;
+  }
+
+  .card-preview-number {
+    font-size: 16px;
+    letter-spacing: 0.12em;
+    word-break: break-all;
+  }
+
+  .pet-modal-preview {
+    padding: 12px 14px;
+  }
+}
+
+.account-profile-card-mobile {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .account-profile-card-mobile {
+    display: block;
+    margin-bottom: 16px;
+  }
+}
+
+/* ── 毛孩 Modal 預覽列 ── */
+.pet-modal-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--color-bg-light);
+  border: 1px solid var(--color-gray-light);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.pet-modal-emoji {
+  font-size: 36px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.pet-modal-preview-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-dark);
+  margin-bottom: 3px;
+}
+
+.pet-modal-preview-sub {
+  font-size: 12px;
+  color: var(--color-gray-dark);
+}
+
+/* ── 信用卡預覽 ── */
+.card-preview {
+  background: linear-gradient(135deg, var(--color-brand-blue) 0%, #1a3a5c 100%);
+  border-radius: 16px;
+  padding: 24px 22px 20px;
+  margin-bottom: 24px;
+  color: white;
+  box-shadow: 0 8px 24px rgba(30, 64, 100, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+.card-preview::before {
+  content: '';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+}
+.card-preview-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+.card-preview-number {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  margin-bottom: 20px;
+  font-family: 'Courier New', monospace;
+}
+.card-preview-bottom { display: flex; gap: 32px; }
+.card-preview-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.55); margin-bottom: 3px; }
+.card-preview-value { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.95); }
+
+.card-security-notice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-gray-dark);
+  background: var(--color-bg-light);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 16px;
+  border: 1px solid var(--color-gray-light);
+}
