@@ -87,6 +87,8 @@ describe("store customer membership route", () => {
         auto_upgrade: true,
         can_join_event: true,
       },
+      yearly_spent: 4560,
+      total_spent: 18900,
     } as never)
   })
 
@@ -108,6 +110,8 @@ describe("store customer membership route", () => {
       }),
       points_balance: 100,
       available_points: 100,
+      yearly_spent: 4560,
+      total_spent: 18900,
       points_summary: {
         total_points: 130,
         available_points: 100,

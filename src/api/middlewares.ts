@@ -24,9 +24,11 @@ import { AdminUpdateCustomerMembership } from "./admin/customers/membership/vali
 import { pointsPaginationQueryConfig } from "./store/membership/query-config"
 import {
   StoreAddFavorite,
+  StoreApplyMembershipPointRedemption,
   StoreCreatePet,
   StoreCreateSubscription,
   StoreGetCustomerPointsParams,
+  StorePreviewMembershipPointRedemption,
   StoreUpdatePet,
   StoreUpdateSubscription,
 } from "./store/membership/validators"
@@ -125,6 +127,22 @@ export default defineMiddlewares({
           StoreGetCustomerPointsParams,
           pointsPaginationQueryConfig
         ),
+      ],
+    },
+    {
+      matcher: "/store/customers/me/points/redeem-preview",
+      methods: ["POST"],
+      middlewares: [
+        customerAuth,
+        validateAndTransformBody(StorePreviewMembershipPointRedemption),
+      ],
+    },
+    {
+      matcher: "/store/customers/me/points/redeem",
+      methods: ["POST"],
+      middlewares: [
+        customerAuth,
+        validateAndTransformBody(StoreApplyMembershipPointRedemption),
       ],
     },
     {

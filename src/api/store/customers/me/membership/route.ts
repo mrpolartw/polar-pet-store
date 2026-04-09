@@ -36,6 +36,8 @@ export async function GET(
     current_level: computation.current_level,
     points_balance: points.available_balance,
     available_points: points.available_balance,
+    yearly_spent: computation.yearly_spent,
+    total_spent: computation.total_spent,
     points_summary: {
       total_points: points.summary.total_points,
       available_points: points.summary.available_points,

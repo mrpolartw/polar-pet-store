@@ -36,6 +36,8 @@ export interface StoreCustomerMembershipResponse {
   current_level: MembershipLevelSummary | null
   points_balance: number
   available_points: number
+  yearly_spent: number
+  total_spent: number
   points_summary: MembershipPointsSummary
   recent_point_logs: PointLogRecord[]
 }
@@ -56,6 +58,33 @@ export interface StoreCustomerPointsResponse {
   count: number
   offset: number
   limit: number
+}
+
+export interface MembershipPointRedemptionPreview {
+  customer_id: string
+  requested_points: number
+  available_points: number
+  max_redeemable_points: number
+  redeemable_points: number
+  redemption_amount: number
+  order_subtotal: number
+  remaining_amount: number
+  is_valid: boolean
+  validation_message: string | null
+}
+
+export interface StoreCustomerPointRedemptionPreviewResponse {
+  preview: MembershipPointRedemptionPreview
+}
+
+export interface StoreCustomerPointRedemptionResponse {
+  redemption: MembershipPointRedemptionPreview & {
+    reference_id: string
+    created: boolean
+    point_log_id: string | null
+    available_points_before: number
+    available_points_after: number
+  }
 }
 
 export interface StoreCustomerFavoritesResponse {

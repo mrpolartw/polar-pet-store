@@ -14,6 +14,19 @@ export const StoreGetCustomerPointsParams = z.object({
   offset: z.coerce.number().int().min(0).default(0),
 })
 
+export const StorePreviewMembershipPointRedemption = z.object({
+  points: z.coerce.number().int().min(0),
+  order_subtotal: z.coerce.number().finite().min(0),
+})
+
+export const StoreApplyMembershipPointRedemption = z.object({
+  points: z.coerce.number().int().positive(),
+  order_subtotal: z.coerce.number().finite().min(0),
+  reference_id: z.string().min(1),
+  note: z.string().min(1).nullish(),
+  metadata: metadataSchema,
+})
+
 export const StoreAddFavorite = z.object({
   product_id: z.string().min(1),
   variant_id: z.string().min(1).nullish(),
@@ -64,6 +77,12 @@ export const StoreUpdateSubscription = z
 
 export type StoreGetCustomerPointsParamsType = z.infer<
   typeof StoreGetCustomerPointsParams
+>
+export type StorePreviewMembershipPointRedemptionType = z.infer<
+  typeof StorePreviewMembershipPointRedemption
+>
+export type StoreApplyMembershipPointRedemptionType = z.infer<
+  typeof StoreApplyMembershipPointRedemption
 >
 export type StoreAddFavoriteType = z.infer<typeof StoreAddFavorite>
 export type StoreCreatePetType = z.infer<typeof StoreCreatePet>
