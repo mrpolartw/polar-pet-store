@@ -528,7 +528,7 @@ class MembershipModuleService extends MedusaService({
       return await super.createCustomerProfiles({
         customer_id,
         birthday: data.birthday ?? null,
-        gender: data.gender ?? "other",
+        gender: data.gender ?? "undisclosed",
         last_login_at: data.last_login_at ?? null,
       })
     }

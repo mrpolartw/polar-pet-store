@@ -11,7 +11,6 @@ import type {
   MembershipCustomerPointsResponse,
   MembershipCustomerPetsResponse,
   MembershipCustomerResponse,
-  MembershipCustomerSubscriptionResponse,
   MembershipCustomersResponse,
   MembershipMemberLevelResponse,
   MembershipMemberLevelsResponse,
@@ -27,6 +26,9 @@ interface ListCustomersParams {
   q?: string
   limit?: number
   offset?: number
+  order?: string
+  has_account?: boolean
+  groups?: string
 }
 
 interface PaginatedParams {
@@ -113,6 +115,9 @@ export function listMembershipCustomers(
       q: params.q,
       limit: params.limit,
       offset: params.offset,
+      order: params.order,
+      has_account: params.has_account,
+      groups: params.groups,
     })}`
   )
 }
@@ -145,12 +150,6 @@ export function listMembershipCustomerFavorites(
   id: string
 ): Promise<MembershipCustomerFavoritesResponse> {
   return request(`/admin/membership/customers/${id}/favorites`)
-}
-
-export function getMembershipCustomerSubscription(
-  id: string
-): Promise<MembershipCustomerSubscriptionResponse> {
-  return request(`/admin/membership/customers/${id}/subscription`)
 }
 
 export function listMembershipCustomerAuditLogs(

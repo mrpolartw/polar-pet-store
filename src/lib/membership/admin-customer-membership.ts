@@ -149,7 +149,7 @@ function buildMembershipDetailRecord(input: {
     customer_id: input.customer.id,
     phone: input.customer.phone ?? null,
     birthday: formatDateOnly(input.profile?.birthday),
-    gender: (input.profile?.gender ?? "other") as CustomerGender,
+    gender: (input.profile?.gender ?? "undisclosed") as CustomerGender,
     last_login_at: formatDateTimeString(input.profile?.last_login_at),
     summary: {
       points: input.points,

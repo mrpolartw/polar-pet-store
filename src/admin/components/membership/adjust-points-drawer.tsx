@@ -20,7 +20,7 @@ export function AdjustPointsDrawer({
     const numericDelta = Number(delta)
 
     if (!Number.isFinite(numericDelta) || numericDelta === 0) {
-      toast.error("Delta must be a non-zero number")
+      toast.error("點數異動必須是非 0 的數字")
       return
     }
 
@@ -33,8 +33,7 @@ export function AdjustPointsDrawer({
       setNote("")
       setOpen(false)
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to adjust points"
+      const message = error instanceof Error ? error.message : "更新點數失敗"
       toast.error(message)
     }
   }
@@ -42,19 +41,19 @@ export function AdjustPointsDrawer({
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <Drawer.Trigger asChild>
-        <Button type="button">Adjust points</Button>
+        <Button type="button">調整點數</Button>
       </Drawer.Trigger>
       <Drawer.Content>
         <form className="flex h-full flex-col" onSubmit={handleSubmit}>
           <Drawer.Header className="space-y-1">
-            <Drawer.Title>Adjust points</Drawer.Title>
+            <Drawer.Title>調整點數</Drawer.Title>
             <Drawer.Description>
-              Add or deduct points for this customer.
+              請輸入這位顧客的點數增減值，正數代表增加，負數代表扣減。
             </Drawer.Description>
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-5">
             <div className="space-y-2">
-              <Label htmlFor="membership-adjust-points-delta">Delta</Label>
+              <Label htmlFor="membership-adjust-points-delta">點數異動</Label>
               <Input
                 id="membership-adjust-points-delta"
                 type="number"
@@ -64,7 +63,7 @@ export function AdjustPointsDrawer({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="membership-adjust-points-note">Note</Label>
+              <Label htmlFor="membership-adjust-points-note">備註</Label>
               <Textarea
                 id="membership-adjust-points-note"
                 rows={6}
@@ -77,11 +76,11 @@ export function AdjustPointsDrawer({
           <Drawer.Footer>
             <Drawer.Close asChild>
               <Button type="button" variant="secondary" disabled={isSubmitting}>
-                Cancel
+                取消
               </Button>
             </Drawer.Close>
             <Button type="submit" isLoading={isSubmitting} disabled={isSubmitting}>
-              Save
+              儲存
             </Button>
           </Drawer.Footer>
         </form>

@@ -32,6 +32,10 @@ export interface MembershipCustomer {
   created_at: string | null
   updated_at: string | null
   deleted_at: string | null
+  joined_at: string | null
+  last_login_at: string | null
+  last_ordered_at: string | null
+  line_binding_status: "bound" | "unbound" | null
   membership_member_level?: MembershipLevelSummary | null
 }
 
@@ -134,10 +138,6 @@ export interface MembershipCustomerPetsResponse {
 export interface MembershipCustomerFavoritesResponse {
   favorites: Favorite[]
   count: number
-}
-
-export interface MembershipCustomerSubscriptionResponse {
-  subscription: Subscription | null
 }
 
 export interface MembershipCustomerAuditLogsResponse {

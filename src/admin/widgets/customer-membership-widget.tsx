@@ -11,6 +11,11 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useEffect, useState, type FormEvent } from "react"
+import {
+  CUSTOMER_MEMBERSHIP_UPDATED_EVENT,
+  dispatchCustomerMembershipUpdated,
+  type CustomerMembershipUpdatedDetail,
+} from "../lib/membership/events"
 import type {
   AdminCustomerMembershipDetail,
   AdminCustomerMembershipDetailResponse,
@@ -89,6 +94,26 @@ function formatDate(value: string | null): string {
   }).format(date)
 }
 
+function formatDateTime(value: string | null): string {
+  if (!value) {
+    return "-"
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat("zh-TW", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date)
+}
+
 function ReadonlyItem({
   label,
   value,
@@ -117,7 +142,7 @@ function toFormState(detail: AdminCustomerMembershipDetail): MembershipFormState
 const genderOptions: Array<{ label: string; value: CustomerGender }> = [
   { label: "男", value: "male" },
   { label: "女", value: "female" },
-  { label: "其他", value: "other" },
+  { label: "未透露", value: "undisclosed" },
 ]
 
 function CustomerMembershipWidget({
@@ -128,7 +153,7 @@ function CustomerMembershipWidget({
   const [form, setForm] = useState<MembershipFormState>({
     phone: data.phone ?? "",
     birthday: "",
-    gender: "other",
+    gender: "undisclosed",
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -175,6 +200,28 @@ function CustomerMembershipWidget({
     }
   }, [data.id, reloadKey])
 
+  useEffect(() => {
+    const handleMembershipUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<CustomerMembershipUpdatedDetail>).detail
+
+      if (detail?.customerId === data.id) {
+        setReloadKey((current) => current + 1)
+      }
+    }
+
+    window.addEventListener(
+      CUSTOMER_MEMBERSHIP_UPDATED_EVENT,
+      handleMembershipUpdated
+    )
+
+    return () => {
+      window.removeEventListener(
+        CUSTOMER_MEMBERSHIP_UPDATED_EVENT,
+        handleMembershipUpdated
+      )
+    }
+  }, [data.id])
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSaving(true)
@@ -191,6 +238,7 @@ function CustomerMembershipWidget({
 
       setMembership(response.membership)
       setForm(toFormState(response.membership))
+      dispatchCustomerMembershipUpdated(data.id)
       toast.success("會員擴充資料已儲存")
     } catch (saveError) {
       const message =
@@ -231,7 +279,11 @@ function CustomerMembershipWidget({
 
       {!loading && !error && membership ? (
         <form className="flex flex-col gap-y-4" onSubmit={handleSubmit}>
-          <div className="grid gap-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <ReadonlyItem
+              label="會員等級"
+              value={membership.summary.current_level?.name ?? "-"}
+            />
             <ReadonlyItem
               label="點數"
               value={new Intl.NumberFormat("zh-TW").format(
@@ -246,8 +298,19 @@ function CustomerMembershipWidget({
               )}
             />
             <ReadonlyItem
+              label="年度累計消費"
+              value={formatCurrency(
+                membership.summary.yearly_spent,
+                membership.summary.currency_code
+              )}
+            />
+            <ReadonlyItem
               label="加入日期"
               value={formatDate(membership.summary.joined_at)}
+            />
+            <ReadonlyItem
+              label="最後登入日期"
+              value={formatDateTime(membership.last_login_at)}
             />
           </div>
 

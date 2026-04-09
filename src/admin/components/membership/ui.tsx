@@ -71,10 +71,10 @@ export function PaginationControls({
   return (
     <div className="flex flex-col gap-y-3 border-t border-ui-border-base pt-4 md:flex-row md:items-center md:justify-between">
       <Text className="text-ui-fg-subtle">
-        {count === 0 ? "No results" : `${start}-${end} of ${count}`}
+        {count === 0 ? "沒有資料" : `${start}-${end} / 共 ${count} 筆`}
       </Text>
       <div className="flex items-center gap-x-2">
-        <Text className="text-ui-fg-subtle">{`Page ${page} / ${totalPages}`}</Text>
+        <Text className="text-ui-fg-subtle">{`第 ${page} / ${totalPages} 頁`}</Text>
         <Button
           type="button"
           variant="secondary"
@@ -82,7 +82,7 @@ export function PaginationControls({
           disabled={isLoading || offset <= 0}
           onClick={onPrevious}
         >
-          Previous
+          上一頁
         </Button>
         <Button
           type="button"
@@ -91,7 +91,7 @@ export function PaginationControls({
           disabled={isLoading || offset + limit >= count}
           onClick={onNext}
         >
-          Next
+          下一頁
         </Button>
       </div>
     </div>

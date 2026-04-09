@@ -31,7 +31,7 @@ export const AdminCreateMemberLevel = z.object({
 export const AdminUpdateMemberLevel = AdminCreateMemberLevel.partial().refine(
   (data) => Object.keys(data).length > 0,
   {
-    message: "At least one field must be provided",
+    message: "至少要提供一個欄位",
   }
 )
 
@@ -41,6 +41,8 @@ export const AdminGetMembershipCustomersParams = listQueryBase.extend({
   email: stringOrArray.optional(),
   first_name: stringOrArray.optional(),
   phone: stringOrArray.optional(),
+  groups: stringOrArray.optional(),
+  has_account: booleanish.optional(),
 })
 
 export const AdminGetMembershipCustomerPointsParams = listQueryBase
@@ -51,7 +53,7 @@ export const AdminGetMembershipCustomerAuditLogsParams = listQueryBase.extend({
 
 export const AdminAdjustMembershipPoints = z.object({
   delta: z.number().finite().refine((value) => value !== 0, {
-    message: "delta cannot be 0",
+    message: "點數異動不可為 0",
   }),
   note: z.string().nullish(),
   source: z.literal("admin").optional(),

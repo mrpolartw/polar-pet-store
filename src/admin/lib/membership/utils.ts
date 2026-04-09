@@ -11,7 +11,7 @@ export function formatDateTime(value?: string | null): string {
     return value
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("zh-TW", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date)
@@ -26,7 +26,7 @@ export function formatCurrency(
   }
 
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat("zh-TW", {
       style: "currency",
       currency: currencyCode,
       maximumFractionDigits: 0,

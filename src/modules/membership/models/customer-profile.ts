@@ -5,7 +5,7 @@ const CustomerProfile = model.define("membership_customer_profile", {
   id: model.id().primaryKey(),
   customer_id: model.text().unique(),
   birthday: model.dateTime().nullable(),
-  gender: model.enum([...CUSTOMER_GENDERS]).default("other"),
+  gender: model.enum([...CUSTOMER_GENDERS]).default("undisclosed"),
   last_login_at: model.dateTime().nullable(),
 })
 

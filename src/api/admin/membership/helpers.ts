@@ -6,9 +6,14 @@ import { MedusaError } from "@medusajs/framework/utils"
 import type MembershipModuleService from "../../../modules/membership/service"
 import { MEMBERSHIP_MODULE } from "../../../modules/membership"
 import {
-  listCustomersWithMembershipLevels,
+  listAdminCustomerMembershipList,
+} from "../../../lib/membership/admin-customer-membership-list"
+import {
   retrieveCustomerWithMembershipLevel,
 } from "../../../lib/membership/customer-membership"
+import type {
+  AdminCustomerMembershipListItem,
+} from "../../../lib/membership/customer-membership-list"
 import type {
   AuditLogRecord,
   CustomerMembershipGraph,
@@ -67,32 +72,17 @@ export async function listMembershipCustomers(
     order?: Record<string, string>
   }
 ): Promise<{
-  customers: CustomerMembershipGraph[]
+  customers: AdminCustomerMembershipListItem[]
   metadata: {
     count: number
     skip: number
     take: number
   }
 }> {
-  const { rows, metadata } = await listCustomersWithMembershipLevels(scope, {
+  return await listAdminCustomerMembershipList(scope, {
     filters,
-    pagination: {
-      ...pagination,
-      order: pagination.order ?? {
-        created_at: "DESC",
-        id: "DESC",
-      },
-    },
+    pagination,
   })
-
-  return {
-    customers: rows as CustomerMembershipGraph[],
-    metadata: {
-      count: metadata.count,
-      skip: metadata.skip,
-      take: metadata.take,
-    },
-  }
 }
 
 export async function refetchMembershipCustomer(

@@ -6,12 +6,12 @@ describe("AdminUpdateCustomerMembership validator", () => {
       AdminUpdateCustomerMembership.parse({
         phone: "0911222333",
         birthday: "1992-06-15",
-        gender: "other",
+        gender: "undisclosed",
       })
     ).toEqual({
       phone: "0911222333",
       birthday: "1992-06-15",
-      gender: "other",
+      gender: "undisclosed",
     })
   })
 
@@ -23,10 +23,16 @@ describe("AdminUpdateCustomerMembership validator", () => {
     ).toThrow()
   })
 
-  it("rejects the legacy unknown gender value", () => {
+  it("rejects legacy gender values", () => {
     expect(() =>
       AdminUpdateCustomerMembership.parse({
         gender: "unknown",
+      })
+    ).toThrow()
+
+    expect(() =>
+      AdminUpdateCustomerMembership.parse({
+        gender: "other",
       })
     ).toThrow()
   })
