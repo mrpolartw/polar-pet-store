@@ -10,7 +10,7 @@
  * @property {string} email
  * @property {string} name
  * @property {string} [phone]
- * @property {'male'|'female'|'other'|''} [gender]
+ * @property {'male'|'female'|'undisclosed'|''} [gender]
  * @property {string} [birthday] - YYYY-MM-DD
  * @property {string|null} avatar
  * @property {boolean} lineLinked

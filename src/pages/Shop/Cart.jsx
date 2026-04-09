@@ -7,10 +7,18 @@ import SEOHead from '../../components/common/SEOHead'
 import { CONFIG } from '../../constants/config'
 import { ROUTES } from '../../constants/routes'
 import { useCart } from '../../context/useCart'
+import { buildCheckoutSummary } from '../../modules/checkout/pointRedemption'
 
 const Cart = () => {
   const navigate = useNavigate()
-  const { cartItems, isCartLoading, removeFromCart, updateQuantity, subtotal } = useCart()
+  const {
+    cartItems,
+    isCartLoading,
+    removeFromCart,
+    updateQuantity,
+    subtotal,
+    pointRedemption,
+  } = useCart()
   const quantityOptions = Array.from(
     { length: CONFIG.MAX_CART_QUANTITY },
     (_, index) => index + 1,
@@ -19,7 +27,12 @@ const Cart = () => {
   const formatPrice = (price) => `NT$${price.toLocaleString()}`
   const shippingFee =
     subtotal >= CONFIG.FREE_SHIPPING_THRESHOLD ? 0 : CONFIG.SHIPPING_FEE
-  const total = subtotal + shippingFee
+  const checkoutSummary = buildCheckoutSummary({
+    subtotal,
+    shippingFee,
+    redeemedPoints: pointRedemption?.redemptionAmount ?? 0,
+  })
+  const total = checkoutSummary.total
 
   return (
     <div className="cart-page">
@@ -125,6 +138,14 @@ const Cart = () => {
               <div className="summary-row">
                 <span>運費</span>
                 <span>{shippingFee === 0 ? '免運費' : formatPrice(shippingFee)}</span>
+              </div>
+              <div className="summary-row">
+                <span>點數折抵</span>
+                <span>
+                  {Number(pointRedemption?.redemptionAmount ?? 0) > 0
+                    ? `-NT$${Number(pointRedemption.redemptionAmount).toLocaleString()}`
+                    : '尚未使用'}
+                </span>
               </div>
               <div className="summary-row total-row">
                 <span>應付總額</span>

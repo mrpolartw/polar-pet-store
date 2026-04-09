@@ -10,6 +10,7 @@
     "build:dev": "vite build",
     "lint": "eslint src --ext .js,.jsx --max-warnings 0",
     "lint:fix": "eslint src --ext .js,.jsx --fix",
+    "test:unit": "node --test src/modules/membership/__tests__/membership-utils.test.js src/modules/checkout/__tests__/point-redemption.test.js",
     "check:mock": "node scripts/check-mock.js",
     "check:mock:prod": "node scripts/check-mock.js --env production",
     "check:console": "node scripts/check-console.js",

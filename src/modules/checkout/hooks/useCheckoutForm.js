@@ -33,10 +33,19 @@ export function useCheckoutForm(initialValues = {}) {
 
   const resetForm = () => setForm({ ...INITIAL_FORM, ...initialValues })
 
-  const getPayload = (promoCode, isPromoApplied, subtotal, discount) => {
+  const getPayload = (
+    promoCode,
+    isPromoApplied,
+    subtotal,
+    discount,
+    pointRedemption = null
+  ) => {
     const shippingFee =
       form.shippingMethod === 'store' ? 0 : CONFIG.SHIPPING_FEE
-    const total = subtotal + shippingFee - discount
+    const pointRedemptionAmount = Number(
+      pointRedemption?.redemptionAmount ?? 0
+    )
+    const total = Math.max(0, subtotal + shippingFee - discount - pointRedemptionAmount)
 
     return {
       shippingMethod: form.shippingMethod,
@@ -55,6 +64,16 @@ export function useCheckoutForm(initialValues = {}) {
       storeName:      form.storeName,
       deliveryNote:   form.deliveryNote,
       promoCode:      isPromoApplied ? promoCode : null,
+      pointRedemption: pointRedemptionAmount > 0
+        ? {
+            requestedPoints: Number(pointRedemption?.requestedPoints ?? pointRedemptionAmount),
+            redeemedPoints: pointRedemptionAmount,
+            redemptionAmount: pointRedemptionAmount,
+            referenceId: pointRedemption?.referenceId ?? null,
+            remainingAmount: Number(pointRedemption?.remainingAmount ?? total),
+            orderSubtotal: Number(pointRedemption?.orderSubtotal ?? subtotal),
+          }
+        : null,
       subtotal,
       shippingFee,
       discount,

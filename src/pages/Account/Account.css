@@ -136,6 +136,219 @@
   color: var(--color-brand-coffee);
 }
 
+.account-membership-panel,
+.account-point-history-panel {
+  border: 1px solid var(--color-gray-light);
+  border-radius: 20px;
+  background: var(--color-bg-white);
+  padding: 24px;
+}
+
+.account-membership-panel {
+  margin-bottom: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(0, 49, 83, 0.06), transparent 38%),
+    linear-gradient(180deg, rgba(243, 239, 230, 0.72), rgba(255, 255, 255, 0.98));
+}
+
+.account-membership-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.account-membership-hero-main,
+.account-membership-hero-side {
+  border-radius: 18px;
+  border: 1px solid rgba(0, 49, 83, 0.08);
+  background: rgba(255, 255, 255, 0.84);
+  padding: 20px;
+}
+
+.account-membership-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 6px 12px;
+  background: rgba(0, 49, 83, 0.1);
+  color: var(--color-brand-blue);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+.account-membership-caption {
+  font-size: 12px;
+  color: var(--color-gray-dark);
+  margin-bottom: 8px;
+}
+
+.account-membership-highlight {
+  display: block;
+  font-size: 30px;
+  line-height: 1.1;
+  color: var(--color-brand-blue);
+  margin-bottom: 10px;
+}
+
+.account-membership-subcopy {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+  line-height: 1.7;
+}
+
+.account-membership-hero-side {
+  display: grid;
+  gap: 12px;
+}
+
+.account-membership-side-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-gray-dark);
+}
+
+.account-membership-side-item strong {
+  color: var(--color-text-dark);
+  font-size: 14px;
+}
+
+.account-membership-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.account-membership-metric {
+  border-radius: 16px;
+  border: 1px solid var(--color-gray-light);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.account-membership-metric.accent {
+  background: linear-gradient(135deg, rgba(0, 49, 83, 0.08), rgba(196, 140, 88, 0.08));
+  border-color: rgba(0, 49, 83, 0.14);
+}
+
+.account-membership-metric-label {
+  font-size: 12px;
+  color: var(--color-gray-dark);
+}
+
+.account-membership-metric-value {
+  font-size: 18px;
+  color: var(--color-text-dark);
+  line-height: 1.4;
+}
+
+.account-point-history-panel {
+  margin-bottom: 24px;
+}
+
+.account-point-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.account-point-history-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-dark);
+  margin-bottom: 6px;
+}
+
+.account-point-history-subtitle {
+  font-size: 13px;
+  color: var(--color-gray-dark);
+  line-height: 1.7;
+}
+
+.account-point-history-list {
+  display: grid;
+  gap: 12px;
+}
+
+.account-point-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--color-gray-light);
+  background: var(--color-bg-light);
+  padding: 16px 18px;
+}
+
+.account-point-history-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-point-history-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.account-point-history-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 49, 83, 0.08);
+  color: var(--color-brand-blue);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.account-point-history-date,
+.account-point-history-extra {
+  font-size: 12px;
+  color: var(--color-gray-dark);
+}
+
+.account-point-history-note {
+  font-size: 14px;
+  color: var(--color-text-dark);
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.account-point-history-extra {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.account-point-history-delta {
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.account-point-history-delta.positive {
+  color: #166534;
+}
+
+.account-point-history-delta.negative {
+  color: #b42318;
+}
+
 /* 側邊導航 */
 .account-nav {
   background-color: var(--color-bg-white);
@@ -251,6 +464,21 @@
   .account-content {
     padding: 24px 16px;
     border-radius: 20px;
+  }
+
+  .account-membership-hero,
+  .account-membership-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-membership-panel,
+  .account-point-history-panel {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .account-point-history-item {
+    flex-direction: column;
   }
 
   .address-modal {

@@ -1,15 +1,19 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, User } from 'lucide-react'
 import { CONFIG } from '../../../constants/config'
 import { useAuth } from '../../../context/useAuth'
 import { useToast } from '../../../context/ToastContext'
+import AccountMembershipSummary from './AccountMembershipSummary'
+import AccountPointHistory from './AccountPointHistory'
+import {
+  formatMembershipPoints,
+  getMembershipLevelName,
+} from '../../membership/utils'
 
 const SUPPORTED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_AVATAR_FILE_SIZE = CONFIG.MAX_AVATAR_SIZE ?? 5 * 1024 * 1024
 const MAX_AVATAR_SIZE_MB = Math.round(MAX_AVATAR_FILE_SIZE / 1024 / 1024)
-const mockAnnualSpend = 1100
-const nextTierAmount = 10000
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -17,16 +21,13 @@ const fadeUp = {
   transition: { duration: 0.4, ease: [0.25, 1, 0.5, 1] },
 }
 
-const getAnnualSpendTier = (annualSpend) => {
-  if (annualSpend >= 100000) return { label: 'Polar Diamond', color: '#003153', bg: '#EBF2F8' }
-  if (annualSpend >= 50000) return { label: 'Polar Gold', color: '#8B5A2B', bg: '#FDF3E3' }
-  if (annualSpend >= 10000) return { label: 'Polar Silver', color: '#6B7280', bg: '#F3F4F6' }
-  return { label: 'Polar Member', color: '#8A7E71', bg: '#F3EFE6' }
-}
-
 const getInitials = (name) => (name ? name.slice(0, 2).toUpperCase() : 'PL')
 
-function AccountProfileCard({ user, tier, onAvatarUpload }) {
+function AccountProfileCard({
+  user,
+  membershipSummary,
+  onAvatarUpload,
+}) {
   const inputRef = useRef(null)
 
   return (
@@ -38,26 +39,34 @@ function AccountProfileCard({ user, tier, onAvatarUpload }) {
         className="account-avatar-input"
         onChange={onAvatarUpload}
       />
+
       <button
         type="button"
         className="account-avatar account-avatar-button"
         onClick={() => inputRef.current?.click()}
-        aria-label="更換頭像"
+        aria-label="更新頭像"
       >
-        {user?.avatar ? <img src={user.avatar} alt={user?.name || '會員頭像'} /> : getInitials(user?.name)}
+        {user?.avatar ? (
+          <img src={user.avatar} alt={user?.name || '會員頭像'} />
+        ) : (
+          getInitials(user?.name)
+        )}
         <span className="account-avatar-overlay">
           <Camera size={18} />
         </span>
       </button>
-      <div className="account-user-name">{`嗨，${user?.name ?? '會員'}`}</div>
-      <div className="account-user-email">你和毛孩的所有紀錄，都在這裡。</div>
-      <div className="account-tier-badge" style={{ background: tier.bg, color: tier.color }}>
-        <span>會員等級 {tier.label}</span>
+
+      <div className="account-user-name">{user?.name ?? '會員'}</div>
+      <div className="account-user-email">{user?.email ?? '尚未提供 Email'}</div>
+
+      <div className="account-tier-badge">
+        <span>{getMembershipLevelName(membershipSummary?.currentLevel)}</span>
       </div>
+
       <div className="account-points-row">
-        <span>目前點數</span>
+        <span>可用點數</span>
         <span className="account-points-value">
-          {(user?.points || 0).toLocaleString()}
+          {formatMembershipPoints(membershipSummary?.availablePoints)}
         </span>
       </div>
     </div>
@@ -65,29 +74,44 @@ function AccountProfileCard({ user, tier, onAvatarUpload }) {
 }
 
 export default function AccountProfile() {
-  const { user, updateProfile, isLoading } = useAuth()
+  const {
+    user,
+    updateProfile,
+    isLoading,
+    membershipSummary,
+    isMembershipLoading,
+    membershipError,
+    refreshMembership,
+  } = useAuth()
   const toast = useToast()
-
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
     phone: user?.phone || '',
     birthday: user?.birthday || '',
-    gender: user?.gender || '',
+    gender: user?.gender || 'undisclosed',
   })
 
-  const tier = getAnnualSpendTier(mockAnnualSpend)
-  const progressPct = Math.min((mockAnnualSpend / nextTierAmount) * 100, 100)
-  const remainingToNextTier = Math.max(nextTierAmount - mockAnnualSpend, 0)
+  useEffect(() => {
+    setProfileForm({
+      name: user?.name || '',
+      phone: user?.phone || '',
+      birthday: user?.birthday || '',
+      gender: user?.gender || 'undisclosed',
+    })
+  }, [user?.birthday, user?.gender, user?.name, user?.phone])
 
   const handleUpdateProfile = async () => {
     try {
       const result = await updateProfile(profileForm)
+
       if (result?.success === false) {
-        throw new Error(result?.message || '儲存失敗，請稍後再試')
+        throw new Error(result?.message || '資料更新失敗，請稍後再試')
       }
-      toast.success('已儲存。')
+
+      toast.success('會員資料已儲存')
+      await refreshMembership()
     } catch (err) {
-      toast.error(err?.message || '操作失敗，請稍後再試')
+      toast.error(err?.message || '資料更新失敗，請稍後再試')
     }
   }
 
@@ -118,13 +142,14 @@ export default function AccountProfile() {
         }
 
         const result = await updateProfile({ avatar })
+
         if (result?.success === false) {
           throw new Error(result?.message || '頭像更新失敗，請稍後再試')
         }
 
         toast.success('頭像更新成功')
       } catch (err) {
-        toast.error(err?.message || '操作失敗，請稍後再試')
+        toast.error(err?.message || '頭像更新失敗，請稍後再試')
       }
     }
 
@@ -139,32 +164,28 @@ export default function AccountProfile() {
     <motion.div key="profile" {...fadeUp}>
       <h2 className="account-section-title">
         <User size={22} className="account-nav-icon" />
-        你的資料
+        會員中心
       </h2>
 
       <AccountProfileCard
         user={user}
-        tier={tier}
+        membershipSummary={membershipSummary}
         onAvatarUpload={handleAvatarUpload}
       />
 
-      <div className="tier-progress-section">
-        <div className="tier-progress-label">
-          <span>
-            <strong style={{ color: 'var(--color-brand-coffee)' }}>
-              NT$ {mockAnnualSpend.toLocaleString()}
-            </strong>
-          </span>
-          <span>
-            距離下一個會員等級還差 {remainingToNextTier.toLocaleString()} 元
-          </span>
-        </div>
-        <div className="tier-progress-bar">
-          <div className="tier-progress-fill" style={{ width: `${progressPct}%` }} />
-        </div>
-      </div>
+      <AccountMembershipSummary
+        summary={{
+          ...membershipSummary,
+          customerSince: user?.memberSince,
+        }}
+        isLoading={isMembershipLoading}
+        error={membershipError}
+        onRetry={refreshMembership}
+      />
 
-      <div className="profile-form">
+      <AccountPointHistory logs={membershipSummary?.recentPointLogs ?? []} />
+
+      <div className="profile-form" style={{ marginTop: 32 }}>
         <div className="profile-form-row">
           <div className="profile-field">
             <label>姓名</label>
@@ -172,39 +193,28 @@ export default function AccountProfile() {
               type="text"
               className="apple-input"
               value={profileForm.name}
-              onChange={(e) => setProfileForm((prev) => ({ ...prev, name: e.target.value }))}
+              onChange={(event) => {
+                setProfileForm((prev) => ({ ...prev, name: event.target.value }))
+              }}
             />
           </div>
+
           <div className="profile-field">
-            <label>手機號碼</label>
+            <label>手機</label>
             <input
               type="tel"
               className="apple-input"
               value={profileForm.phone}
-              onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
+              onChange={(event) => {
+                setProfileForm((prev) => ({ ...prev, phone: event.target.value }))
+              }}
             />
           </div>
         </div>
 
         <div className="profile-form-row">
           <div className="profile-field">
-            <label>
-              電子郵件
-              <span
-                style={{
-                  marginLeft: 8,
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: 'var(--color-gray-dark)',
-                  background: 'var(--color-bg-light)',
-                  border: '1px solid var(--color-gray-light)',
-                  borderRadius: 980,
-                  padding: '1px 8px',
-                }}
-              >
-                需聯絡客服協助修改
-              </span>
-            </label>
+            <label>Email</label>
             <input
               type="email"
               className="apple-input"
@@ -213,45 +223,32 @@ export default function AccountProfile() {
               style={{ opacity: 0.6, cursor: 'not-allowed' }}
             />
           </div>
+
           <div className="profile-field">
-            <label>
-              生日
-              <span
-                style={{
-                  marginLeft: 8,
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: 'var(--color-gray-dark)',
-                  background: 'var(--color-bg-light)',
-                  border: '1px solid var(--color-gray-light)',
-                  borderRadius: 980,
-                  padding: '1px 8px',
-                }}
-              >
-                僅能建立後修改
-              </span>
-            </label>
+            <label>生日</label>
             <input
               type="date"
               className="apple-input"
               value={profileForm.birthday}
-              disabled
-              style={{ opacity: 0.6, cursor: 'not-allowed' }}
+              onChange={(event) => {
+                setProfileForm((prev) => ({ ...prev, birthday: event.target.value }))
+              }}
             />
           </div>
         </div>
 
-        <div className="profile-field" style={{ maxWidth: 300 }}>
+        <div className="profile-field" style={{ maxWidth: 320 }}>
           <label>性別</label>
           <select
             className="apple-input select-input"
             value={profileForm.gender}
-            onChange={(e) => setProfileForm((prev) => ({ ...prev, gender: e.target.value }))}
+            onChange={(event) => {
+              setProfileForm((prev) => ({ ...prev, gender: event.target.value }))
+            }}
           >
-            <option value="">請選擇</option>
+            <option value="undisclosed">未透露</option>
             <option value="male">男性</option>
             <option value="female">女性</option>
-            <option value="other">不方便透露</option>
           </select>
         </div>
 
@@ -261,7 +258,7 @@ export default function AccountProfile() {
             onClick={handleUpdateProfile}
             disabled={isLoading}
           >
-            {isLoading ? '儲存中...' : '儲存'}
+            {isLoading ? '儲存中...' : '儲存資料'}
           </button>
         </div>
       </div>

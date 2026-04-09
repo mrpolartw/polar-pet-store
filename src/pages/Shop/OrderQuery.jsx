@@ -76,6 +76,9 @@ const normalizeOrder = (order) => {
     shippingFee: Number(order.shippingFee ?? 0),
     discount: Number(order.discount ?? 0),
     promoCode: order.promoCode ?? '',
+    pointRedemptionAmount: Number(
+      order.pointRedemption?.redemptionAmount ?? order.pointRedemptionAmount ?? 0
+    ),
     total: Number(
       order.total ??
         Number(order.subtotal ?? items.reduce((sum, item) => sum + item.price * item.quantity, 0))
@@ -169,6 +172,12 @@ function OrderResult({ order, searchMode }) {
                 <div className="oq-price-row discount">
                   <span>優惠折抵（{order.promoCode}）</span>
                   <span>-{formatPrice(order.discount)}</span>
+                </div>
+              )}
+              {order.pointRedemptionAmount > 0 && (
+                <div className="oq-price-row discount">
+                  <span>點數折抵</span>
+                  <span>-{formatPrice(order.pointRedemptionAmount)}</span>
                 </div>
               )}
               <div className="oq-price-row total">

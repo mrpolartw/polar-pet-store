@@ -25,11 +25,26 @@ const normalizeCartItems = (items) => {
   }))
 }
 
+const EMPTY_POINT_REDEMPTION = {
+  requestedPoints: 0,
+  availablePoints: 0,
+  maxRedeemablePoints: 0,
+  redeemablePoints: 0,
+  redemptionAmount: 0,
+  orderSubtotal: 0,
+  remainingAmount: 0,
+  isValid: true,
+  validationMessage: null,
+}
+
 export const CartProvider = ({ children }) => {
   const toast = useToast()
   const [cartItems, setCartItems] = useState(() => cartStorage.getItems())
   const [isCartLoading, setIsCartLoading] = useState(false)
   const [cartError, setCartError] = useState(null)
+  const [pointRedemption, setPointRedemptionState] = useState(
+    EMPTY_POINT_REDEMPTION
+  )
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -175,6 +190,7 @@ export const CartProvider = ({ children }) => {
   const clearCart = useCallback(async () => {
     setCartError(null)
     setCartItems([])
+    setPointRedemptionState(EMPTY_POINT_REDEMPTION)
     cartStorage.clear()
     try {
       // TODO BACKEND: await cartService.clearCart()
@@ -190,6 +206,25 @@ export const CartProvider = ({ children }) => {
   )
   const itemCount = cartItems.reduce((acc, item) => acc + (Number(item.quantity) || 0), 0)
 
+  useEffect(() => {
+    setPointRedemptionState((prev) => (
+      prev.requestedPoints > 0 && prev.orderSubtotal !== subtotal
+        ? EMPTY_POINT_REDEMPTION
+        : prev
+    ))
+  }, [subtotal])
+
+  const setPointRedemption = useCallback((nextRedemption) => {
+    setPointRedemptionState({
+      ...EMPTY_POINT_REDEMPTION,
+      ...(nextRedemption ?? {}),
+    })
+  }, [])
+
+  const clearPointRedemption = useCallback(() => {
+    setPointRedemptionState(EMPTY_POINT_REDEMPTION)
+  }, [])
+
   return (
     <CartContext.Provider
       value={{
@@ -202,6 +237,9 @@ export const CartProvider = ({ children }) => {
         clearCart,
         subtotal,
         itemCount,
+        pointRedemption,
+        setPointRedemption,
+        clearPointRedemption,
       }}
     >
       {children}

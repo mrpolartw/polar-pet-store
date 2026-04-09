@@ -17,7 +17,9 @@ import {
 import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/useAuth';
 import { useCart } from '../../context/useCart';
+import { useToast } from '../../context/ToastContext'
 import orderService from '../../services/orderService';
+import membershipService from '../../services/membershipService'
 import {
   validateRequired,
   validateName,
@@ -31,6 +33,7 @@ import analytics from '../../utils/analytics'
 import { useCheckoutForm } from '../../modules/checkout/hooks/useCheckoutForm'
 import { usePromoCode }    from '../../modules/checkout/hooks/usePromoCode'
 import { useOrderSubmit }  from '../../modules/checkout/hooks/useOrderSubmit'
+import { buildCheckoutSummary, validateRedeemablePoints } from '../../modules/checkout/pointRedemption'
 
 void useNavigate;
 void orderService;
@@ -41,9 +44,20 @@ void validateEmail;
 void validateForm;
 
 const Checkout = () => {
-  const { user } = useAuth()
+  const {
+    user,
+    membershipSummary,
+    isMembershipLoading,
+  } = useAuth()
+  const toast = useToast()
   const location = useLocation()
-  const { cartItems, subtotal } = useCart();
+  const {
+    cartItems,
+    subtotal,
+    pointRedemption,
+    setPointRedemption,
+    clearPointRedemption,
+  } = useCart();
   const { form, setField, getPayload } = useCheckoutForm()
   const {
     code: promoCode, setCode: setPromoCode,
@@ -55,6 +69,11 @@ const Checkout = () => {
     submit, isSubmitting, submitError, fieldErrors, setFieldErrors, setSubmitError,
   } = useOrderSubmit()
   const [agreed, setAgreed] = useState(false)
+  const [requestedPoints, setRequestedPoints] = useState(
+    pointRedemption?.requestedPoints ? String(pointRedemption.requestedPoints) : ''
+  )
+  const [pointRedemptionError, setPointRedemptionError] = useState(null)
+  const [isPointPreviewLoading, setIsPointPreviewLoading] = useState(false)
   const initialCheckoutAnalyticsRef = useRef({ cartItems, subtotal })
 
   useEffect(() => {
@@ -73,7 +92,128 @@ const Checkout = () => {
   // TODO: [BACKEND] 金額最終須由後端計算，前端僅作顯示
   const shippingFee = form.shippingMethod === 'store'
     ? 0 : CONFIG.SHIPPING_FEE
-  const total = subtotal + shippingFee - discount
+  const localRedemptionPreview = validateRedeemablePoints({
+    availablePoints: membershipSummary?.availablePoints ?? 0,
+    requestedPoints: requestedPoints === '' ? 0 : Number(requestedPoints),
+    orderSubtotal: subtotal,
+  })
+  const appliedRedemptionAmount = Number(pointRedemption?.redemptionAmount ?? 0)
+  const checkoutSummary = buildCheckoutSummary({
+    subtotal,
+    shippingFee,
+    promoDiscount: discount,
+    redeemedPoints: appliedRedemptionAmount,
+  })
+  const total = checkoutSummary.total
+
+  useEffect(() => {
+    setRequestedPoints(
+      pointRedemption?.requestedPoints ? String(pointRedemption.requestedPoints) : ''
+    )
+  }, [pointRedemption?.requestedPoints])
+
+  useEffect(() => {
+    if (!user) {
+      clearPointRedemption()
+      setPointRedemptionError(null)
+      return undefined
+    }
+
+    if (requestedPoints === '') {
+      clearPointRedemption()
+      setPointRedemptionError(null)
+      return undefined
+    }
+
+    const normalizedRequestedPoints = Number(requestedPoints)
+
+    if (!Number.isInteger(normalizedRequestedPoints)) {
+      setPointRedemption({
+        requestedPoints: 0,
+        availablePoints: membershipSummary?.availablePoints ?? 0,
+        maxRedeemablePoints: 0,
+        redeemablePoints: 0,
+        redemptionAmount: 0,
+        orderSubtotal: subtotal,
+        remainingAmount: subtotal,
+        isValid: false,
+        validationMessage: '折抵點數必須為整數',
+      })
+      setPointRedemptionError('折抵點數必須為整數')
+      return undefined
+    }
+
+    const controller = new AbortController()
+    const timer = setTimeout(async () => {
+      setIsPointPreviewLoading(true)
+
+      try {
+        const data = await membershipService.previewPointRedemption({
+          points: normalizedRequestedPoints,
+          orderSubtotal: subtotal,
+        })
+
+        if (controller.signal.aborted) return
+
+        const preview = data?.preview ?? {}
+        setPointRedemption({
+          requestedPoints: Number(preview.requested_points ?? normalizedRequestedPoints),
+          availablePoints: Number(preview.available_points ?? 0),
+          maxRedeemablePoints: Number(preview.max_redeemable_points ?? 0),
+          redeemablePoints: Number(preview.redeemable_points ?? 0),
+          redemptionAmount: Number(preview.redemption_amount ?? 0),
+          orderSubtotal: Number(preview.order_subtotal ?? subtotal),
+          remainingAmount: Number(preview.remaining_amount ?? subtotal),
+          isValid: Boolean(preview.is_valid),
+          validationMessage: preview.validation_message ?? null,
+        })
+        setPointRedemptionError(preview.validation_message ?? null)
+      } catch (err) {
+        if (controller.signal.aborted) return
+
+        setPointRedemption({
+          requestedPoints: localRedemptionPreview.requestedPoints,
+          availablePoints: localRedemptionPreview.availablePoints,
+          maxRedeemablePoints: localRedemptionPreview.maxRedeemablePoints,
+          redeemablePoints: localRedemptionPreview.redeemablePoints,
+          redemptionAmount: localRedemptionPreview.redemptionAmount,
+          orderSubtotal: localRedemptionPreview.orderSubtotal,
+          remainingAmount: localRedemptionPreview.remainingAmount,
+          isValid: localRedemptionPreview.isValid,
+          validationMessage: localRedemptionPreview.validationMessage,
+        })
+        setPointRedemptionError(
+          err?.message ??
+            localRedemptionPreview.validationMessage ??
+            '點數折抵驗證失敗，請稍後再試'
+        )
+      } finally {
+        setIsPointPreviewLoading(false)
+      }
+    }, 250)
+
+    return () => {
+      controller.abort()
+      clearTimeout(timer)
+      setIsPointPreviewLoading(false)
+    }
+  }, [
+    clearPointRedemption,
+    localRedemptionPreview.availablePoints,
+    localRedemptionPreview.isValid,
+    localRedemptionPreview.maxRedeemablePoints,
+    localRedemptionPreview.orderSubtotal,
+    localRedemptionPreview.redeemablePoints,
+    localRedemptionPreview.redemptionAmount,
+    localRedemptionPreview.remainingAmount,
+    localRedemptionPreview.requestedPoints,
+    localRedemptionPreview.validationMessage,
+    membershipSummary?.availablePoints,
+    requestedPoints,
+    setPointRedemption,
+    subtotal,
+    user,
+  ])
 
   const handleSubmitOrder = async (e) => {
     e.preventDefault()
@@ -84,7 +224,23 @@ const Checkout = () => {
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
-    const payload = getPayload(promoCode, isPromoApplied, subtotal, discount)
+    if (pointRedemption?.requestedPoints > 0 && !pointRedemption?.isValid) {
+      setSubmitError(pointRedemption.validationMessage || '請先修正點數折抵資料')
+      return
+    }
+
+    const payload = getPayload(
+      promoCode,
+      isPromoApplied,
+      subtotal,
+      discount,
+      pointRedemption?.redeemablePoints > 0
+        ? {
+            ...pointRedemption,
+            referenceId: pointRedemption.referenceId ?? null,
+          }
+        : null
+    )
     await submit(payload)
   }
 
@@ -616,6 +772,133 @@ const Checkout = () => {
               )}
             </div>
 
+            <div
+              className="promo-code-box"
+              style={{
+                marginTop: 12,
+                padding: 18,
+                borderRadius: 18,
+                border: '1px solid var(--color-gray-light)',
+                background: 'rgba(243, 239, 230, 0.55)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 12, alignItems: 'center' }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#1d1d1f' }}>
+                    點數折抵
+                  </p>
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6e6e73' }}>
+                    1 點可折抵 1 元，送出訂單前會再由後端驗證一次。
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 12, color: '#6e6e73' }}>可用點數</div>
+                  <strong style={{ fontSize: 18, color: '#003153' }}>
+                    {isMembershipLoading
+                      ? '讀取中...'
+                      : `${Number(membershipSummary?.availablePoints ?? 0).toLocaleString()} 點`}
+                  </strong>
+                </div>
+              </div>
+
+              {!user ? (
+                <p style={{ margin: 0, fontSize: 13, color: '#6e6e73', lineHeight: 1.6 }}>
+                  登入會員後即可於結帳時使用點數折抵。
+                </p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="apple-input"
+                      placeholder="輸入欲折抵點數"
+                      value={requestedPoints}
+                      onChange={(event) => {
+                        const nextValue = event.target.value
+
+                        if (!/^\d*$/.test(nextValue)) {
+                          return
+                        }
+
+                        setRequestedPoints(nextValue)
+                        if (!nextValue) {
+                          clearPointRedemption()
+                          setPointRedemptionError(null)
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const maxPoints = Math.min(
+                          Number(membershipSummary?.availablePoints ?? 0),
+                          subtotal
+                        )
+
+                        setRequestedPoints(String(Math.max(0, Math.floor(maxPoints))))
+                        toast.info('已帶入本次可折抵上限')
+                      }}
+                      disabled={Number(membershipSummary?.availablePoints ?? 0) <= 0 || subtotal <= 0}
+                      style={{
+                        border: '1px solid #003153',
+                        background: 'transparent',
+                        color: '#003153',
+                        borderRadius: 999,
+                        padding: '10px 14px',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      全額可折抵
+                    </button>
+                  </div>
+
+                  <div style={{ marginTop: 12, display: 'grid', gap: 6 }}>
+                    <div className="calc-row">
+                      <span>本次可折抵上限</span>
+                      <span>
+                        {Number(
+                          pointRedemption?.maxRedeemablePoints ??
+                            localRedemptionPreview.maxRedeemablePoints
+                        ).toLocaleString()} 點
+                      </span>
+                    </div>
+                    <div className="calc-row">
+                      <span>本次折抵金額</span>
+                      <span>
+                        -NT$
+                        {Number(
+                          pointRedemption?.redemptionAmount ??
+                            localRedemptionPreview.redemptionAmount
+                        ).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {(pointRedemptionError || pointRedemption?.validationMessage) && (
+                    <p style={{ fontSize: 12, color: '#b42318', marginTop: 10, marginBottom: 0 }}>
+                      {pointRedemptionError || pointRedemption?.validationMessage}
+                    </p>
+                  )}
+
+                  {!pointRedemptionError && requestedPoints !== '' && (
+                    <p style={{ fontSize: 12, color: '#6e6e73', marginTop: 10, marginBottom: 0 }}>
+                      {isPointPreviewLoading
+                        ? '正在驗證折抵點數...'
+                        : `折抵後商品應付金額為 NT$${Number(
+                            pointRedemption?.remainingAmount ??
+                              localRedemptionPreview.remainingAmount
+                          ).toLocaleString()}`}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+
             <div className="summary-calc">
               <div className="calc-row">
                 <span>小計</span>
@@ -629,6 +912,12 @@ const Checkout = () => {
                 <div className="calc-row discount">
                   <span>優惠折扣 ({promoCode})</span>
                   <span>-NT${discount.toLocaleString()}</span>
+                </div>
+              )}
+              {appliedRedemptionAmount > 0 && (
+                <div className="calc-row discount">
+                  <span>點數折抵</span>
+                  <span>-NT${appliedRedemptionAmount.toLocaleString()}</span>
                 </div>
               )}
               <div className="calc-row total">
