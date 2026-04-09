@@ -20,6 +20,7 @@ import {
   AdminGetMembershipMemberLevelsParams,
   AdminUpdateMemberLevel,
 } from "./admin/membership/validators"
+import { AdminUpdateCustomerMembership } from "./admin/customers/membership/validators"
 import { pointsPaginationQueryConfig } from "./store/membership/query-config"
 import {
   StoreAddFavorite,
@@ -35,6 +36,16 @@ const customerAuth = authenticate("customer", ["session", "bearer"])
 
 export default defineMiddlewares({
   routes: [
+    {
+      matcher: "/admin/customers/:id/membership",
+      methods: ["ALL"],
+      middlewares: [adminAuth],
+    },
+    {
+      matcher: "/admin/customers/:id/membership",
+      methods: ["PATCH"],
+      middlewares: [validateAndTransformBody(AdminUpdateCustomerMembership)],
+    },
     {
       matcher: "/admin/membership/*",
       methods: ["ALL"],

@@ -15,7 +15,24 @@ module.exports = defineConfig({
   },
   modules: [
     {
-      resolve: "./src/modules/membership",
+      resolve: "./src/modules/membership", // 本地模組，這沒問題
+    },
+    {
+      resolve: "@medusajs/notification",
+      options: {
+        providers: [
+          {
+            // 🚨 就是這行！剛剛不小心被刪掉了，必須加回來讓系統找得到檔案
+            resolve: "./src/modules/notification/resend", 
+            id: "resend",
+            options: {
+              channels: ["email"],
+              api_key: process.env.RESEND_API_KEY, 
+              from: `Mr.Polar北極先生通知信 <${process.env.RESEND_FROM_EMAIL}>`,
+            },
+          },
+        ],
+      },
     },
   ],
 })

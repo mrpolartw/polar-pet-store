@@ -15,6 +15,7 @@ import type { Link } from "@medusajs/modules-sdk"
 import {
   type AuditActorType,
   type BillingInterval,
+  type CustomerGender,
   type OAuthProvider,
   type PetGender,
   type PetSpecies,
@@ -23,6 +24,7 @@ import {
 } from "./constants"
 import { MEMBERSHIP_MODULE } from "./index"
 import AuditLog from "./models/audit-log"
+import CustomerProfile from "./models/customer-profile"
 import Favorite from "./models/favorite"
 import MemberLevel from "./models/member-level"
 import OAuthLink from "./models/oauth-link"
@@ -39,6 +41,7 @@ type OAuthLinkDTO = InferTypeOf<typeof OAuthLink>
 type PetDTO = InferTypeOf<typeof Pet>
 type FavoriteDTO = InferTypeOf<typeof Favorite>
 type AuditLogDTO = InferTypeOf<typeof AuditLog>
+type CustomerProfileDTO = InferTypeOf<typeof CustomerProfile>
 
 type MemberLevelListFilters = Partial<
   Pick<
@@ -103,6 +106,12 @@ type CreateAuditLogInput = {
   metadata?: Record<string, unknown> | null
 }
 
+type UpdateCustomerProfileInput = {
+  birthday?: Date | null
+  gender?: CustomerGender
+  last_login_at?: Date | null
+}
+
 const CUSTOMER_LINKABLE_KEY = "customer_id"
 const MEMBER_LEVEL_LINKABLE_KEY = "membership_member_level_id"
 
@@ -114,6 +123,7 @@ class MembershipModuleService extends MedusaService({
   Pet,
   Favorite,
   AuditLog,
+  CustomerProfile,
 }) {
   declare protected readonly __container__: Record<string, unknown>
 
@@ -472,6 +482,53 @@ class MembershipModuleService extends MedusaService({
       ip_address: data.ip_address ?? null,
       metadata: data.metadata ?? null,
     })
+  }
+
+  async getCustomerProfile(
+    customer_id: string
+  ): Promise<CustomerProfileDTO | null> {
+    const [profile] = await super.listCustomerProfiles(
+      {
+        customer_id,
+      },
+      {
+        take: 1,
+      }
+    )
+
+    return profile ?? null
+  }
+
+  async upsertCustomerProfile(
+    customer_id: string,
+    data: UpdateCustomerProfileInput
+  ): Promise<CustomerProfileDTO> {
+    const existingProfile = await this.getCustomerProfile(customer_id)
+
+    if (!existingProfile) {
+      return await super.createCustomerProfiles({
+        customer_id,
+        birthday: data.birthday ?? null,
+        gender: data.gender ?? "unknown",
+        last_login_at: data.last_login_at ?? null,
+      })
+    }
+
+    const [profile] = await super.updateCustomerProfiles({
+      selector: {
+        id: existingProfile.id,
+      },
+      data,
+    })
+
+    if (!profile) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Customer profile for ${customer_id} was not found`
+      )
+    }
+
+    return profile
   }
 
   private getLinkService(): Link {

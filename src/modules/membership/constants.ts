@@ -1,3 +1,8 @@
+import {
+  CUSTOMER_GENDERS,
+  type CustomerGender,
+} from "../../lib/membership/customer-gender"
+
 export const POINT_LOG_SOURCES = [
   "order",
   "refund",
@@ -46,6 +51,8 @@ export const AUDIT_ACTOR_TYPES = [
   "system",
 ] as const
 
+export { CUSTOMER_GENDERS }
+
 export type PointLogSource = (typeof POINT_LOG_SOURCES)[number]
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number]
 export type BillingInterval = (typeof BILLING_INTERVALS)[number]
@@ -53,3 +60,4 @@ export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number]
 export type PetSpecies = (typeof PET_SPECIES)[number]
 export type PetGender = (typeof PET_GENDERS)[number]
 export type AuditActorType = (typeof AUDIT_ACTOR_TYPES)[number]
+export type { CustomerGender }
