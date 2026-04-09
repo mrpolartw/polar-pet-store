@@ -1,7 +1,11 @@
-export interface MembershipLevelRuleCandidate {
+export interface MembershipLevelPriorityCandidate {
   id: string
   sort_order: number
   upgrade_threshold: number
+}
+
+export interface MembershipLevelRuleCandidate
+  extends MembershipLevelPriorityCandidate {
   auto_upgrade: boolean
   is_active: boolean
 }
@@ -12,36 +16,32 @@ export interface MembershipLevelMatch<TLevel extends MembershipLevelRuleCandidat
   used_fallback_level: boolean
 }
 
+export function compareMembershipLevelPriority<
+  TLevel extends MembershipLevelPriorityCandidate,
+>(candidate: TLevel, current: TLevel): number {
+  if (candidate.upgrade_threshold !== current.upgrade_threshold) {
+    return candidate.upgrade_threshold - current.upgrade_threshold
+  }
+
+  if (candidate.sort_order !== current.sort_order) {
+    return candidate.sort_order - current.sort_order
+  }
+
+  return candidate.id.localeCompare(current.id)
+}
+
 function sortDescendingByPriority<TLevel extends MembershipLevelRuleCandidate>(
   levels: TLevel[]
 ): TLevel[] {
-  return [...levels].sort((current, next) => {
-    if (next.upgrade_threshold !== current.upgrade_threshold) {
-      return next.upgrade_threshold - current.upgrade_threshold
-    }
-
-    if (next.sort_order !== current.sort_order) {
-      return next.sort_order - current.sort_order
-    }
-
-    return next.id.localeCompare(current.id)
-  })
+  return [...levels].sort((current, next) =>
+    compareMembershipLevelPriority(next, current)
+  )
 }
 
 function sortAscendingByPriority<TLevel extends MembershipLevelRuleCandidate>(
   levels: TLevel[]
 ): TLevel[] {
-  return [...levels].sort((current, next) => {
-    if (current.upgrade_threshold !== next.upgrade_threshold) {
-      return current.upgrade_threshold - next.upgrade_threshold
-    }
-
-    if (current.sort_order !== next.sort_order) {
-      return current.sort_order - next.sort_order
-    }
-
-    return current.id.localeCompare(next.id)
-  })
+  return [...levels].sort(compareMembershipLevelPriority)
 }
 
 export function getAutoUpgradeableMemberLevels<
@@ -86,4 +86,17 @@ export function selectMembershipLevelByYearlySpent<
     matched_threshold: fallbackLevel?.upgrade_threshold ?? null,
     used_fallback_level: !!fallbackLevel,
   }
+}
+
+export function isMembershipLevelUpgrade<
+  TLevel extends MembershipLevelPriorityCandidate,
+>(
+  previousLevel: TLevel | null | undefined,
+  nextLevel: TLevel | null | undefined
+): boolean {
+  if (!previousLevel || !nextLevel) {
+    return false
+  }
+
+  return compareMembershipLevelPriority(nextLevel, previousLevel) > 0
 }

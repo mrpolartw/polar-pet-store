@@ -34,6 +34,21 @@ import {
 const POINTS_LIMIT = 5
 const AUDIT_LOG_LIMIT = 5
 
+function formatMembershipPointSourceLabel(source: string): string {
+  const pointSourceLabelMap: Record<string, string> = {
+    order: "訂單回饋",
+    birthday_bonus: "生日加碼",
+    refund: "退款扣回",
+    admin: "後台調整",
+    expire: "點數到期",
+    redeem: "點數折抵",
+    bonus: "贈點",
+    upgrade_gift: "升等贈點",
+  }
+
+  return pointSourceLabelMap[source] ?? source
+}
+
 function SummaryItem({
   label,
   value,
@@ -343,7 +358,9 @@ function CustomerMembershipManagementWidget({
                 {points.logs.map((log) => (
                   <Table.Row key={log.id}>
                     <Table.Cell>{formatDateTime(log.created_at)}</Table.Cell>
-                    <Table.Cell>{formatPointSource(log.source)}</Table.Cell>
+                    <Table.Cell>
+                      {formatMembershipPointSourceLabel(log.source)}
+                    </Table.Cell>
                     <Table.Cell>{String(log.points)}</Table.Cell>
                     <Table.Cell>{String(log.balance_after)}</Table.Cell>
                     <Table.Cell>{log.note ?? "-"}</Table.Cell>

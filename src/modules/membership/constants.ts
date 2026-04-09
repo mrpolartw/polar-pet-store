@@ -5,11 +5,13 @@ import {
 
 export const POINT_LOG_SOURCES = [
   "order",
+  "birthday_bonus",
   "refund",
   "admin",
   "expire",
   "redeem",
   "bonus",
+  "upgrade_gift",
 ] as const
 
 export const SUBSCRIPTION_STATUSES = [

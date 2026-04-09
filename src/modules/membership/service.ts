@@ -125,6 +125,21 @@ type UpdateCustomerProfileInput = {
   last_login_at?: Date | null
 }
 
+type CreatePointLogInput = {
+  customer_id: string
+  points: number
+  source: PointLogSource
+  reference_id?: string | null
+  note?: string | null
+  expired_at?: Date | null
+  metadata?: Record<string, unknown> | null
+}
+
+type CreatePointLogResult = {
+  point_log: PointLogDTO
+  created: boolean
+}
+
 const CUSTOMER_LINKABLE_KEY = "customer_id"
 const MEMBER_LEVEL_LINKABLE_KEY = "membership_member_level_id"
 
@@ -175,16 +190,42 @@ class MembershipModuleService extends MedusaService({
     await super.deleteMemberLevels(id)
   }
 
-  async adjustPoints(
+  async getPointLogByReference(
     customer_id: string,
-    delta: number,
     source: PointLogSource,
-    reference_id?: string,
-    note?: string
+    reference_id: string
+  ): Promise<PointLogDTO | null> {
+    const [pointLog] = await super.listPointLogs(
+      {
+        customer_id,
+        source,
+        reference_id,
+      },
+      {
+        order: {
+          created_at: "DESC",
+          id: "DESC",
+        },
+        take: 1,
+      }
+    )
+
+    return pointLog ?? null
+  }
+
+  async createPointLog(
+    input: CreatePointLogInput
   ): Promise<PointLogDTO> {
-    const previousLog = await this.getLatestPointLog(customer_id)
+    if (!Number.isFinite(input.points) || input.points === 0) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Point delta must be a non-zero finite number"
+      )
+    }
+
+    const previousLog = await this.getLatestPointLog(input.customer_id)
     const previousBalance = previousLog?.balance_after ?? 0
-    const balance = previousBalance + delta
+    const balance = previousBalance + input.points
 
     if (balance < 0) {
       throw new MedusaError(
@@ -194,13 +235,58 @@ class MembershipModuleService extends MedusaService({
     }
 
     return await super.createPointLogs({
+      customer_id: input.customer_id,
+      points: input.points,
+      balance_after: balance,
+      source: input.source,
+      reference_id: input.reference_id ?? null,
+      note: input.note ?? null,
+      expired_at: input.expired_at ?? null,
+      metadata: input.metadata ?? null,
+    })
+  }
+
+  async createPointLogOnce(
+    input: CreatePointLogInput
+  ): Promise<CreatePointLogResult> {
+    if (input.reference_id) {
+      const existingPointLog = await this.getPointLogByReference(
+        input.customer_id,
+        input.source,
+        input.reference_id
+      )
+
+      if (existingPointLog) {
+        return {
+          point_log: existingPointLog,
+          created: false,
+        }
+      }
+    }
+
+    const pointLog = await this.createPointLog(input)
+
+    return {
+      point_log: pointLog,
+      created: true,
+    }
+  }
+
+  async adjustPoints(
+    customer_id: string,
+    delta: number,
+    source: PointLogSource,
+    reference_id?: string,
+    note?: string
+  ): Promise<PointLogDTO> {
+    return await this.createPointLog({
       customer_id,
       points: delta,
-      balance_after: balance,
       source,
       reference_id: reference_id ?? null,
       note: note ?? null,
       expired_at: null,
+      metadata: null,
     })
   }
 

@@ -11,6 +11,7 @@ const PointLog = model.define("membership_point_log", {
   reference_id: model.text().nullable(),
   note: model.text().nullable(),
   expired_at: model.dateTime().nullable(),
+  metadata: model.json().nullable(),
 })
 
 export default PointLog

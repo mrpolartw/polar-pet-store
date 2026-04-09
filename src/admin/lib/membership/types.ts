@@ -47,10 +47,19 @@ export interface PointLog {
   customer_id: string
   points: number
   balance_after: number
-  source: "order" | "refund" | "admin" | "expire" | "redeem" | "bonus"
+  source:
+    | "order"
+    | "birthday_bonus"
+    | "refund"
+    | "admin"
+    | "expire"
+    | "redeem"
+    | "bonus"
+    | "upgrade_gift"
   reference_id: string | null
   note: string | null
   expired_at: string | null
+  metadata: JsonRecord | null
   created_at?: string | null
   updated_at?: string | null
 }
