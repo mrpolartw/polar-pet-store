@@ -19,6 +19,8 @@ export interface MembershipLevel extends MembershipLevelSummary {
   deleted_at?: string | null
 }
 
+export type MembershipLineBindingStatus = "bound" | "unbound"
+
 export interface MembershipCustomer {
   id: string
   company_name: string | null
@@ -35,7 +37,7 @@ export interface MembershipCustomer {
   joined_at: string | null
   last_login_at: string | null
   last_ordered_at: string | null
-  line_binding_status: "bound" | "unbound" | null
+  line_binding_status: MembershipLineBindingStatus | null
   membership_member_level?: MembershipLevelSummary | null
 }
 

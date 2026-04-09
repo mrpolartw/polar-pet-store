@@ -1,11 +1,4 @@
-import {
-  Button,
-  Drawer,
-  Input,
-  Label,
-  Switch,
-  toast,
-} from "@medusajs/ui"
+import { Button, Drawer, Input, Label, Switch, toast } from "@medusajs/ui"
 import { useEffect, useState, type FormEvent } from "react"
 import type {
   MemberLevelPayload,
@@ -116,7 +109,7 @@ export function MemberLevelFormDrawer({
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-5">
             <div className="space-y-2">
-              <Label htmlFor={`${title}-name`}>等級名稱</Label>
+              <Label htmlFor={`${title}-name`}>會員等級名稱</Label>
               <Input
                 id={`${title}-name`}
                 value={name}
@@ -124,6 +117,7 @@ export function MemberLevelFormDrawer({
                 disabled={isSubmitting}
               />
             </div>
+
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor={`${title}-sort-order`}>排序</Label>
@@ -146,6 +140,7 @@ export function MemberLevelFormDrawer({
                 />
               </div>
             </div>
+
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor={`${title}-reward-rate`}>回饋倍率</Label>
@@ -172,9 +167,7 @@ export function MemberLevelFormDrawer({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor={`${title}-upgrade-gift-points`}>
-                  升級贈點
-                </Label>
+                <Label htmlFor={`${title}-upgrade-gift-points`}>升級贈點</Label>
                 <Input
                   id={`${title}-upgrade-gift-points`}
                   type="number"
@@ -184,11 +177,10 @@ export function MemberLevelFormDrawer({
                 />
               </div>
             </div>
+
             <div className="grid gap-4 md:grid-cols-3">
               <div className="flex items-center justify-between rounded-lg border border-ui-border-base px-4 py-3">
-                <div>
-                  <Label htmlFor={`${title}-auto-upgrade`}>自動升級</Label>
-                </div>
+                <Label htmlFor={`${title}-auto-upgrade`}>自動升級</Label>
                 <Switch
                   id={`${title}-auto-upgrade`}
                   checked={autoUpgrade}
@@ -197,11 +189,7 @@ export function MemberLevelFormDrawer({
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border border-ui-border-base px-4 py-3">
-                <div>
-                  <Label htmlFor={`${title}-can-join-event`}>
-                    可參與活動
-                  </Label>
-                </div>
+                <Label htmlFor={`${title}-can-join-event`}>可參加活動</Label>
                 <Switch
                   id={`${title}-can-join-event`}
                   checked={canJoinEvent}
@@ -210,9 +198,7 @@ export function MemberLevelFormDrawer({
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border border-ui-border-base px-4 py-3">
-                <div>
-                  <Label htmlFor={`${title}-is-active`}>啟用</Label>
-                </div>
+                <Label htmlFor={`${title}-is-active`}>啟用</Label>
                 <Switch
                   id={`${title}-is-active`}
                   checked={isActive}

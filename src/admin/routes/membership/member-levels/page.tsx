@@ -30,6 +30,10 @@ export const config = defineRouteConfig({
   rank: 60,
 })
 
+function formatBoolean(value: boolean): string {
+  return value ? "是" : "否"
+}
+
 export default function MembershipMemberLevelsPage() {
   const [response, setResponse] = useState<MembershipMemberLevelsResponse | null>(
     null
@@ -66,9 +70,7 @@ export default function MembershipMemberLevelsPage() {
         }
 
         setError(
-          loadError instanceof Error
-            ? loadError.message
-            : "載入會員等級失敗"
+          loadError instanceof Error ? loadError.message : "載入會員等級失敗"
         )
       } finally {
         if (active) {
@@ -125,9 +127,7 @@ export default function MembershipMemberLevelsPage() {
       setReloadKey((current) => current + 1)
     } catch (deleteError) {
       toast.error(
-        deleteError instanceof Error
-          ? deleteError.message
-          : "刪除會員等級失敗"
+        deleteError instanceof Error ? deleteError.message : "刪除會員等級失敗"
       )
     } finally {
       setDeletingId(null)
@@ -139,17 +139,17 @@ export default function MembershipMemberLevelsPage() {
       <div className="space-y-1">
         <Heading level="h1">會員等級</Heading>
         <Text className="text-ui-fg-subtle">
-          依照已定版規格維護會員等級的排序、回饋倍率、升級條件與啟用狀態。
+          管理會員制度的等級規則與門檻。這是保留中的獨立制度管理頁，不依賴已刪除的 membership customer 頁。
         </Text>
       </div>
 
       <SectionCard
-        title="等級列表"
-        description="在既有管理頁內直接建立、編輯與刪除會員等級。"
+        title="等級清單"
+        description="建立、調整與停用會員等級，供 customer detail 的進階會員管理功能使用。"
         action={
           <MemberLevelFormDrawer
-            title="建立會員等級"
-            description="新增一筆會員等級設定。"
+            title="新增會員等級"
+            description="請輸入符合目前會員制度的等級資料。"
             triggerLabel="新增等級"
             isSubmitting={createLoading}
             onSubmit={handleCreate}
@@ -159,7 +159,7 @@ export default function MembershipMemberLevelsPage() {
         {loading ? (
           <StatePanel
             title="載入會員等級中"
-            message="正在讀取會員等級資料..."
+            message="正在整理會員制度的等級清單。"
           />
         ) : null}
 
@@ -181,8 +181,8 @@ export default function MembershipMemberLevelsPage() {
 
         {!loading && !error && response && response.member_levels.length === 0 ? (
           <StatePanel
-            title="尚無會員等級"
-            message="建立第一筆會員等級後，就可以開始指派顧客。"
+            title="尚未建立會員等級"
+            message="目前沒有等級資料，可以先建立第一個會員等級。"
           />
         ) : null}
 
@@ -195,11 +195,11 @@ export default function MembershipMemberLevelsPage() {
                   <Table.HeaderCell>名稱</Table.HeaderCell>
                   <Table.HeaderCell>排序</Table.HeaderCell>
                   <Table.HeaderCell>回饋倍率</Table.HeaderCell>
-                  <Table.HeaderCell>生日倍率</Table.HeaderCell>
+                  <Table.HeaderCell>生日回饋倍率</Table.HeaderCell>
                   <Table.HeaderCell>升級贈點</Table.HeaderCell>
                   <Table.HeaderCell>升級門檻</Table.HeaderCell>
                   <Table.HeaderCell>自動升級</Table.HeaderCell>
-                  <Table.HeaderCell>可參與活動</Table.HeaderCell>
+                  <Table.HeaderCell>可參加活動</Table.HeaderCell>
                   <Table.HeaderCell>啟用</Table.HeaderCell>
                   <Table.HeaderCell></Table.HeaderCell>
                 </Table.Row>
@@ -222,18 +222,16 @@ export default function MembershipMemberLevelsPage() {
                     <Table.Cell>
                       {String(memberLevel.upgrade_threshold)}
                     </Table.Cell>
+                    <Table.Cell>{formatBoolean(memberLevel.auto_upgrade)}</Table.Cell>
                     <Table.Cell>
-                      {memberLevel.auto_upgrade ? "是" : "否"}
+                      {formatBoolean(memberLevel.can_join_event)}
                     </Table.Cell>
-                    <Table.Cell>
-                      {memberLevel.can_join_event ? "是" : "否"}
-                    </Table.Cell>
-                    <Table.Cell>{memberLevel.is_active ? "是" : "否"}</Table.Cell>
+                    <Table.Cell>{formatBoolean(memberLevel.is_active)}</Table.Cell>
                     <Table.Cell>
                       <div className="flex justify-end gap-2">
                         <MemberLevelFormDrawer
                           title={`編輯 ${memberLevel.name}`}
-                          description="更新這筆會員等級設定。"
+                          description="更新這個會員等級的規則設定。"
                           triggerLabel="編輯"
                           initialValue={memberLevel}
                           isSubmitting={editingId === memberLevel.id}

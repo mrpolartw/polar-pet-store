@@ -54,7 +54,7 @@ export function AssignLevelDrawer({
           <Drawer.Header className="space-y-1">
             <Drawer.Title>指派會員等級</Drawer.Title>
             <Drawer.Description>
-              手動更新這位顧客目前綁定的會員等級。
+              請選擇要套用到這位顧客的會員等級。
             </Drawer.Description>
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-5">
@@ -66,19 +66,19 @@ export function AssignLevelDrawer({
                 disabled={isSubmitting}
               >
                 <Select.Trigger id="membership-assign-level">
-                  <Select.Value placeholder="請選擇等級" />
+                  <Select.Value placeholder="請選擇會員等級" />
                 </Select.Trigger>
                 <Select.Content>
                   {levels.map((level) => (
                     <Select.Item key={level.id} value={level.id}>
-                      {`${level.name}（排序 ${level.sort_order}，升級門檻 ${level.upgrade_threshold}）`}
+                      {`${level.name}（排序 ${level.sort_order} / 門檻 ${level.upgrade_threshold}）`}
                     </Select.Item>
                   ))}
                 </Select.Content>
               </Select>
             </div>
             <Text className="text-ui-fg-subtle">
-              儲存後會以新等級覆蓋目前的關聯設定。
+              儲存後會立刻更新顧客目前綁定的會員等級。
             </Text>
           </Drawer.Body>
           <Drawer.Footer>

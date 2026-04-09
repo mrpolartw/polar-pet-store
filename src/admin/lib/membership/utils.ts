@@ -1,4 +1,20 @@
-import type { JsonRecord, MembershipCustomer } from "./types"
+import type { MembershipCustomer } from "./types"
+
+export function formatDate(value?: string | null): string {
+  if (!value) {
+    return "-"
+  }
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat("zh-TW", {
+    dateStyle: "medium",
+  }).format(date)
+}
 
 export function formatDateTime(value?: string | null): string {
   if (!value) {
@@ -32,32 +48,18 @@ export function formatCurrency(
       maximumFractionDigits: 0,
     }).format(amount)
   } catch {
-    return `${amount} ${currencyCode}`
+    return `${currencyCode} ${amount}`
   }
 }
 
-export function stringifyJson(value: JsonRecord | null | undefined): string {
+export function stringifyJson(
+  value: Record<string, unknown> | null | undefined
+): string {
   if (!value) {
     return "-"
   }
 
   return JSON.stringify(value, null, 2)
-}
-
-export function parseOptionalJson(value: string): JsonRecord | null {
-  const trimmed = value.trim()
-
-  if (!trimmed) {
-    return null
-  }
-
-  const parsed = JSON.parse(trimmed) as unknown
-
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("JSON must be an object")
-  }
-
-  return parsed as JsonRecord
 }
 
 export function getCustomerDisplayName(customer: MembershipCustomer): string {

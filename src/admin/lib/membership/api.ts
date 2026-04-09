@@ -100,7 +100,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (!response.ok) {
     throw new Error(
-      getErrorMessage(payload, `Request failed with status ${response.status}`)
+      getErrorMessage(payload, `請求失敗（狀態碼 ${response.status}）`)
     )
   }
 

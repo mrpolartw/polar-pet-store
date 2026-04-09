@@ -169,7 +169,7 @@ function CustomerMembershipManagementWidget({
         setError(
           loadError instanceof Error
             ? loadError.message
-            : "載入會員管理資料時發生錯誤"
+            : "載入進階會員管理資料時發生錯誤"
         )
       } finally {
         if (active) {
@@ -230,8 +230,8 @@ function CustomerMembershipManagementWidget({
   if (loading) {
     return (
       <StatePanel
-        title="載入會員管理資料中"
-        message="正在整理會員等級、點數、收藏、毛孩與稽核紀錄。"
+        title="載入進階會員管理資料中"
+        message="正在整理會員等級、點數、稽核紀錄與附屬會員資料。"
       />
     )
   }
@@ -239,7 +239,7 @@ function CustomerMembershipManagementWidget({
   if (error) {
     return (
       <StatePanel
-        title="無法載入會員管理資料"
+        title="無法載入進階會員管理資料"
         message={error}
         action={
           <Button
@@ -261,8 +261,8 @@ function CustomerMembershipManagementWidget({
   return (
     <div className="flex flex-col gap-y-6">
       <SectionCard
-        title="會員管理總覽"
-        description="保留原本 membership customer detail 的核心管理能力，集中回既有 customer detail 頁。"
+        title="進階會員管理"
+        description="集中管理會員等級、點數與相關稽核紀錄，並查看收藏商品、毛孩資料與活躍訂閱。"
         action={
           <div className="flex flex-wrap gap-2">
             <AdjustPointsDrawer
@@ -278,12 +278,11 @@ function CustomerMembershipManagementWidget({
           </div>
         }
       >
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <SummaryItem
             label="目前會員等級"
             value={detail.current_level?.name ?? "-"}
           />
-          <SummaryItem label="點數餘額" value={String(detail.points_balance)} />
           <SummaryItem label="收藏商品數" value={String(detail.favorites_count)} />
           <SummaryItem label="毛孩數量" value={String(detail.pets_count)} />
         </div>
@@ -321,14 +320,11 @@ function CustomerMembershipManagementWidget({
             />
           </div>
         ) : (
-          <Text className="text-ui-fg-subtle">目前沒有有效的訂閱資料。</Text>
+          <Text className="text-ui-fg-subtle">目前沒有活躍訂閱。</Text>
         )}
       </SectionCard>
 
-      <SectionCard
-        title="點數紀錄"
-        description="延伸原本會員顧客頁的點數異動紀錄。"
-      >
+      <SectionCard title="點數紀錄" description="顯示點數異動歷程與餘額變化。">
         {points && points.logs.length > 0 ? (
           <>
             <Table>

@@ -8,7 +8,10 @@ import type {
   MembershipCustomer,
   MembershipCustomersResponse,
 } from "../lib/membership/types"
-import { formatDateTime, getCustomerDisplayName } from "../lib/membership/utils"
+import {
+  formatDateTime,
+  getCustomerDisplayName,
+} from "../lib/membership/utils"
 
 const DEFAULT_PAGE_SIZE = 20
 
@@ -93,12 +96,12 @@ function CustomerMembershipListWidget() {
   return (
     <SectionCard
       title="會員欄位總覽"
-      description="延伸既有 customers list，補充會員等級、加入日期、最後登入日期、最後訂購日期與 LINE 綁定狀態。搜尋沿用頁面既有條件。"
+      description="延伸既有 customers list，沿用原本查詢條件與分頁，只補充會員相關欄位。"
     >
       {loading ? (
         <StatePanel
           title="載入會員欄位總覽中"
-          message="正在同步既有 customers 列表的搜尋條件與會員資料。"
+          message="正在同步 customers 列表的搜尋條件與會員資料。"
         />
       ) : null}
 

@@ -80,10 +80,6 @@ export interface AdminMembershipCustomerFavoritesResponse {
   count: number
 }
 
-export interface AdminMembershipCustomerSubscriptionResponse {
-  subscription: SubscriptionRecord | null
-}
-
 export interface AdminMembershipCustomerAuditLogsResponse {
   audit_logs: AuditLogRecord[]
   count: number

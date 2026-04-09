@@ -16,6 +16,11 @@ import {
   dispatchCustomerMembershipUpdated,
   type CustomerMembershipUpdatedDetail,
 } from "../lib/membership/events"
+import {
+  formatCurrency,
+  formatDate,
+  formatDateTime,
+} from "../lib/membership/utils"
 import type {
   AdminCustomerMembershipDetail,
   AdminCustomerMembershipDetailResponse,
@@ -57,61 +62,11 @@ async function requestMembershipDetail(
 
   if (!response.ok) {
     throw new Error(
-      getErrorMessage(payload, `Request failed with status ${response.status}`)
+      getErrorMessage(payload, `請求失敗（狀態碼 ${response.status}）`)
     )
   }
 
   return payload as AdminCustomerMembershipDetailResponse
-}
-
-function formatCurrency(amount: number, currencyCode: string): string {
-  try {
-    return new Intl.NumberFormat("zh-TW", {
-      style: "currency",
-      currency: currencyCode,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  } catch (_error) {
-    return `${currencyCode} ${new Intl.NumberFormat("zh-TW").format(amount)}`
-  }
-}
-
-function formatDate(value: string | null): string {
-  if (!value) {
-    return "-"
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date)
-}
-
-function formatDateTime(value: string | null): string {
-  if (!value) {
-    return "-"
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date)
 }
 
 function ReadonlyItem({
@@ -255,7 +210,7 @@ function CustomerMembershipWidget({
       <div className="space-y-1">
         <Heading>會員擴充資料</Heading>
         <Text size="small" className="text-ui-fg-subtle">
-          顯示會員摘要與可維護欄位。Email 維持既有顧客資料區塊管理，這裡不提供編輯。
+          在既有 customer detail 頁維護會員基本資料與消費摘要。Email 不可在此修改。
         </Text>
       </div>
 
@@ -280,10 +235,6 @@ function CustomerMembershipWidget({
       {!loading && !error && membership ? (
         <form className="flex flex-col gap-y-4" onSubmit={handleSubmit}>
           <div className="grid gap-4 md:grid-cols-2">
-            <ReadonlyItem
-              label="會員等級"
-              value={membership.summary.current_level?.name ?? "-"}
-            />
             <ReadonlyItem
               label="點數"
               value={new Intl.NumberFormat("zh-TW").format(
