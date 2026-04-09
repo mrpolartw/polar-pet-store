@@ -2,7 +2,6 @@ import { Button, Drawer, Input, Label, Switch, toast } from "@medusajs/ui"
 import { useEffect, useState, type FormEvent } from "react"
 import type {
   MemberLevelPayload,
-  MemberLevelUpdatePayload,
   MembershipLevel,
 } from "../../lib/membership/types"
 
@@ -11,10 +10,45 @@ interface MemberLevelFormDrawerProps {
   description: string
   triggerLabel: string
   initialValue?: MembershipLevel | null
+  disabled?: boolean
   isSubmitting?: boolean
-  onSubmit: (
-    payload: MemberLevelPayload | MemberLevelUpdatePayload
-  ) => Promise<void>
+  onSubmit: (payload: MemberLevelPayload) => Promise<void>
+}
+
+type NumberFieldOptions = {
+  label: string
+  integer?: boolean
+}
+
+function parseNonNegativeNumber(
+  value: string,
+  options: NumberFieldOptions
+): number {
+  const trimmedValue = value.trim()
+
+  if (!trimmedValue.length) {
+    throw new Error(`請輸入${options.label}`)
+  }
+
+  const parsedValue = Number(trimmedValue)
+
+  if (!Number.isFinite(parsedValue)) {
+    throw new Error(`${options.label}必須是數字`)
+  }
+
+  if (parsedValue < 0) {
+    throw new Error(
+      options.integer
+        ? `${options.label}必須是非負整數`
+        : `${options.label}不可小於 0`
+    )
+  }
+
+  if (options.integer && !Number.isInteger(parsedValue)) {
+    throw new Error(`${options.label}必須是非負整數`)
+  }
+
+  return parsedValue
 }
 
 export function MemberLevelFormDrawer({
@@ -22,6 +56,7 @@ export function MemberLevelFormDrawer({
   description,
   triggerLabel,
   initialValue,
+  disabled = false,
   isSubmitting = false,
   onSubmit,
 }: MemberLevelFormDrawerProps) {
@@ -73,13 +108,26 @@ export function MemberLevelFormDrawer({
     }
 
     try {
-      const payload = {
+      const payload: MemberLevelPayload = {
         name: name.trim(),
-        sort_order: Number(sortOrder || 0),
-        reward_rate: Number(rewardRate || 0),
-        birthday_reward_rate: Number(birthdayRewardRate || 0),
-        upgrade_gift_points: Number(upgradeGiftPoints || 0),
-        upgrade_threshold: Number(upgradeThreshold || 0),
+        sort_order: parseNonNegativeNumber(sortOrder, {
+          label: "排序",
+          integer: true,
+        }),
+        reward_rate: parseNonNegativeNumber(rewardRate, {
+          label: "回饋倍率",
+        }),
+        birthday_reward_rate: parseNonNegativeNumber(birthdayRewardRate, {
+          label: "生日回饋倍率",
+        }),
+        upgrade_gift_points: parseNonNegativeNumber(upgradeGiftPoints, {
+          label: "升級贈點",
+          integer: true,
+        }),
+        upgrade_threshold: parseNonNegativeNumber(upgradeThreshold, {
+          label: "升級門檻",
+          integer: true,
+        }),
         auto_upgrade: autoUpgrade,
         can_join_event: canJoinEvent,
         is_active: isActive,
@@ -97,7 +145,11 @@ export function MemberLevelFormDrawer({
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <Drawer.Trigger asChild>
-        <Button type="button" variant={initialValue ? "secondary" : "primary"}>
+        <Button
+          type="button"
+          variant={initialValue ? "secondary" : "primary"}
+          disabled={disabled || isSubmitting}
+        >
           {triggerLabel}
         </Button>
       </Drawer.Trigger>
@@ -124,6 +176,8 @@ export function MemberLevelFormDrawer({
                 <Input
                   id={`${title}-sort-order`}
                   type="number"
+                  min={0}
+                  step={1}
                   value={sortOrder}
                   onChange={(event) => setSortOrder(event.target.value)}
                   disabled={isSubmitting}
@@ -134,6 +188,8 @@ export function MemberLevelFormDrawer({
                 <Input
                   id={`${title}-upgrade-threshold`}
                   type="number"
+                  min={0}
+                  step={1}
                   value={upgradeThreshold}
                   onChange={(event) => setUpgradeThreshold(event.target.value)}
                   disabled={isSubmitting}
@@ -147,6 +203,8 @@ export function MemberLevelFormDrawer({
                 <Input
                   id={`${title}-reward-rate`}
                   type="number"
+                  min={0}
+                  step="0.01"
                   value={rewardRate}
                   onChange={(event) => setRewardRate(event.target.value)}
                   disabled={isSubmitting}
@@ -159,6 +217,8 @@ export function MemberLevelFormDrawer({
                 <Input
                   id={`${title}-birthday-reward-rate`}
                   type="number"
+                  min={0}
+                  step="0.01"
                   value={birthdayRewardRate}
                   onChange={(event) =>
                     setBirthdayRewardRate(event.target.value)
@@ -171,6 +231,8 @@ export function MemberLevelFormDrawer({
                 <Input
                   id={`${title}-upgrade-gift-points`}
                   type="number"
+                  min={0}
+                  step={1}
                   value={upgradeGiftPoints}
                   onChange={(event) => setUpgradeGiftPoints(event.target.value)}
                   disabled={isSubmitting}

@@ -20,6 +20,7 @@ import type {
   MembershipLevel,
   MembershipMemberLevelsResponse,
 } from "../../../lib/membership/types"
+import { formatNumber } from "../../../lib/membership/utils"
 
 const DEFAULT_LIMIT = 20
 
@@ -34,6 +35,20 @@ function formatBoolean(value: boolean): string {
   return value ? "是" : "否"
 }
 
+function formatActiveStatus(value: boolean): string {
+  return value ? "啟用中" : "已停用"
+}
+
+function formatRate(value: number): string {
+  return `${formatNumber(value, {
+    maximumFractionDigits: 2,
+  })} 倍`
+}
+
+function formatPoints(value: number): string {
+  return `${formatNumber(value)} 點`
+}
+
 export default function MembershipMemberLevelsPage() {
   const [response, setResponse] = useState<MembershipMemberLevelsResponse | null>(
     null
@@ -43,6 +58,7 @@ export default function MembershipMemberLevelsPage() {
   const [offset, setOffset] = useState(0)
   const [createLoading, setCreateLoading] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -101,7 +117,7 @@ export default function MembershipMemberLevelsPage() {
 
   async function handleUpdate(
     memberLevelId: string,
-    payload: MemberLevelUpdatePayload
+    payload: MemberLevelPayload
   ) {
     setEditingId(memberLevelId)
 
@@ -114,7 +130,37 @@ export default function MembershipMemberLevelsPage() {
     }
   }
 
+  async function handleToggleStatus(memberLevel: MembershipLevel) {
+    const nextIsActive = !memberLevel.is_active
+    const payload: MemberLevelUpdatePayload = {
+      is_active: nextIsActive,
+    }
+
+    setTogglingId(memberLevel.id)
+
+    try {
+      await updateMembershipMemberLevel(memberLevel.id, payload)
+      toast.success(nextIsActive ? "會員等級已啟用" : "會員等級已停用")
+      setReloadKey((current) => current + 1)
+    } catch (toggleError) {
+      toast.error(
+        toggleError instanceof Error
+          ? toggleError.message
+          : "更新會員等級狀態失敗"
+      )
+    } finally {
+      setTogglingId(null)
+    }
+  }
+
   async function handleDelete(memberLevel: MembershipLevel) {
+    if (memberLevel.member_count > 0) {
+      toast.error(
+        `目前仍有 ${formatNumber(memberLevel.member_count)} 位會員使用「${memberLevel.name}」，請先移轉會員後再刪除。`
+      )
+      return
+    }
+
     if (!window.confirm(`確定要刪除會員等級「${memberLevel.name}」嗎？`)) {
       return
     }
@@ -124,7 +170,12 @@ export default function MembershipMemberLevelsPage() {
     try {
       await deleteMembershipMemberLevel(memberLevel.id)
       toast.success("會員等級已刪除")
-      setReloadKey((current) => current + 1)
+
+      if (response?.member_levels.length === 1 && offset > 0) {
+        setOffset((current) => Math.max(0, current - DEFAULT_LIMIT))
+      } else {
+        setReloadKey((current) => current + 1)
+      }
     } catch (deleteError) {
       toast.error(
         deleteError instanceof Error ? deleteError.message : "刪除會員等級失敗"
@@ -139,13 +190,13 @@ export default function MembershipMemberLevelsPage() {
       <div className="space-y-1">
         <Heading level="h1">會員等級</Heading>
         <Text className="text-ui-fg-subtle">
-          管理會員制度的等級規則與門檻。這是保留中的獨立制度管理頁，不依賴已刪除的 membership customer 頁。
+          管理會員制度的等級規則、升級門檻與啟用狀態。這是保留中的獨立制度管理頁，不依賴已刪除的 membership customer 頁。
         </Text>
       </div>
 
       <SectionCard
         title="等級清單"
-        description="建立、調整與停用會員等級，供 customer detail 的進階會員管理功能使用。"
+        description="建立、調整、啟用或停用會員等級，並確認每個等級目前的會員數。"
         action={
           <MemberLevelFormDrawer
             title="新增會員等級"
@@ -159,7 +210,7 @@ export default function MembershipMemberLevelsPage() {
         {loading ? (
           <StatePanel
             title="載入會員等級中"
-            message="正在整理會員制度的等級清單。"
+            message="正在整理會員制度的等級清單與會員數統計。"
           />
         ) : null}
 
@@ -191,8 +242,7 @@ export default function MembershipMemberLevelsPage() {
             <Table>
               <Table.Header>
                 <Table.Row>
-                  <Table.HeaderCell>ID</Table.HeaderCell>
-                  <Table.HeaderCell>名稱</Table.HeaderCell>
+                  <Table.HeaderCell>等級名稱</Table.HeaderCell>
                   <Table.HeaderCell>排序</Table.HeaderCell>
                   <Table.HeaderCell>回饋倍率</Table.HeaderCell>
                   <Table.HeaderCell>生日回饋倍率</Table.HeaderCell>
@@ -200,59 +250,83 @@ export default function MembershipMemberLevelsPage() {
                   <Table.HeaderCell>升級門檻</Table.HeaderCell>
                   <Table.HeaderCell>自動升級</Table.HeaderCell>
                   <Table.HeaderCell>可參加活動</Table.HeaderCell>
-                  <Table.HeaderCell>啟用</Table.HeaderCell>
+                  <Table.HeaderCell>啟用狀態</Table.HeaderCell>
+                  <Table.HeaderCell>目前會員數</Table.HeaderCell>
                   <Table.HeaderCell></Table.HeaderCell>
                 </Table.Row>
               </Table.Header>
               <Table.Body>
-                {response.member_levels.map((memberLevel) => (
-                  <Table.Row key={memberLevel.id}>
-                    <Table.Cell className="font-mono text-xs">
-                      {memberLevel.id}
-                    </Table.Cell>
-                    <Table.Cell>{memberLevel.name}</Table.Cell>
-                    <Table.Cell>{String(memberLevel.sort_order)}</Table.Cell>
-                    <Table.Cell>{String(memberLevel.reward_rate)}</Table.Cell>
-                    <Table.Cell>
-                      {String(memberLevel.birthday_reward_rate)}
-                    </Table.Cell>
-                    <Table.Cell>
-                      {String(memberLevel.upgrade_gift_points)}
-                    </Table.Cell>
-                    <Table.Cell>
-                      {String(memberLevel.upgrade_threshold)}
-                    </Table.Cell>
-                    <Table.Cell>{formatBoolean(memberLevel.auto_upgrade)}</Table.Cell>
-                    <Table.Cell>
-                      {formatBoolean(memberLevel.can_join_event)}
-                    </Table.Cell>
-                    <Table.Cell>{formatBoolean(memberLevel.is_active)}</Table.Cell>
-                    <Table.Cell>
-                      <div className="flex justify-end gap-2">
-                        <MemberLevelFormDrawer
-                          title={`編輯 ${memberLevel.name}`}
-                          description="更新這個會員等級的規則設定。"
-                          triggerLabel="編輯"
-                          initialValue={memberLevel}
-                          isSubmitting={editingId === memberLevel.id}
-                          onSubmit={(payload) =>
-                            handleUpdate(memberLevel.id, payload)
-                          }
-                        />
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          size="small"
-                          isLoading={deletingId === memberLevel.id}
-                          disabled={deletingId === memberLevel.id}
-                          onClick={() => handleDelete(memberLevel)}
-                        >
-                          刪除
-                        </Button>
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
+                {response.member_levels.map((memberLevel) => {
+                  const isBusy =
+                    editingId === memberLevel.id ||
+                    togglingId === memberLevel.id ||
+                    deletingId === memberLevel.id
+
+                  return (
+                    <Table.Row key={memberLevel.id}>
+                      <Table.Cell>
+                        <div className="space-y-1">
+                          <Text>{memberLevel.name}</Text>
+                          <Text className="font-mono text-xs text-ui-fg-subtle">
+                            {memberLevel.id}
+                          </Text>
+                        </div>
+                      </Table.Cell>
+                      <Table.Cell>{formatNumber(memberLevel.sort_order)}</Table.Cell>
+                      <Table.Cell>{formatRate(memberLevel.reward_rate)}</Table.Cell>
+                      <Table.Cell>
+                        {formatRate(memberLevel.birthday_reward_rate)}
+                      </Table.Cell>
+                      <Table.Cell>
+                        {formatPoints(memberLevel.upgrade_gift_points)}
+                      </Table.Cell>
+                      <Table.Cell>
+                        {formatNumber(memberLevel.upgrade_threshold)}
+                      </Table.Cell>
+                      <Table.Cell>{formatBoolean(memberLevel.auto_upgrade)}</Table.Cell>
+                      <Table.Cell>
+                        {formatBoolean(memberLevel.can_join_event)}
+                      </Table.Cell>
+                      <Table.Cell>{formatActiveStatus(memberLevel.is_active)}</Table.Cell>
+                      <Table.Cell>{formatNumber(memberLevel.member_count)}</Table.Cell>
+                      <Table.Cell>
+                        <div className="flex justify-end gap-2">
+                          <MemberLevelFormDrawer
+                            title={`編輯 ${memberLevel.name}`}
+                            description="更新這個會員等級的規則設定。"
+                            triggerLabel="編輯"
+                            initialValue={memberLevel}
+                            disabled={isBusy}
+                            isSubmitting={editingId === memberLevel.id}
+                            onSubmit={(payload) =>
+                              handleUpdate(memberLevel.id, payload)
+                            }
+                          />
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="small"
+                            isLoading={togglingId === memberLevel.id}
+                            disabled={isBusy}
+                            onClick={() => handleToggleStatus(memberLevel)}
+                          >
+                            {memberLevel.is_active ? "停用" : "啟用"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="small"
+                            isLoading={deletingId === memberLevel.id}
+                            disabled={isBusy}
+                            onClick={() => handleDelete(memberLevel)}
+                          >
+                            刪除
+                          </Button>
+                        </div>
+                      </Table.Cell>
+                    </Table.Row>
+                  )
+                })}
               </Table.Body>
             </Table>
 

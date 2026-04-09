@@ -52,6 +52,21 @@ export function formatCurrency(
   }
 }
 
+export function formatNumber(
+  value?: number | null,
+  options?: Intl.NumberFormatOptions
+): string {
+  if (value === null || value === undefined) {
+    return "-"
+  }
+
+  try {
+    return new Intl.NumberFormat("zh-TW", options).format(value)
+  } catch {
+    return String(value)
+  }
+}
+
 export function stringifyJson(
   value: Record<string, unknown> | null | undefined
 ): string {

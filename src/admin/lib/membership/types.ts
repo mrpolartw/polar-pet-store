@@ -13,6 +13,7 @@ export interface MembershipLevelSummary {
 }
 
 export interface MembershipLevel extends MembershipLevelSummary {
+  member_count: number
   is_active: boolean
   created_at?: string | null
   updated_at?: string | null
@@ -178,27 +179,17 @@ export interface DeleteResponse {
 
 export interface MemberLevelPayload {
   name: string
-  sort_order?: number
-  reward_rate?: number
-  birthday_reward_rate?: number
-  upgrade_gift_points?: number
-  upgrade_threshold?: number
-  auto_upgrade?: boolean
-  can_join_event?: boolean
-  is_active?: boolean
+  sort_order: number
+  reward_rate: number
+  birthday_reward_rate: number
+  upgrade_gift_points: number
+  upgrade_threshold: number
+  auto_upgrade: boolean
+  can_join_event: boolean
+  is_active: boolean
 }
 
-export interface MemberLevelUpdatePayload {
-  name?: string
-  sort_order?: number
-  reward_rate?: number
-  birthday_reward_rate?: number
-  upgrade_gift_points?: number
-  upgrade_threshold?: number
-  auto_upgrade?: boolean
-  can_join_event?: boolean
-  is_active?: boolean
-}
+export type MemberLevelUpdatePayload = Partial<MemberLevelPayload>
 
 export interface AdjustPointsPayload {
   delta: number

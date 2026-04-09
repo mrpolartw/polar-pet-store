@@ -5,10 +5,13 @@ import type {
 import {
   getMembershipService,
 } from "../helpers"
+import {
+  listAdminMemberLevels,
+  retrieveAdminMemberLevel,
+} from "../../../../lib/membership/admin-member-levels"
 import type {
   AdminMemberLevelResponse,
   AdminMemberLevelsListResponse,
-  MembershipLevelRecord,
 } from "../types"
 import type {
   AdminCreateMemberLevelType,
@@ -22,32 +25,24 @@ export async function GET(
   >,
   res: MedusaResponse<AdminMemberLevelsListResponse>
 ): Promise<void> {
-  const membershipService = getMembershipService(req.scope)
   const filters =
     req.filterableFields.is_active !== undefined
       ? { is_active: req.filterableFields.is_active as boolean }
       : {}
-  const order = req.queryConfig.pagination.order ?? {
-    sort_order: "ASC",
-    upgrade_threshold: "ASC",
-    id: "ASC",
-  }
-
-  const [memberLevels, allMemberLevels] = await Promise.all([
-    membershipService.listMemberLevels(filters, {
-      ...req.queryConfig.pagination,
-      order,
-    }),
-    membershipService.listMemberLevels(filters, {
-      order,
-    }),
-  ])
+  const result = await listAdminMemberLevels(req.scope, {
+    filters,
+    pagination: {
+      skip: req.queryConfig.pagination.skip ?? 0,
+      take: req.queryConfig.pagination.take,
+      order: req.queryConfig.pagination.order,
+    },
+  })
 
   res.json({
-    member_levels: memberLevels as MembershipLevelRecord[],
-    count: allMemberLevels.length,
-    offset: req.queryConfig.pagination.skip,
-    limit: req.queryConfig.pagination.take ?? memberLevels.length,
+    member_levels: result.member_levels,
+    count: result.metadata.count,
+    offset: result.metadata.skip,
+    limit: result.metadata.take,
   })
 }
 
@@ -56,9 +51,13 @@ export async function POST(
   res: MedusaResponse<AdminMemberLevelResponse>
 ): Promise<void> {
   const membershipService = getMembershipService(req.scope)
-  const memberLevel = (await membershipService.createMemberLevel(
+  const createdMemberLevel = await membershipService.createMemberLevel(
     req.validatedBody
-  )) as MembershipLevelRecord
+  )
+  const memberLevel = await retrieveAdminMemberLevel(
+    req.scope,
+    createdMemberLevel.id
+  )
 
   res.status(200).json({
     member_level: memberLevel,

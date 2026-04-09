@@ -1,5 +1,6 @@
 import type { GraphResultSet } from "@medusajs/types"
 import type { AdminCustomerMembershipListItem } from "../../../lib/membership/customer-membership-list"
+import type { AdminMemberLevelListItem } from "../../../lib/membership/admin-member-levels"
 
 export type MembershipLevelRecord =
   GraphResultSet<"membership_member_level">["data"][number]
@@ -36,14 +37,14 @@ export type MemberLevelSummary = Pick<
 >
 
 export interface AdminMemberLevelsListResponse {
-  member_levels: MembershipLevelRecord[]
+  member_levels: AdminMemberLevelListItem[]
   count: number
   offset: number
   limit: number
 }
 
 export interface AdminMemberLevelResponse {
-  member_level: MembershipLevelRecord
+  member_level: AdminMemberLevelListItem
 }
 
 export interface AdminMembershipCustomersResponse {

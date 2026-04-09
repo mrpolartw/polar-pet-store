@@ -12,28 +12,105 @@ const booleanish = z
   .union([z.boolean(), z.enum(["true", "false"])])
   .transform((value) => value === true || value === "true")
 
+function normalizeNumberInput(value: unknown): unknown {
+  if (typeof value === "string") {
+    const trimmedValue = value.trim()
+
+    return trimmedValue.length ? Number(trimmedValue) : Number.NaN
+  }
+
+  return value
+}
+
+function createRequiredNonNegativeInteger(label: string) {
+  return z.preprocess(
+    normalizeNumberInput,
+    z
+      .number({
+        required_error: `請輸入${label}`,
+        invalid_type_error: `${label}必須是數字`,
+      })
+      .finite(`${label}必須是數字`)
+      .int(`${label}必須是非負整數`)
+      .min(0, `${label}必須是非負整數`)
+  )
+}
+
+function createOptionalNonNegativeInteger(label: string) {
+  return createRequiredNonNegativeInteger(label).optional()
+}
+
+function createRequiredNonNegativeNumber(label: string) {
+  return z.preprocess(
+    normalizeNumberInput,
+    z
+      .number({
+        required_error: `請輸入${label}`,
+        invalid_type_error: `${label}必須是數字`,
+      })
+      .finite(`${label}必須是數字`)
+      .min(0, `${label}不可小於 0`)
+  )
+}
+
+function createOptionalNonNegativeNumber(label: string) {
+  return createRequiredNonNegativeNumber(label).optional()
+}
+
+function createRequiredBoolean(label: string) {
+  return z.boolean({
+    required_error: `請指定${label}`,
+    invalid_type_error: `${label}必須是布林值`,
+  })
+}
+
+function createOptionalBoolean(label: string) {
+  return createRequiredBoolean(label).optional()
+}
+
 export const AdminGetMembershipMemberLevelsParams = listQueryBase.extend({
   is_active: booleanish.optional(),
 })
 
 export const AdminCreateMemberLevel = z.object({
-  name: z.string().min(1),
-  sort_order: z.number().int().optional(),
-  reward_rate: z.number().int().optional(),
-  birthday_reward_rate: z.number().int().optional(),
-  upgrade_gift_points: z.number().int().optional(),
-  upgrade_threshold: z.number().int().optional(),
-  auto_upgrade: z.boolean().optional(),
-  can_join_event: z.boolean().optional(),
-  is_active: z.boolean().optional(),
+  name: z
+    .string({
+      required_error: "請輸入會員等級名稱",
+      invalid_type_error: "會員等級名稱必須是文字",
+    })
+    .trim()
+    .min(1, "請輸入會員等級名稱"),
+  sort_order: createRequiredNonNegativeInteger("排序"),
+  reward_rate: createRequiredNonNegativeNumber("回饋倍率"),
+  birthday_reward_rate: createRequiredNonNegativeNumber("生日回饋倍率"),
+  upgrade_gift_points: createRequiredNonNegativeInteger("升級贈點"),
+  upgrade_threshold: createRequiredNonNegativeInteger("升級門檻"),
+  auto_upgrade: createRequiredBoolean("自動升級"),
+  can_join_event: createRequiredBoolean("可參加活動"),
+  is_active: createRequiredBoolean("啟用狀態"),
 })
 
-export const AdminUpdateMemberLevel = AdminCreateMemberLevel.partial().refine(
-  (data) => Object.keys(data).length > 0,
-  {
-    message: "至少要提供一個欄位",
-  }
-)
+export const AdminUpdateMemberLevel = z
+  .object({
+    name: z
+      .string({
+        invalid_type_error: "會員等級名稱必須是文字",
+      })
+      .trim()
+      .min(1, "請輸入會員等級名稱")
+      .optional(),
+    sort_order: createOptionalNonNegativeInteger("排序"),
+    reward_rate: createOptionalNonNegativeNumber("回饋倍率"),
+    birthday_reward_rate: createOptionalNonNegativeNumber("生日回饋倍率"),
+    upgrade_gift_points: createOptionalNonNegativeInteger("升級贈點"),
+    upgrade_threshold: createOptionalNonNegativeInteger("升級門檻"),
+    auto_upgrade: createOptionalBoolean("自動升級"),
+    can_join_event: createOptionalBoolean("可參加活動"),
+    is_active: createOptionalBoolean("啟用狀態"),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "至少要提供一個可更新的欄位",
+  })
 
 export const AdminGetMembershipCustomersParams = listQueryBase.extend({
   q: z.string().optional(),

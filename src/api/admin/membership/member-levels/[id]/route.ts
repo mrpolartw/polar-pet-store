@@ -3,10 +3,13 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import { getMembershipService } from "../../helpers"
+import {
+  assertMemberLevelCanBeDeleted,
+  retrieveAdminMemberLevel,
+} from "../../../../../lib/membership/admin-member-levels"
 import type {
   AdminDeletedResponse,
   AdminMemberLevelResponse,
-  MembershipLevelRecord,
 } from "../../types"
 import type { AdminUpdateMemberLevelType } from "../../validators"
 
@@ -15,10 +18,11 @@ export async function PATCH(
   res: MedusaResponse<AdminMemberLevelResponse>
 ): Promise<void> {
   const membershipService = getMembershipService(req.scope)
-  const memberLevel = (await membershipService.updateMemberLevel(
+  await membershipService.updateMemberLevel(
     req.params.id,
     req.validatedBody
-  )) as MembershipLevelRecord
+  )
+  const memberLevel = await retrieveAdminMemberLevel(req.scope, req.params.id)
 
   res.status(200).json({
     member_level: memberLevel,
@@ -31,6 +35,7 @@ export async function DELETE(
 ): Promise<void> {
   const membershipService = getMembershipService(req.scope)
 
+  await assertMemberLevelCanBeDeleted(req.scope, req.params.id)
   await membershipService.deleteMemberLevel(req.params.id)
 
   res.status(200).json({
