@@ -3,10 +3,13 @@ import type { CustomerGender } from "./customer-gender"
 export interface CustomerMembershipLevelSummary {
   id: string
   name: string
-  rank: number
-  min_points: number
-  discount_rate: number
-  benefits: Record<string, unknown> | null
+  sort_order: number
+  reward_rate: number
+  birthday_reward_rate: number
+  upgrade_gift_points: number
+  upgrade_threshold: number
+  auto_upgrade: boolean
+  can_join_event: boolean
 }
 
 export interface CustomerMembershipSummary {

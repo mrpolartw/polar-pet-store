@@ -68,18 +68,21 @@ const getEligibleLevelStep = createStep(
     const membershipService =
       container.resolve<MembershipModuleService>(MEMBERSHIP_MODULE)
     const levels = await membershipService.listMemberLevels(
-      { is_active: true },
+      {
+        is_active: true,
+        auto_upgrade: true,
+      },
       {
         order: {
-          rank: "DESC",
-          min_points: "DESC",
-          id: "DESC",
+          upgrade_threshold: "DESC",
+          sort_order: "DESC",
+          id: "ASC",
         },
       }
     )
 
     const eligibleLevel =
-      levels.find((level) => level.min_points <= input.balance) ?? null
+      levels.find((level) => level.upgrade_threshold <= input.balance) ?? null
 
     return new StepResponse({
       eligible_level_id: eligibleLevel?.id ?? null,

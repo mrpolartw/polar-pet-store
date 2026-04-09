@@ -24,17 +24,7 @@ describe("admin customer membership helper", () => {
   let scope: MedusaContainer
 
   beforeEach(() => {
-    const now = new Date()
-    const currentYearOrderDate = new Date(
-      now.getFullYear(),
-      2,
-      1
-    ).toISOString()
-    const lastYearOrderDate = new Date(
-      now.getFullYear() - 1,
-      5,
-      1
-    ).toISOString()
+    jest.useFakeTimers().setSystemTime(new Date("2026-04-09T12:00:00.000Z"))
 
     currentCustomer = {
       id: "cus_123",
@@ -44,10 +34,14 @@ describe("admin customer membership helper", () => {
       membership_member_level: {
         id: "level_vip",
         name: "VIP",
-        rank: 2,
-        min_points: 100,
-        discount_rate: 5,
-        benefits: null,
+        sort_order: 20,
+        reward_rate: 2,
+        birthday_reward_rate: 3,
+        upgrade_gift_points: 500,
+        upgrade_threshold: 10000,
+        auto_upgrade: true,
+        can_join_event: true,
+        is_active: true,
       },
     }
 
@@ -94,24 +88,38 @@ describe("admin customer membership helper", () => {
       graph: jest.fn(async () => ({
         data: [
           {
-            id: "ord_current",
-            total: 3000,
+            id: "ord_first",
+            total: 1000,
             currency_code: "TWD",
-            created_at: currentYearOrderDate,
+            created_at: "2022-06-15T00:00:00.000Z",
             status: "completed",
           },
           {
-            id: "ord_previous",
+            id: "ord_previous_cycle",
             total: 1500,
             currency_code: "TWD",
-            created_at: lastYearOrderDate,
+            created_at: "2025-06-14T00:00:00.000Z",
+            status: "archived",
+          },
+          {
+            id: "ord_current_cycle_1",
+            total: 3000,
+            currency_code: "TWD",
+            created_at: "2025-06-15T00:00:00.000Z",
+            status: "completed",
+          },
+          {
+            id: "ord_current_cycle_2",
+            total: 1200,
+            currency_code: "TWD",
+            created_at: "2026-03-01T00:00:00.000Z",
             status: "archived",
           },
           {
             id: "ord_pending",
             total: 999,
             currency_code: "TWD",
-            created_at: currentYearOrderDate,
+            created_at: "2026-03-02T00:00:00.000Z",
             status: "pending",
           },
         ],
@@ -141,7 +149,11 @@ describe("admin customer membership helper", () => {
     )
   })
 
-  it("retrieves customer membership summary", async () => {
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
+  it("retrieves customer membership summary with notion-aligned level fields", async () => {
     const detail = await retrieveAdminCustomerMembershipDetail(scope, "cus_123")
 
     expect(detail.customer_id).toBe("cus_123")
@@ -149,10 +161,20 @@ describe("admin customer membership helper", () => {
     expect(detail.birthday).toBe("1990-05-01")
     expect(detail.gender).toBe("female")
     expect(detail.summary.points).toBe(120)
-    expect(detail.summary.total_spent).toBe(4500)
-    expect(detail.summary.yearly_spent).toBe(3000)
+    expect(detail.summary.total_spent).toBe(6700)
+    expect(detail.summary.yearly_spent).toBe(4200)
     expect(detail.summary.joined_at).toBe("2025-01-02T03:04:05.000Z")
-    expect(detail.summary.current_level?.name).toBe("VIP")
+    expect(detail.summary.current_level).toEqual({
+      id: "level_vip",
+      name: "VIP",
+      sort_order: 20,
+      reward_rate: 2,
+      birthday_reward_rate: 3,
+      upgrade_gift_points: 500,
+      upgrade_threshold: 10000,
+      auto_upgrade: true,
+      can_join_event: true,
+    })
   })
 
   it("updates phone, birthday, and gender while creating an audit log", async () => {

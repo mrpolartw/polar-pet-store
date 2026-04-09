@@ -23,6 +23,7 @@ import type { CustomerGender } from "./customer-gender"
 import { MEMBERSHIP_MODULE } from "../../modules/membership"
 import type MembershipModuleService from "../../modules/membership/service"
 import { retrieveCustomerWithMembershipLevel } from "./customer-membership"
+import { calculateAnniversaryYearlySpent } from "./membership-spend"
 
 type CustomerMembershipRecord = NonNullable<
   Awaited<ReturnType<typeof retrieveCustomerWithMembershipLevel>>
@@ -73,10 +74,13 @@ function toCurrentLevelSummary(
   return {
     id: level.id,
     name: level.name,
-    rank: level.rank,
-    min_points: level.min_points,
-    discount_rate: level.discount_rate,
-    benefits: (level.benefits as Record<string, unknown> | null) ?? null,
+    sort_order: level.sort_order,
+    reward_rate: level.reward_rate,
+    birthday_reward_rate: level.birthday_reward_rate,
+    upgrade_gift_points: level.upgrade_gift_points,
+    upgrade_threshold: level.upgrade_threshold,
+    auto_upgrade: level.auto_upgrade,
+    can_join_event: level.can_join_event,
   }
 }
 
@@ -100,9 +104,7 @@ function buildCustomerSpendSummary(
   orders: OrderGraphRecord[],
   now: Date = new Date()
 ): CustomerSpendSummary {
-  const currentYearStart = new Date(now.getFullYear(), 0, 1)
   let totalSpent = 0
-  let yearlySpent = 0
   let currencyCode = "TWD"
 
   for (const order of orders) {
@@ -110,24 +112,13 @@ function buildCustomerSpendSummary(
       continue
     }
 
-    const total = toNumberValue(order.total)
-    const createdAt = order.created_at ? new Date(order.created_at) : null
-
-    totalSpent += total
+    totalSpent += toNumberValue(order.total)
     currencyCode = order.currency_code ?? currencyCode
-
-    if (
-      createdAt &&
-      !Number.isNaN(createdAt.getTime()) &&
-      createdAt >= currentYearStart
-    ) {
-      yearlySpent += total
-    }
   }
 
   return {
     total_spent: totalSpent,
-    yearly_spent: yearlySpent,
+    yearly_spent: calculateAnniversaryYearlySpent(orders, now),
     currency_code: currencyCode,
   }
 }
@@ -158,7 +149,7 @@ function buildMembershipDetailRecord(input: {
     customer_id: input.customer.id,
     phone: input.customer.phone ?? null,
     birthday: formatDateOnly(input.profile?.birthday),
-    gender: (input.profile?.gender ?? "unknown") as CustomerGender,
+    gender: (input.profile?.gender ?? "other") as CustomerGender,
     last_login_at: formatDateTimeString(input.profile?.last_login_at),
     summary: {
       points: input.points,

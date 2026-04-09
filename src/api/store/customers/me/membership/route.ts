@@ -30,10 +30,15 @@ export async function GET(
     ? {
         id: customer.membership_member_level.id,
         name: customer.membership_member_level.name,
-        rank: customer.membership_member_level.rank,
-        min_points: customer.membership_member_level.min_points,
-        discount_rate: customer.membership_member_level.discount_rate,
-        benefits: customer.membership_member_level.benefits,
+        sort_order: customer.membership_member_level.sort_order,
+        reward_rate: customer.membership_member_level.reward_rate,
+        birthday_reward_rate:
+          customer.membership_member_level.birthday_reward_rate,
+        upgrade_gift_points:
+          customer.membership_member_level.upgrade_gift_points,
+        upgrade_threshold: customer.membership_member_level.upgrade_threshold,
+        auto_upgrade: customer.membership_member_level.auto_upgrade,
+        can_join_event: customer.membership_member_level.can_join_event,
       }
     : null
 

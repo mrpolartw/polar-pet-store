@@ -24,7 +24,7 @@ import type {
 const DEFAULT_LIMIT = 20
 
 export const config = defineRouteConfig({
-  label: "Member Levels",
+  label: "會員等級",
   icon: Trophy,
   nested: "/customers",
   rank: 60,
@@ -68,7 +68,7 @@ export default function MembershipMemberLevelsPage() {
         setError(
           loadError instanceof Error
             ? loadError.message
-            : "Failed to load member levels"
+            : "載入會員等級失敗"
         )
       } finally {
         if (active) {
@@ -89,7 +89,7 @@ export default function MembershipMemberLevelsPage() {
 
     try {
       await createMembershipMemberLevel(payload)
-      toast.success("Member level created")
+      toast.success("會員等級已建立")
       setOffset(0)
       setReloadKey((current) => current + 1)
     } finally {
@@ -105,7 +105,7 @@ export default function MembershipMemberLevelsPage() {
 
     try {
       await updateMembershipMemberLevel(memberLevelId, payload)
-      toast.success("Member level updated")
+      toast.success("會員等級已更新")
       setReloadKey((current) => current + 1)
     } finally {
       setEditingId(null)
@@ -113,7 +113,7 @@ export default function MembershipMemberLevelsPage() {
   }
 
   async function handleDelete(memberLevel: MembershipLevel) {
-    if (!window.confirm(`Delete member level "${memberLevel.name}"?`)) {
+    if (!window.confirm(`確定要刪除會員等級「${memberLevel.name}」嗎？`)) {
       return
     }
 
@@ -121,13 +121,13 @@ export default function MembershipMemberLevelsPage() {
 
     try {
       await deleteMembershipMemberLevel(memberLevel.id)
-      toast.success("Member level deleted")
+      toast.success("會員等級已刪除")
       setReloadKey((current) => current + 1)
     } catch (deleteError) {
       toast.error(
         deleteError instanceof Error
           ? deleteError.message
-          : "Failed to delete member level"
+          : "刪除會員等級失敗"
       )
     } finally {
       setDeletingId(null)
@@ -137,21 +137,20 @@ export default function MembershipMemberLevelsPage() {
   return (
     <div className="flex flex-col gap-y-6">
       <div className="space-y-1">
-        <Heading level="h1">Member levels</Heading>
+        <Heading level="h1">會員等級</Heading>
         <Text className="text-ui-fg-subtle">
-          Create, edit, and remove membership levels used by the membership
-          module.
+          依照已定版規格維護會員等級的排序、回饋倍率、升級條件與啟用狀態。
         </Text>
       </div>
 
       <SectionCard
-        title="Levels"
-        description="Manage rank, points threshold, discount rate, and availability."
+        title="等級列表"
+        description="在既有管理頁內直接建立、編輯與刪除會員等級。"
         action={
           <MemberLevelFormDrawer
-            title="Create member level"
-            description="Add a new membership level."
-            triggerLabel="Create level"
+            title="建立會員等級"
+            description="新增一筆會員等級設定。"
+            triggerLabel="新增等級"
             isSubmitting={createLoading}
             onSubmit={handleCreate}
           />
@@ -159,14 +158,14 @@ export default function MembershipMemberLevelsPage() {
       >
         {loading ? (
           <StatePanel
-            title="Loading member levels"
-            message="Fetching membership level records..."
+            title="載入會員等級中"
+            message="正在讀取會員等級資料..."
           />
         ) : null}
 
         {!loading && error ? (
           <StatePanel
-            title="Could not load member levels"
+            title="無法載入會員等級"
             message={error}
             action={
               <Button
@@ -174,7 +173,7 @@ export default function MembershipMemberLevelsPage() {
                 variant="secondary"
                 onClick={() => setReloadKey((current) => current + 1)}
               >
-                Retry
+                重新載入
               </Button>
             }
           />
@@ -182,8 +181,8 @@ export default function MembershipMemberLevelsPage() {
 
         {!loading && !error && response && response.member_levels.length === 0 ? (
           <StatePanel
-            title="No member levels"
-            message="Create the first membership level to start assigning customers."
+            title="尚無會員等級"
+            message="建立第一筆會員等級後，就可以開始指派顧客。"
           />
         ) : null}
 
@@ -193,11 +192,15 @@ export default function MembershipMemberLevelsPage() {
               <Table.Header>
                 <Table.Row>
                   <Table.HeaderCell>ID</Table.HeaderCell>
-                  <Table.HeaderCell>Name</Table.HeaderCell>
-                  <Table.HeaderCell>Rank</Table.HeaderCell>
-                  <Table.HeaderCell>Min points</Table.HeaderCell>
-                  <Table.HeaderCell>Discount</Table.HeaderCell>
-                  <Table.HeaderCell>Active</Table.HeaderCell>
+                  <Table.HeaderCell>名稱</Table.HeaderCell>
+                  <Table.HeaderCell>排序</Table.HeaderCell>
+                  <Table.HeaderCell>回饋倍率</Table.HeaderCell>
+                  <Table.HeaderCell>生日倍率</Table.HeaderCell>
+                  <Table.HeaderCell>升級贈點</Table.HeaderCell>
+                  <Table.HeaderCell>升級門檻</Table.HeaderCell>
+                  <Table.HeaderCell>自動升級</Table.HeaderCell>
+                  <Table.HeaderCell>可參與活動</Table.HeaderCell>
+                  <Table.HeaderCell>啟用</Table.HeaderCell>
                   <Table.HeaderCell></Table.HeaderCell>
                 </Table.Row>
               </Table.Header>
@@ -208,16 +211,30 @@ export default function MembershipMemberLevelsPage() {
                       {memberLevel.id}
                     </Table.Cell>
                     <Table.Cell>{memberLevel.name}</Table.Cell>
-                    <Table.Cell>{String(memberLevel.rank)}</Table.Cell>
-                    <Table.Cell>{String(memberLevel.min_points)}</Table.Cell>
-                    <Table.Cell>{String(memberLevel.discount_rate)}</Table.Cell>
-                    <Table.Cell>{memberLevel.is_active ? "Yes" : "No"}</Table.Cell>
+                    <Table.Cell>{String(memberLevel.sort_order)}</Table.Cell>
+                    <Table.Cell>{String(memberLevel.reward_rate)}</Table.Cell>
+                    <Table.Cell>
+                      {String(memberLevel.birthday_reward_rate)}
+                    </Table.Cell>
+                    <Table.Cell>
+                      {String(memberLevel.upgrade_gift_points)}
+                    </Table.Cell>
+                    <Table.Cell>
+                      {String(memberLevel.upgrade_threshold)}
+                    </Table.Cell>
+                    <Table.Cell>
+                      {memberLevel.auto_upgrade ? "是" : "否"}
+                    </Table.Cell>
+                    <Table.Cell>
+                      {memberLevel.can_join_event ? "是" : "否"}
+                    </Table.Cell>
+                    <Table.Cell>{memberLevel.is_active ? "是" : "否"}</Table.Cell>
                     <Table.Cell>
                       <div className="flex justify-end gap-2">
                         <MemberLevelFormDrawer
-                          title={`Edit ${memberLevel.name}`}
-                          description="Update this membership level."
-                          triggerLabel="Edit"
+                          title={`編輯 ${memberLevel.name}`}
+                          description="更新這筆會員等級設定。"
+                          triggerLabel="編輯"
                           initialValue={memberLevel}
                           isSubmitting={editingId === memberLevel.id}
                           onSubmit={(payload) =>
@@ -232,7 +249,7 @@ export default function MembershipMemberLevelsPage() {
                           disabled={deletingId === memberLevel.id}
                           onClick={() => handleDelete(memberLevel)}
                         >
-                          Delete
+                          刪除
                         </Button>
                       </div>
                     </Table.Cell>

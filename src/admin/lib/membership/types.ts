@@ -3,10 +3,13 @@ export type JsonRecord = Record<string, unknown>
 export interface MembershipLevelSummary {
   id: string
   name: string
-  rank: number
-  min_points: number
-  discount_rate: number
-  benefits: JsonRecord | null
+  sort_order: number
+  reward_rate: number
+  birthday_reward_rate: number
+  upgrade_gift_points: number
+  upgrade_threshold: number
+  auto_upgrade: boolean
+  can_join_event: boolean
 }
 
 export interface MembershipLevel extends MembershipLevelSummary {
@@ -173,19 +176,25 @@ export interface DeleteResponse {
 
 export interface MemberLevelPayload {
   name: string
-  rank?: number
-  min_points?: number
-  discount_rate?: number
-  benefits?: JsonRecord | null
+  sort_order?: number
+  reward_rate?: number
+  birthday_reward_rate?: number
+  upgrade_gift_points?: number
+  upgrade_threshold?: number
+  auto_upgrade?: boolean
+  can_join_event?: boolean
   is_active?: boolean
 }
 
 export interface MemberLevelUpdatePayload {
   name?: string
-  rank?: number
-  min_points?: number
-  discount_rate?: number
-  benefits?: JsonRecord | null
+  sort_order?: number
+  reward_rate?: number
+  birthday_reward_rate?: number
+  upgrade_gift_points?: number
+  upgrade_threshold?: number
+  auto_upgrade?: boolean
+  can_join_event?: boolean
   is_active?: boolean
 }
 

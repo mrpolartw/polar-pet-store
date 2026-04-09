@@ -16,8 +16,8 @@ createCustomersWorkflow.hooks.customersCreated(
       { is_active: true },
       {
         order: {
-          rank: "ASC",
-          min_points: "ASC",
+          sort_order: "ASC",
+          upgrade_threshold: "ASC",
           id: "ASC",
         },
         take: 1,

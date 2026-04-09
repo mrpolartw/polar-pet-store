@@ -22,7 +22,6 @@ module.exports = defineConfig({
       options: {
         providers: [
           {
-            // 🚨 就是這行！剛剛不小心被刪掉了，必須加回來讓系統找得到檔案
             resolve: "./src/modules/notification/resend", 
             id: "resend",
             options: {

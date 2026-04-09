@@ -23,7 +23,15 @@ export type CustomerMembershipGraph = GraphResultSet<"customer">["data"][number]
 
 export type MemberLevelSummary = Pick<
   MembershipLevelRecord,
-  "id" | "name" | "rank" | "min_points" | "discount_rate" | "benefits"
+  | "id"
+  | "name"
+  | "sort_order"
+  | "reward_rate"
+  | "birthday_reward_rate"
+  | "upgrade_gift_points"
+  | "upgrade_threshold"
+  | "auto_upgrade"
+  | "can_join_event"
 >
 
 export interface AdminMemberLevelsListResponse {

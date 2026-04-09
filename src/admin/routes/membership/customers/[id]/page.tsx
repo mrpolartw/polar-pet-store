@@ -305,9 +305,11 @@ export default function MembershipCustomerDetailPage() {
                 value={detail.current_level?.name ?? "-"}
               />
               <SummaryItem
-                label="Level rank"
+                label="升級門檻"
                 value={
-                  detail.current_level ? String(detail.current_level.rank) : "-"
+                  detail.current_level
+                    ? String(detail.current_level.upgrade_threshold)
+                    : "-"
                 }
               />
               <SummaryItem

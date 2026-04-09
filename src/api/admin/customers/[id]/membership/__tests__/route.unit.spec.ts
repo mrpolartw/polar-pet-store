@@ -33,7 +33,17 @@ describe("admin customer membership route", () => {
       yearly_spent: 1200,
       currency_code: "TWD",
       joined_at: "2025-01-02T03:04:05.000Z",
-      current_level: null,
+      current_level: {
+        id: "level_vip",
+        name: "VIP",
+        sort_order: 20,
+        reward_rate: 2,
+        birthday_reward_rate: 3,
+        upgrade_gift_points: 500,
+        upgrade_threshold: 10000,
+        auto_upgrade: true,
+        can_join_event: true,
+      },
     },
   }
 

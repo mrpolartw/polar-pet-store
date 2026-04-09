@@ -82,12 +82,12 @@ function compareMembershipLevelPriority(
   candidate: MembershipLevelRecord,
   current: MembershipLevelRecord
 ): number {
-  if (candidate.rank !== current.rank) {
-    return candidate.rank - current.rank
+  if (candidate.upgrade_threshold !== current.upgrade_threshold) {
+    return candidate.upgrade_threshold - current.upgrade_threshold
   }
 
-  if (candidate.min_points !== current.min_points) {
-    return candidate.min_points - current.min_points
+  if (candidate.sort_order !== current.sort_order) {
+    return candidate.sort_order - current.sort_order
   }
 
   return candidate.id.localeCompare(current.id)
@@ -146,9 +146,9 @@ async function getCustomerLevelMap(
     {},
     {
       order: {
-        rank: "DESC",
-        min_points: "DESC",
-        id: "DESC",
+        upgrade_threshold: "DESC",
+        sort_order: "DESC",
+        id: "ASC",
       },
     }
   )) as MembershipLevelRecord[]

@@ -117,7 +117,7 @@ function toFormState(detail: AdminCustomerMembershipDetail): MembershipFormState
 const genderOptions: Array<{ label: string; value: CustomerGender }> = [
   { label: "男", value: "male" },
   { label: "女", value: "female" },
-  { label: "未提供", value: "unknown" },
+  { label: "其他", value: "other" },
 ]
 
 function CustomerMembershipWidget({
@@ -128,7 +128,7 @@ function CustomerMembershipWidget({
   const [form, setForm] = useState<MembershipFormState>({
     phone: data.phone ?? "",
     birthday: "",
-    gender: "unknown",
+    gender: "other",
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -194,7 +194,7 @@ function CustomerMembershipWidget({
       toast.success("會員擴充資料已儲存")
     } catch (saveError) {
       const message =
-        saveError instanceof Error ? saveError.message : "儲存會員資料失敗"
+        saveError instanceof Error ? saveError.message : "儲存會員擴充資料失敗"
 
       toast.error(message)
     } finally {
@@ -207,7 +207,7 @@ function CustomerMembershipWidget({
       <div className="space-y-1">
         <Heading>會員擴充資料</Heading>
         <Text size="small" className="text-ui-fg-subtle">
-          管理顧客的會員摘要與基本會員欄位。Email 不在此區塊開放編輯。
+          顯示會員摘要與可維護欄位。Email 維持既有顧客資料區塊管理，這裡不提供編輯。
         </Text>
       </div>
 

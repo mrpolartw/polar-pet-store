@@ -46,16 +46,28 @@ type CustomerProfileDTO = InferTypeOf<typeof CustomerProfile>
 type MemberLevelListFilters = Partial<
   Pick<
     MemberLevelDTO,
-    "id" | "name" | "rank" | "min_points" | "discount_rate" | "is_active"
+    | "id"
+    | "name"
+    | "sort_order"
+    | "reward_rate"
+    | "birthday_reward_rate"
+    | "upgrade_gift_points"
+    | "upgrade_threshold"
+    | "auto_upgrade"
+    | "can_join_event"
+    | "is_active"
   >
 >
 
 type CreateMemberLevelInput = {
   name: string
-  rank?: number
-  min_points?: number
-  discount_rate?: number
-  benefits?: Record<string, unknown> | null
+  sort_order?: number
+  reward_rate?: number
+  birthday_reward_rate?: number
+  upgrade_gift_points?: number
+  upgrade_threshold?: number
+  auto_upgrade?: boolean
+  can_join_event?: boolean
   is_active?: boolean
 }
 
@@ -215,12 +227,15 @@ class MembershipModuleService extends MedusaService({
 
     const { balance } = await this.getCustomerPoints(customer_id)
     const levels = await super.listMemberLevels(
-      { is_active: true },
+      {
+        is_active: true,
+        auto_upgrade: true,
+      },
       {
         order: {
-          rank: "DESC",
-          min_points: "DESC",
-          id: "DESC",
+          upgrade_threshold: "DESC",
+          sort_order: "DESC",
+          id: "ASC",
         },
       }
     )
@@ -228,13 +243,17 @@ class MembershipModuleService extends MedusaService({
     const targetLevel =
       [...levels]
         .sort((current, next) => {
-          if (next.rank !== current.rank) {
-            return next.rank - current.rank
+          if (next.upgrade_threshold !== current.upgrade_threshold) {
+            return next.upgrade_threshold - current.upgrade_threshold
           }
 
-          return next.min_points - current.min_points
+          if (next.sort_order !== current.sort_order) {
+            return next.sort_order - current.sort_order
+          }
+
+          return current.id.localeCompare(next.id)
         })
-        .find((level) => level.min_points <= balance) ?? null
+        .find((level) => level.upgrade_threshold <= balance) ?? null
 
     const existingLinks = await this.listCustomerLevelLinks(customer_id, levels)
     const currentLevelIds = new Set(
@@ -509,7 +528,7 @@ class MembershipModuleService extends MedusaService({
       return await super.createCustomerProfiles({
         customer_id,
         birthday: data.birthday ?? null,
-        gender: data.gender ?? "unknown",
+        gender: data.gender ?? "other",
         last_login_at: data.last_login_at ?? null,
       })
     }

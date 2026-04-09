@@ -30,7 +30,7 @@ const nullableBirthday = z.preprocess(
   normalizeEmptyString,
   z
     .string()
-    .refine(isValidDateOnlyString, { message: "生日格式不正確" })
+    .refine(isValidDateOnlyString, { message: "生日必須是有效日期" })
     .nullish()
 )
 

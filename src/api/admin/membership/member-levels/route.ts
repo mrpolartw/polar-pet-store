@@ -28,8 +28,8 @@ export async function GET(
       ? { is_active: req.filterableFields.is_active as boolean }
       : {}
   const order = req.queryConfig.pagination.order ?? {
-    rank: "ASC",
-    min_points: "ASC",
+    sort_order: "ASC",
+    upgrade_threshold: "ASC",
     id: "ASC",
   }
 

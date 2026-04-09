@@ -8,7 +8,6 @@ const listQueryBase = z.object({
 })
 
 const stringOrArray = z.union([z.string(), z.array(z.string())])
-const metadataSchema = z.record(z.unknown()).nullish()
 const booleanish = z
   .union([z.boolean(), z.enum(["true", "false"])])
   .transform((value) => value === true || value === "true")
@@ -19,10 +18,13 @@ export const AdminGetMembershipMemberLevelsParams = listQueryBase.extend({
 
 export const AdminCreateMemberLevel = z.object({
   name: z.string().min(1),
-  rank: z.number().int().optional(),
-  min_points: z.number().int().optional(),
-  discount_rate: z.number().int().optional(),
-  benefits: metadataSchema,
+  sort_order: z.number().int().optional(),
+  reward_rate: z.number().int().optional(),
+  birthday_reward_rate: z.number().int().optional(),
+  upgrade_gift_points: z.number().int().optional(),
+  upgrade_threshold: z.number().int().optional(),
+  auto_upgrade: z.boolean().optional(),
+  can_join_event: z.boolean().optional(),
   is_active: z.boolean().optional(),
 })
 
