@@ -28,7 +28,6 @@ const getPasswordStrength = (pwd) => {
 
 const STEPS = ['基本資料', '毛孩資料', '設定密碼', '完成']
 
-// 單隻毛孩的預設空白資料
 const defaultPet = () => ({
   petName: '',
   petAge: '',
@@ -38,6 +37,20 @@ const defaultPet = () => ({
   petBirthday: '',
   petGender: '',
 })
+
+// === 新增：計算年齡的輔助函式 ===
+const calculateAge = (birthdayString) => {
+  if (!birthdayString) return ''
+  const today = new Date()
+  const birthDate = new Date(birthdayString)
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const m = today.getMonth() - birthDate.getMonth()
+  // 如果今年還沒過生日，年齡減一
+  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age >= 0 ? age.toString() : '0'
+}
 
 const Register = () => {
   const navigate = useNavigate()
@@ -49,7 +62,6 @@ const Register = () => {
   const [errors, setErrors] = useState({})
   const location = useLocation()
 
-  // 多隻毛孩陣列
   const [pets, setPets] = useState([defaultPet()])
 
   const [form, setForm] = useState({
@@ -63,22 +75,22 @@ const Register = () => {
     agreeTerms: false,
   })
 
+  // === 新增：取得今天日期，用來限制 input type="date" 的最大值 ===
+  const todayDateStr = new Date().toISOString().split('T')[0]
+
   const setField = (field, value) => {
     setForm(p => ({ ...p, [field]: value }))
     setErrors(p => ({ ...p, [field]: '' }))
     setAuthError('')
   }
 
-  // 更新指定 index 的毛孩欄位
   const setPetField = (index, field, value) => {
     setPets(prev => prev.map((pet, i) => i === index ? { ...pet, [field]: value } : pet))
     setErrors(p => ({ ...p, [`pet_${index}_${field}`]: '' }))
   }
 
-  // 新增一隻毛孩
   const addPet = () => setPets(prev => [...prev, defaultPet()])
 
-  // 刪除指定 index 的毛孩（至少保留 1 隻）
   const removePet = (index) => {
     if (pets.length === 1) return
     setPets(prev => prev.filter((_, i) => i !== index))
@@ -88,22 +100,19 @@ const Register = () => {
 
   const validateStep0 = () => {
     const e = {}
-
     const nameError = validateName(form.name)
     if (nameError) e.name = nameError
-
     const emailError = validateEmail(form.email)
     if (emailError) e.email = emailError
-
     const phoneError = validatePhone(form.phone)
     if (phoneError) e.phone = phoneError
-
     return e
   }
 
   const validateStep1 = () => {
     const e = {}
     pets.forEach((pet, i) => {
+      // 雖然做了前端卡控，但在送出前再防呆一次
       if (pet.petWeight && isNaN(Number(pet.petWeight))) {
         e[`pet_${i}_petWeight`] = '請輸入數字（例如：3.5）'
       }
@@ -113,15 +122,11 @@ const Register = () => {
 
   const validateStep2 = () => {
     const e = {}
-
     const passwordError = validatePassword(form.password)
     if (passwordError) e.password = passwordError
-
     const confirmError = validatePasswordConfirm(form.password, form.confirmPassword)
     if (confirmError) e.confirmPassword = confirmError
-
     if (!form.agreeTerms) e.agreeTerms = '請勾選並同意服務條款與隱私政策'
-
     return e
   }
 
@@ -158,9 +163,9 @@ const Register = () => {
 
   return (
     <div className="auth-page">
-
       {/* ── 左側品牌面板 ── */}
       <div className="auth-brand-panel">
+        {/* ... (維持原樣) ... */}
         <div className="auth-brand-logo">
           <Link to="/">
             <img src={LogoImg} alt="Mr. Polar" style={{ height: 'auto', width: 293, maxWidth: '100%', display: 'block', borderRadius: 14, boxShadow: '0 4px 20px rgba(0,0,0,0.25)' }} />
@@ -189,14 +194,13 @@ const Register = () => {
       {/* ── 右側表單 ── */}
       <div className="auth-form-panel">
         <div className="auth-form-container">
-
+          {/* ... (維持原樣) ... */}
           <div className="auth-mobile-logo">
             <Link to="/">
               <img src={LogoImg} alt="Mr. Polar" style={{ height: 'auto', width: 293, maxWidth: '100%', display: 'block' }} />
             </Link>
           </div>
 
-          {/* 步驟指示器 */}
           {step < 3 && (
             <div className="auth-steps">
               {STEPS.slice(0, 3).map((label, i) => (
@@ -224,9 +228,7 @@ const Register = () => {
 
           <AnimatePresence mode="wait">
 
-            {/* ══════════════════════════
-                Step 0：基本資料
-            ══════════════════════════ */}
+            {/* Step 0：基本資料 */}
             {step === 0 && (
               <motion.div key="step0" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
                 <div className="auth-row-half">
@@ -260,7 +262,8 @@ const Register = () => {
 
                 <div className="auth-field">
                   <label>生日（選填）</label>
-                  <input type="date" className="apple-input" value={form.birthday} onChange={e => setField('birthday', e.target.value)} />
+                  {/* 【修改 1】：加上 max={todayDateStr} 限制最大日期 */}
+                  <input type="date" className="apple-input" max={todayDateStr} value={form.birthday} onChange={e => setField('birthday', e.target.value)} />
                 </div>
 
                 <button type="button" className="btn-blue auth-submit-btn" onClick={handleNext}>
@@ -270,16 +273,13 @@ const Register = () => {
               </motion.div>
             )}
 
-            {/* ══════════════════════════
-                Step 1：毛孩資料（多隻）
-            ══════════════════════════ */}
+            {/* Step 1：毛孩資料 */}
             {step === 1 && (
               <motion.div key="step1" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
 
                 {pets.map((pet, index) => (
                   <div key={index} className="pet-card">
 
-                    {/* 毛孩卡片標題 */}
                     <div className="pet-card-header">
                       <span className="pet-card-title">🐾 毛孩 {index + 1}</span>
                       {pets.length > 1 && (
@@ -290,7 +290,6 @@ const Register = () => {
                       )}
                     </div>
 
-                    {/* 毛孩姓名 + 性別 */}
                     <div className="auth-row-half">
                       <div className="auth-field">
                         <label>毛孩姓名</label>
@@ -306,7 +305,6 @@ const Register = () => {
                       </div>
                     </div>
 
-                    {/* 種類 + 品種 */}
                     <div className="auth-row-half">
                       <div className="auth-field">
                         <label>種類</label>
@@ -323,37 +321,73 @@ const Register = () => {
                       </div>
                     </div>
 
-                    {/* 年齡 + 體重 */}
-                    <div className="auth-row-half">
-                      <div className="auth-field">
-                        <label>年齡（歲）</label>
-                        <input type="number" className="apple-input" placeholder="3" min={0} max={30} value={pet.petAge} onChange={e => setPetField(index, 'petAge', e.target.value)} />
-                      </div>
-                      <div className="auth-field">
-                        <label>體重（kg）</label>
-                        <input type="text" className="apple-input" placeholder="例如：3.5" value={pet.petWeight} onChange={e => setPetField(index, 'petWeight', e.target.value)} />
-                        {errors[`pet_${index}_petWeight`] && (
-                          <p className="auth-field-error"><AlertCircle size={12} />{errors[`pet_${index}_petWeight`]}</p>
-                        )}
-                      </div>
+                    {/* 【修改 3】：體重獨立一行，並嚴格控管數字 */}
+                    <div className="auth-field">
+                      <label>體重（kg）</label>
+                      <input 
+                        type="text" 
+                        inputMode="decimal"
+                        className="apple-input" 
+                        placeholder="例如：3.5" 
+                        value={pet.petWeight} 
+                        onChange={e => {
+                          // 【修改 2】：只允許數字與小數點，並防止多個小數點
+                          let val = e.target.value.replace(/[^\d.]/g, '')
+                          const parts = val.split('.')
+                          if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('')
+                          setPetField(index, 'petWeight', val)
+                        }} 
+                      />
+                      {errors[`pet_${index}_petWeight`] && (
+                        <p className="auth-field-error"><AlertCircle size={12} />{errors[`pet_${index}_petWeight`]}</p>
+                      )}
                     </div>
 
-                    {/* 毛孩生日 */}
-                    <div className="auth-field">
-                      <label>毛孩生日</label>
-                      <input type="date" className="apple-input" value={pet.petBirthday} onChange={e => setPetField(index, 'petBirthday', e.target.value)} />
+                    {/* 【修改 3】：毛孩生日與年齡排在同一行 */}
+                    <div className="auth-row-half">
+                      <div className="auth-field">
+                        <label>毛孩生日</label>
+                        {/* 【修改 1】：加上 max={todayDateStr} */}
+                        <input 
+                          type="date" 
+                          className="apple-input" 
+                          max={todayDateStr}
+                          value={pet.petBirthday} 
+                          onChange={e => {
+                            const val = e.target.value
+                            setPetField(index, 'petBirthday', val)
+                            // 【修改 2】：有輸入生日時，自動計算並帶入年齡
+                            if (val) {
+                              setPetField(index, 'petAge', calculateAge(val))
+                            }
+                          }} 
+                        />
+                      </div>
+                      <div className="auth-field">
+                        <label>年齡（歲）</label>
+                        <input 
+                          type="text" 
+                          inputMode="numeric"
+                          className="apple-input" 
+                          placeholder="例如：3" 
+                          value={pet.petAge} 
+                          onChange={e => {
+                            // 【修改 2】：年齡只允許輸入純數字
+                            const val = e.target.value.replace(/\D/g, '')
+                            setPetField(index, 'petAge', val)
+                          }} 
+                        />
+                      </div>
                     </div>
 
                   </div>
                 ))}
 
-                {/* 新增毛孩按鈕 */}
                 <button type="button" className="pet-add-btn" onClick={addPet}>
                   <Plus size={16} />
                   新增毛孩
                 </button>
 
-                {/* 下一步 / 上一步 */}
                 <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
                   <button type="button" onClick={() => setStep(0)} style={{ flex: '0 0 48px', padding: '16px', borderRadius: 12, border: '1.5px solid var(--color-gray-light)', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-gray-dark)' }}>
                     <ChevronLeft size={20} />
@@ -371,12 +405,10 @@ const Register = () => {
               </motion.div>
             )}
 
-            {/* ══════════════════════════
-                Step 2：設定密碼
-            ══════════════════════════ */}
+            {/* Step 2：設定密碼 */}
             {step === 2 && (
               <motion.form key="step2" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }} onSubmit={handleSubmit} noValidate>
-
+                {/* ... (維持原樣) ... */}
                 <div className="auth-field">
                   <label>設定密碼 *</label>
                   <div className="auth-password-wrapper">
@@ -428,9 +460,7 @@ const Register = () => {
               </motion.form>
             )}
 
-            {/* ══════════════════════════
-                Step 3：完成
-            ══════════════════════════ */}
+            {/* Step 3：完成 */}
             {step === 3 && (
               <motion.div key="step3" variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3 }}>
                 <div className="auth-success-box">
@@ -453,4 +483,3 @@ const Register = () => {
 }
 
 export default Register
-
