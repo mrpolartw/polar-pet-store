@@ -5,8 +5,12 @@ import type {
 import { Modules } from "@medusajs/framework/utils"
 import type MembershipModuleService from "../../modules/membership/service"
 import { MEMBERSHIP_MODULE } from "../../modules/membership"
-import type { CustomerMembershipLevelSummary } from "./customer-membership-detail"
 import { formatDateTimeString } from "./customer-membership-detail"
+import {
+  buildCustomerMembershipLevelMap,
+  type CustomerMembershipLevelComputation,
+  type CustomerMembershipOrderRecord,
+} from "./customer-membership-level"
 import type {
   AdminCustomerMembershipListItem,
   CustomerLineBindingStatus,
@@ -22,7 +26,8 @@ type MembershipCustomerProfileRecord = Awaited<
 type MembershipOAuthLinkRecord = Awaited<
   ReturnType<MembershipModuleService["listOAuthLinks"]>
 >[number]
-type OrderRecord = Awaited<ReturnType<IOrderModuleService["listOrders"]>>[number]
+type OrderRecord = Awaited<ReturnType<IOrderModuleService["listOrders"]>>[number] &
+  CustomerMembershipOrderRecord
 
 function getMembershipService(scope: MedusaContainer): MembershipModuleService {
   return scope.resolve<MembershipModuleService>(MEMBERSHIP_MODULE)
@@ -30,26 +35,6 @@ function getMembershipService(scope: MedusaContainer): MembershipModuleService {
 
 function getOrderService(scope: MedusaContainer): IOrderModuleService {
   return scope.resolve<IOrderModuleService>(Modules.ORDER)
-}
-
-function toCurrentLevelSummary(
-  level: CustomerMembershipRecord["membership_member_level"]
-): CustomerMembershipLevelSummary | null {
-  if (!level) {
-    return null
-  }
-
-  return {
-    id: level.id,
-    name: level.name,
-    sort_order: level.sort_order,
-    reward_rate: level.reward_rate,
-    birthday_reward_rate: level.birthday_reward_rate,
-    upgrade_gift_points: level.upgrade_gift_points,
-    upgrade_threshold: level.upgrade_threshold,
-    auto_upgrade: level.auto_upgrade,
-    can_join_event: level.can_join_event,
-  }
 }
 
 function buildProfileMap(
@@ -102,6 +87,7 @@ function toAdminCustomerMembershipListItem(input: {
   profile: MembershipCustomerProfileRecord | null
   lastOrderedAt: string | null
   lineBindingStatus: CustomerLineBindingStatus | null
+  currentLevel: CustomerMembershipLevelComputation["current_level"]
 }): AdminCustomerMembershipListItem {
   return {
     id: input.customer.id,
@@ -119,9 +105,7 @@ function toAdminCustomerMembershipListItem(input: {
     last_login_at: formatDateTimeString(input.profile?.last_login_at),
     last_ordered_at: input.lastOrderedAt,
     line_binding_status: input.lineBindingStatus,
-    membership_member_level: toCurrentLevelSummary(
-      input.customer.membership_member_level ?? null
-    ),
+    membership_member_level: input.currentLevel,
   }
 }
 
@@ -164,7 +148,7 @@ export async function listAdminCustomerMembershipList(
     }
   }
 
-  const [profiles, oauthLinks, orders] = await Promise.all([
+  const [profiles, oauthLinks, orders, levels] = await Promise.all([
     membershipService.listCustomerProfiles({
       customer_id: customerIds,
     }),
@@ -183,6 +167,16 @@ export async function listAdminCustomerMembershipList(
         },
       }
     ),
+    membershipService.listMemberLevels(
+      {},
+      {
+        order: {
+          upgrade_threshold: "ASC",
+          sort_order: "ASC",
+          id: "ASC",
+        },
+      }
+    ),
   ])
 
   const profileByCustomerId = buildProfileMap(
@@ -192,6 +186,13 @@ export async function listAdminCustomerMembershipList(
   const lineBindingStatusByCustomerId = buildLineBindingStatusMap(
     oauthLinks as MembershipOAuthLinkRecord[]
   )
+  const membershipLevelByCustomerId = buildCustomerMembershipLevelMap({
+    customerIds,
+    orders: orders as OrderRecord[],
+    levels: levels as Awaited<
+      ReturnType<MembershipModuleService["listMemberLevels"]>
+    >,
+  })
 
   return {
     customers: rows.map((customer) =>
@@ -201,6 +202,8 @@ export async function listAdminCustomerMembershipList(
         lastOrderedAt: lastOrderedAtByCustomerId.get(customer.id) ?? null,
         lineBindingStatus:
           lineBindingStatusByCustomerId.get(customer.id) ?? "unbound",
+        currentLevel:
+          membershipLevelByCustomerId.get(customer.id)?.current_level ?? null,
       })
     ),
     metadata,

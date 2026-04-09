@@ -3,7 +3,6 @@ import type { DetailWidgetProps, HttpTypes } from "@medusajs/types"
 import { Button, Container, Table, Text, toast } from "@medusajs/ui"
 import { startTransition, useEffect, useState } from "react"
 import { AdjustPointsDrawer } from "../components/membership/adjust-points-drawer"
-import { AssignLevelDrawer } from "../components/membership/assign-level-drawer"
 import {
   PaginationControls,
   SectionCard,
@@ -11,13 +10,12 @@ import {
 } from "../components/membership/ui"
 import {
   adjustMembershipPoints,
-  assignMembershipLevel,
   getMembershipCustomer,
   getMembershipCustomerPoints,
   listMembershipCustomerAuditLogs,
   listMembershipCustomerFavorites,
   listMembershipCustomerPets,
-  listMembershipMemberLevels,
+  recalculateMembershipCustomerLevel,
 } from "../lib/membership/api"
 import { dispatchCustomerMembershipUpdated } from "../lib/membership/events"
 import type {
@@ -26,7 +24,6 @@ import type {
   MembershipCustomerPetsResponse,
   MembershipCustomerPointsResponse,
   MembershipCustomerResponse,
-  MembershipLevelSummary,
 } from "../lib/membership/types"
 import {
   formatCurrency,
@@ -108,14 +105,13 @@ function CustomerMembershipManagementWidget({
     useState<MembershipCustomerFavoritesResponse | null>(null)
   const [auditLogs, setAuditLogs] =
     useState<MembershipCustomerAuditLogsResponse | null>(null)
-  const [levels, setLevels] = useState<MembershipLevelSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pointsOffset, setPointsOffset] = useState(0)
   const [auditOffset, setAuditOffset] = useState(0)
   const [reloadKey, setReloadKey] = useState(0)
   const [adjustingPoints, setAdjustingPoints] = useState(false)
-  const [assigningLevel, setAssigningLevel] = useState(false)
+  const [recalculatingLevel, setRecalculatingLevel] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -131,7 +127,6 @@ function CustomerMembershipManagementWidget({
           nextPets,
           nextFavorites,
           nextAuditLogs,
-          nextLevels,
         ] = await Promise.all([
           getMembershipCustomer(data.id),
           getMembershipCustomerPoints(data.id, {
@@ -144,11 +139,6 @@ function CustomerMembershipManagementWidget({
             limit: AUDIT_LOG_LIMIT,
             offset: auditOffset,
           }),
-          listMembershipMemberLevels({
-            limit: 100,
-            offset: 0,
-            is_active: true,
-          }),
         ])
 
         if (!active) {
@@ -160,7 +150,6 @@ function CustomerMembershipManagementWidget({
         setPets(nextPets)
         setFavorites(nextFavorites)
         setAuditLogs(nextAuditLogs)
-        setLevels(nextLevels.member_levels)
       } catch (loadError) {
         if (!active) {
           return
@@ -209,21 +198,31 @@ function CustomerMembershipManagementWidget({
     }
   }
 
-  async function handleAssignLevel(memberLevelId: string) {
-    setAssigningLevel(true)
+  async function handleRecalculateLevel() {
+    setRecalculatingLevel(true)
 
     try {
-      await assignMembershipLevel(data.id, {
-        member_level_id: memberLevelId,
-      })
-      toast.success("會員等級已更新")
+      const response = await recalculateMembershipCustomerLevel(data.id)
+      const currentLevelName = response.current_level?.name ?? "未設定"
+
+      toast.success(
+        response.changed
+          ? `會員等級已重新計算，目前為 ${currentLevelName}`
+          : `會員等級已重新計算，等級維持 ${currentLevelName}`
+      )
       dispatchCustomerMembershipUpdated(data.id)
       startTransition(() => {
         setAuditOffset(0)
         setReloadKey((current) => current + 1)
       })
+    } catch (recalculateError) {
+      toast.error(
+        recalculateError instanceof Error
+          ? recalculateError.message
+          : "重新計算會員等級失敗"
+      )
     } finally {
-      setAssigningLevel(false)
+      setRecalculatingLevel(false)
     }
   }
 
@@ -269,12 +268,15 @@ function CustomerMembershipManagementWidget({
               isSubmitting={adjustingPoints}
               onSubmit={handleAdjustPoints}
             />
-            <AssignLevelDrawer
-              levels={levels}
-              currentLevelId={detail.current_level?.id ?? null}
-              isSubmitting={assigningLevel}
-              onSubmit={handleAssignLevel}
-            />
+            <Button
+              type="button"
+              variant="secondary"
+              isLoading={recalculatingLevel}
+              disabled={recalculatingLevel}
+              onClick={handleRecalculateLevel}
+            >
+              重新計算等級
+            </Button>
           </div>
         }
       >

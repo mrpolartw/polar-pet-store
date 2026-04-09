@@ -5,6 +5,7 @@ import {
 import { createCustomersWorkflow } from "@medusajs/medusa/core-flows"
 import type { Link } from "@medusajs/modules-sdk"
 import type MembershipModuleService from "../../modules/membership/service"
+import { selectMembershipLevelByYearlySpent } from "../../lib/membership/membership-level-rules"
 import { MEMBERSHIP_MODULE } from "../../modules/membership"
 
 createCustomersWorkflow.hooks.customersCreated(
@@ -12,7 +13,7 @@ createCustomersWorkflow.hooks.customersCreated(
     const membershipService =
       container.resolve<MembershipModuleService>(MEMBERSHIP_MODULE)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
-    const [defaultLevel] = await membershipService.listMemberLevels(
+    const levels = await membershipService.listMemberLevels(
       { is_active: true },
       {
         order: {
@@ -20,9 +21,9 @@ createCustomersWorkflow.hooks.customersCreated(
           upgrade_threshold: "ASC",
           id: "ASC",
         },
-        take: 1,
       }
     )
+    const defaultLevel = selectMembershipLevelByYearlySpent(levels, 0).level
 
     if (!defaultLevel) {
       return

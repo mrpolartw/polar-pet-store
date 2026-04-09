@@ -98,6 +98,20 @@ export interface AdminAssignMembershipLevelResponse {
   member_level: MemberLevelSummary | null
 }
 
+export interface AdminRecalculateMembershipLevelResponse {
+  customer_id: string
+  previous_level: MemberLevelSummary | null
+  current_level: MemberLevelSummary | null
+  changed: boolean
+  yearly_spent: number
+  total_spent: number
+  currency_code: string
+  first_order_at: string | null
+  cycle_start: string | null
+  matched_threshold: number | null
+  used_fallback_level: boolean
+}
+
 export interface AdminDeletedResponse {
   id: string
   object: string

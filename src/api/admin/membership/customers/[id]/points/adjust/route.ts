@@ -6,7 +6,6 @@ import {
   ensureMembershipCustomer,
   getAdminUserId,
   getMembershipService,
-  refetchMembershipCustomer,
 } from "../../../../helpers"
 import type {
   AdminAdjustMembershipPointsResponse,
@@ -34,10 +33,6 @@ export async function POST(
     req.validatedBody.note ?? "admin adjust"
   )) as PointLogRecord
 
-  await membershipService.checkAndAutoUpgradeLevel(req.params.id)
-
-  const updatedCustomer = await refetchMembershipCustomer(req.scope, req.params.id)
-
   await membershipService.createAuditLog({
     actor_type: "admin",
     actor_id: adminUserId,
@@ -51,7 +46,6 @@ export async function POST(
       balance: pointLog.balance_after,
       delta: req.validatedBody.delta,
       point_log_id: pointLog.id,
-      level_id: updatedCustomer?.membership_member_level?.id ?? null,
     },
     metadata: {
       note: req.validatedBody.note ?? null,

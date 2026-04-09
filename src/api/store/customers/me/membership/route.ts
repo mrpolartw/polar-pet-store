@@ -8,6 +8,7 @@ import {
   getMembershipService,
   retrieveCustomerMembership,
 } from "../../../membership/helpers"
+import { retrieveCustomerMembershipLevelComputation } from "../../../../../lib/membership/customer-membership-level"
 import type { StoreCustomerMembershipResponse } from "../../../membership/types"
 
 export async function GET(
@@ -25,26 +26,14 @@ export async function GET(
     )
   }
 
-  const { balance } = await membershipService.getCustomerPoints(customerId)
-  const currentLevel = customer.membership_member_level
-    ? {
-        id: customer.membership_member_level.id,
-        name: customer.membership_member_level.name,
-        sort_order: customer.membership_member_level.sort_order,
-        reward_rate: customer.membership_member_level.reward_rate,
-        birthday_reward_rate:
-          customer.membership_member_level.birthday_reward_rate,
-        upgrade_gift_points:
-          customer.membership_member_level.upgrade_gift_points,
-        upgrade_threshold: customer.membership_member_level.upgrade_threshold,
-        auto_upgrade: customer.membership_member_level.auto_upgrade,
-        can_join_event: customer.membership_member_level.can_join_event,
-      }
-    : null
+  const [points, computation] = await Promise.all([
+    membershipService.getCustomerPoints(customerId),
+    retrieveCustomerMembershipLevelComputation(req.scope, customerId),
+  ])
 
   res.json({
     customer_id: customerId,
-    current_level: currentLevel,
-    points_balance: balance,
+    current_level: computation.current_level,
+    points_balance: points.balance,
   })
 }

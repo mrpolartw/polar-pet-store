@@ -171,6 +171,20 @@ export interface AssignLevelResponse {
   member_level: MembershipLevelSummary | null
 }
 
+export interface RecalculateLevelResponse {
+  customer_id: string
+  previous_level: MembershipLevelSummary | null
+  current_level: MembershipLevelSummary | null
+  changed: boolean
+  yearly_spent: number
+  total_spent: number
+  currency_code: string
+  first_order_at: string | null
+  cycle_start: string | null
+  matched_threshold: number | null
+  used_fallback_level: boolean
+}
+
 export interface DeleteResponse {
   id: string
   object: string

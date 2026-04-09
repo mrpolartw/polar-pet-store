@@ -60,6 +60,7 @@ export default async function orderCompletedAddPointsHandler({
   await autoUpgradeLevelWorkflow(container).run({
     input: {
       customer_id: order.customer_id,
+      reason: `order_completed:${order.id}`,
     },
   })
 }

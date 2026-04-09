@@ -2,28 +2,20 @@ import type {
   ICustomerModuleService,
   MedusaContainer,
 } from "@medusajs/framework/types"
-import {
-  ContainerRegistrationKeys,
-  MedusaError,
-  Modules,
-} from "@medusajs/framework/utils"
-import type { GraphResultSet } from "@medusajs/types"
+import { MedusaError, Modules } from "@medusajs/framework/utils"
 import type {
   AdminCustomerMembershipDetail,
   AdminUpdateCustomerMembershipRequest,
-  CustomerMembershipLevelSummary,
-  CustomerSpendSummary,
 } from "./customer-membership-detail"
 import {
   formatDateOnly,
   formatDateTimeString,
-  toNumberValue,
 } from "./customer-membership-detail"
 import type { CustomerGender } from "./customer-gender"
 import { MEMBERSHIP_MODULE } from "../../modules/membership"
 import type MembershipModuleService from "../../modules/membership/service"
 import { retrieveCustomerWithMembershipLevel } from "./customer-membership"
-import { calculateAnniversaryYearlySpent } from "./membership-spend"
+import { retrieveCustomerMembershipLevelComputation } from "./customer-membership-level"
 
 type CustomerMembershipRecord = NonNullable<
   Awaited<ReturnType<typeof retrieveCustomerWithMembershipLevel>>
@@ -31,19 +23,6 @@ type CustomerMembershipRecord = NonNullable<
 type MembershipCustomerProfileRecord = NonNullable<
   Awaited<ReturnType<MembershipModuleService["getCustomerProfile"]>>
 >
-type OrderGraphRecord = GraphResultSet<"order">["data"][number] & {
-  total?: number | string | null
-  currency_code?: string | null
-  created_at?: Date | string | null
-  status?: string | null
-}
-type QueryGraphService = {
-  graph: (input: {
-    entity: string
-    fields: string[]
-    filters?: Record<string, unknown>
-  }) => Promise<{ data: unknown[] }>
-}
 
 type UpdateAdminCustomerMembershipInput = {
   customerId: string
@@ -58,30 +37,6 @@ function getMembershipService(scope: MedusaContainer): MembershipModuleService {
 
 function getCustomerService(scope: MedusaContainer): ICustomerModuleService {
   return scope.resolve<ICustomerModuleService>(Modules.CUSTOMER)
-}
-
-function getQueryGraphService(scope: MedusaContainer): QueryGraphService {
-  return scope.resolve<QueryGraphService>(ContainerRegistrationKeys.QUERY)
-}
-
-function toCurrentLevelSummary(
-  level: CustomerMembershipRecord["membership_member_level"]
-): CustomerMembershipLevelSummary | null {
-  if (!level) {
-    return null
-  }
-
-  return {
-    id: level.id,
-    name: level.name,
-    sort_order: level.sort_order,
-    reward_rate: level.reward_rate,
-    birthday_reward_rate: level.birthday_reward_rate,
-    upgrade_gift_points: level.upgrade_gift_points,
-    upgrade_threshold: level.upgrade_threshold,
-    auto_upgrade: level.auto_upgrade,
-    can_join_event: level.can_join_event,
-  }
 }
 
 async function ensureCustomerMembership(
@@ -99,51 +54,13 @@ async function ensureCustomerMembership(
 
   return customer as CustomerMembershipRecord
 }
-
-function buildCustomerSpendSummary(
-  orders: OrderGraphRecord[],
-  now: Date = new Date()
-): CustomerSpendSummary {
-  let totalSpent = 0
-  let currencyCode = "TWD"
-
-  for (const order of orders) {
-    if (order.status !== "completed" && order.status !== "archived") {
-      continue
-    }
-
-    totalSpent += toNumberValue(order.total)
-    currencyCode = order.currency_code ?? currencyCode
-  }
-
-  return {
-    total_spent: totalSpent,
-    yearly_spent: calculateAnniversaryYearlySpent(orders, now),
-    currency_code: currencyCode,
-  }
-}
-
-async function listCustomerOrders(
-  scope: MedusaContainer,
-  customerId: string
-): Promise<OrderGraphRecord[]> {
-  const query = getQueryGraphService(scope)
-  const { data } = await query.graph({
-    entity: "order",
-    fields: ["id", "total", "currency_code", "created_at", "status"],
-    filters: {
-      customer_id: customerId,
-    },
-  })
-
-  return data as OrderGraphRecord[]
-}
-
 function buildMembershipDetailRecord(input: {
   customer: CustomerMembershipRecord
   profile: MembershipCustomerProfileRecord | null
   points: number
-  spend: CustomerSpendSummary
+  membershipLevelComputation: Awaited<
+    ReturnType<typeof retrieveCustomerMembershipLevelComputation>
+  >
 }): AdminCustomerMembershipDetail {
   return {
     customer_id: input.customer.id,
@@ -153,13 +70,11 @@ function buildMembershipDetailRecord(input: {
     last_login_at: formatDateTimeString(input.profile?.last_login_at),
     summary: {
       points: input.points,
-      total_spent: input.spend.total_spent,
-      yearly_spent: input.spend.yearly_spent,
-      currency_code: input.spend.currency_code,
+      total_spent: input.membershipLevelComputation.total_spent,
+      yearly_spent: input.membershipLevelComputation.yearly_spent,
+      currency_code: input.membershipLevelComputation.currency_code,
       joined_at: formatDateTimeString(input.customer.created_at),
-      current_level: toCurrentLevelSummary(
-        input.customer.membership_member_level ?? null
-      ),
+      current_level: input.membershipLevelComputation.current_level,
     },
   }
 }
@@ -243,17 +158,17 @@ export async function retrieveAdminCustomerMembershipDetail(
 ): Promise<AdminCustomerMembershipDetail> {
   const membershipService = getMembershipService(scope)
   const customer = await ensureCustomerMembership(scope, customerId)
-  const [profile, points, orders] = await Promise.all([
+  const [profile, points, membershipLevelComputation] = await Promise.all([
     membershipService.getCustomerProfile(customerId),
     membershipService.getCustomerPoints(customerId),
-    listCustomerOrders(scope, customerId),
+    retrieveCustomerMembershipLevelComputation(scope, customerId),
   ])
 
   return buildMembershipDetailRecord({
     customer,
     profile,
     points: points.balance,
-    spend: buildCustomerSpendSummary(orders),
+    membershipLevelComputation,
   })
 }
 

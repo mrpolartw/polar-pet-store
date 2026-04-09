@@ -23,6 +23,7 @@ import {
   type SubscriptionStatus,
 } from "./constants"
 import { MEMBERSHIP_MODULE } from "./index"
+import { recalculateCustomerMembershipLevel } from "../../lib/membership/customer-membership-level"
 import AuditLog from "./models/audit-log"
 import CustomerProfile from "./models/customer-profile"
 import Favorite from "./models/favorite"
@@ -224,63 +225,13 @@ class MembershipModuleService extends MedusaService({
 
   async checkAndAutoUpgradeLevel(customer_id: string): Promise<void> {
     await this.getCustomerModuleService().retrieveCustomer(customer_id)
-
-    const { balance } = await this.getCustomerPoints(customer_id)
-    const levels = await super.listMemberLevels(
-      {
-        is_active: true,
-        auto_upgrade: true,
-      },
-      {
-        order: {
-          upgrade_threshold: "DESC",
-          sort_order: "DESC",
-          id: "ASC",
-        },
-      }
-    )
-
-    const targetLevel =
-      [...levels]
-        .sort((current, next) => {
-          if (next.upgrade_threshold !== current.upgrade_threshold) {
-            return next.upgrade_threshold - current.upgrade_threshold
-          }
-
-          if (next.sort_order !== current.sort_order) {
-            return next.sort_order - current.sort_order
-          }
-
-          return current.id.localeCompare(next.id)
-        })
-        .find((level) => level.upgrade_threshold <= balance) ?? null
-
-    const existingLinks = await this.listCustomerLevelLinks(customer_id, levels)
-    const currentLevelIds = new Set(
-      existingLinks
-        .map((link) => this.extractMemberLevelId(link))
-        .filter((value): value is string => !!value)
-    )
-
-    if (
-      targetLevel &&
-      existingLinks.length === 1 &&
-      currentLevelIds.has(targetLevel.id)
-    ) {
-      return
-    }
-
-    if (existingLinks.length) {
-      await this.getLinkService().dismiss(existingLinks)
-    }
-
-    if (!targetLevel) {
-      return
-    }
-
-    await this.getLinkService().create([
-      this.buildCustomerLevelLink(targetLevel.id, customer_id),
-    ])
+    await recalculateCustomerMembershipLevel(this.__container__ as never, {
+      customerId: customer_id,
+      actorType: "system",
+      actorId: "system",
+      reason: "membership_service_check_and_auto_upgrade",
+      action: "customer.membership_level.recalculated_by_system",
+    })
   }
 
   async getActiveSubscription(

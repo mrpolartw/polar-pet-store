@@ -4,6 +4,15 @@ export type MembershipSpendOrder = {
   status?: string | null
 }
 
+export interface MembershipSpendSnapshot {
+  first_order_at: Date | null
+  cycle_start: Date | null
+  total_spent: number
+  yearly_spent: number
+}
+
+const VALID_MEMBERSHIP_ORDER_STATUSES = new Set(["completed", "archived"])
+
 function normalizeDateInput(value: Date | string | null | undefined): Date | null {
   if (!value) {
     return null
@@ -25,7 +34,7 @@ function normalizeDateInput(value: Date | string | null | undefined): Date | nul
   )
 }
 
-function toNumberValue(value: number | string | null | undefined): number {
+export function toNumberValue(value: number | string | null | undefined): number {
   const normalized =
     typeof value === "number"
       ? value
@@ -45,6 +54,28 @@ function buildAnniversaryDate(firstOrderAt: Date, year: number): Date {
   const day = Math.min(firstOrderAt.getUTCDate(), getDaysInMonth(year, month))
 
   return new Date(Date.UTC(year, month, day))
+}
+
+function toEligibleDatedOrders(orders: MembershipSpendOrder[]) {
+  return orders
+    .map((order) => ({
+      ...order,
+      normalizedCreatedAt: normalizeDateInput(order.created_at),
+    }))
+    .filter(
+      (
+        order
+      ): order is MembershipSpendOrder & {
+        normalizedCreatedAt: Date
+      } =>
+        !!order.normalizedCreatedAt &&
+        VALID_MEMBERSHIP_ORDER_STATUSES.has(order.status ?? "")
+    )
+    .sort(
+      (current, next) =>
+        current.normalizedCreatedAt.getTime() -
+        next.normalizedCreatedAt.getTime()
+    )
 }
 
 export function getMembershipYearCycleStart(
@@ -81,6 +112,21 @@ export function getMembershipYearCycleStart(
   return cycleStart
 }
 
+export function getFirstMembershipOrderDate(
+  orders: MembershipSpendOrder[]
+): Date | null {
+  return toEligibleDatedOrders(orders)[0]?.normalizedCreatedAt ?? null
+}
+
+export function calculateMembershipTotalSpent(
+  orders: MembershipSpendOrder[]
+): number {
+  return toEligibleDatedOrders(orders).reduce(
+    (total, order) => total + toNumberValue(order.total),
+    0
+  )
+}
+
 export function calculateAnniversaryYearlySpent(
   orders: MembershipSpendOrder[],
   referenceAt: Date | string = new Date()
@@ -91,36 +137,17 @@ export function calculateAnniversaryYearlySpent(
     throw new Error("referenceAt must be a valid date")
   }
 
-  const datedOrders = orders
-    .map((order) => ({
-      ...order,
-      normalizedCreatedAt: normalizeDateInput(order.created_at),
-    }))
-    .filter(
-      (
-        order
-      ): order is MembershipSpendOrder & {
-        normalizedCreatedAt: Date
-      } => !!order.normalizedCreatedAt
-    )
-    .sort(
-      (current, next) =>
-        current.normalizedCreatedAt.getTime() -
-        next.normalizedCreatedAt.getTime()
-    )
+  const eligibleOrders = toEligibleDatedOrders(orders)
+  const firstOrderAt = eligibleOrders[0]?.normalizedCreatedAt
 
-  if (!datedOrders.length) {
+  if (!firstOrderAt) {
     return 0
   }
 
-  const cycleStart = getMembershipYearCycleStart(
-    datedOrders[0].normalizedCreatedAt,
-    normalizedReference
-  )
+  const cycleStart = getMembershipYearCycleStart(firstOrderAt, normalizedReference)
 
-  return datedOrders.reduce((total, order) => {
+  return eligibleOrders.reduce((total, order) => {
     if (
-      (order.status !== "completed" && order.status !== "archived") ||
       order.normalizedCreatedAt < cycleStart ||
       order.normalizedCreatedAt > normalizedReference
     ) {
@@ -129,4 +156,33 @@ export function calculateAnniversaryYearlySpent(
 
     return total + toNumberValue(order.total)
   }, 0)
+}
+
+export function buildMembershipSpendSnapshot(
+  orders: MembershipSpendOrder[],
+  referenceAt: Date | string = new Date()
+): MembershipSpendSnapshot {
+  const normalizedReference = normalizeDateInput(referenceAt)
+
+  if (!normalizedReference) {
+    throw new Error("referenceAt must be a valid date")
+  }
+
+  const firstOrderAt = getFirstMembershipOrderDate(orders)
+
+  if (!firstOrderAt) {
+    return {
+      first_order_at: null,
+      cycle_start: null,
+      total_spent: 0,
+      yearly_spent: 0,
+    }
+  }
+
+  return {
+    first_order_at: firstOrderAt,
+    cycle_start: getMembershipYearCycleStart(firstOrderAt, normalizedReference),
+    total_spent: calculateMembershipTotalSpent(orders),
+    yearly_spent: calculateAnniversaryYearlySpent(orders, normalizedReference),
+  }
 }

@@ -14,6 +14,7 @@ import type {
   MembershipCustomersResponse,
   MembershipMemberLevelResponse,
   MembershipMemberLevelsResponse,
+  RecalculateLevelResponse,
 } from "./types"
 
 type QueryValue = string | number | boolean | null | undefined
@@ -181,6 +182,14 @@ export function assignMembershipLevel(
   return request(`/admin/membership/customers/${id}/assign-level`, {
     method: "POST",
     body: payload,
+  })
+}
+
+export function recalculateMembershipCustomerLevel(
+  id: string
+): Promise<RecalculateLevelResponse> {
+  return request(`/admin/membership/customers/${id}/recalculate-level`, {
+    method: "POST",
   })
 }
 

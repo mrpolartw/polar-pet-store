@@ -16,6 +16,7 @@ describe("admin customer membership list helper", () => {
   const membershipService = {
     listCustomerProfiles: jest.fn(),
     listOAuthLinks: jest.fn(),
+    listMemberLevels: jest.fn(),
   }
 
   const orderService = {
@@ -50,15 +51,15 @@ describe("admin customer membership list helper", () => {
           updated_at: "2025-01-03T03:04:05.000Z",
           deleted_at: null,
           membership_member_level: {
-            id: "level_gold",
-            name: "Gold",
-            sort_order: 30,
-            reward_rate: 5,
-            birthday_reward_rate: 8,
-            upgrade_gift_points: 1200,
-            upgrade_threshold: 50000,
+            id: "level_family",
+            name: "家庭會員",
+            sort_order: 10,
+            reward_rate: 1,
+            birthday_reward_rate: 1,
+            upgrade_gift_points: 0,
+            upgrade_threshold: 0,
             auto_upgrade: true,
-            can_join_event: true,
+            can_join_event: false,
           },
         },
       ],
@@ -83,6 +84,32 @@ describe("admin customer membership list helper", () => {
         provider: "line",
       },
     ])
+    membershipService.listMemberLevels.mockResolvedValue([
+      {
+        id: "level_family",
+        name: "家庭會員",
+        sort_order: 10,
+        reward_rate: 1,
+        birthday_reward_rate: 1,
+        upgrade_gift_points: 0,
+        upgrade_threshold: 0,
+        auto_upgrade: true,
+        can_join_event: false,
+        is_active: true,
+      },
+      {
+        id: "level_gold",
+        name: "Gold",
+        sort_order: 30,
+        reward_rate: 5,
+        birthday_reward_rate: 8,
+        upgrade_gift_points: 1200,
+        upgrade_threshold: 5000,
+        auto_upgrade: true,
+        can_join_event: true,
+        is_active: true,
+      },
+    ])
     orderService.listOrders.mockResolvedValue([
       {
         id: "ord_old",
@@ -93,6 +120,8 @@ describe("admin customer membership list helper", () => {
         id: "ord_latest",
         customer_id: "cus_123",
         created_at: "2026-03-05T09:30:00.000Z",
+        total: 5200,
+        status: "completed",
       },
     ])
   })
@@ -128,6 +157,7 @@ describe("admin customer membership list helper", () => {
       customer_id: ["cus_123"],
       provider: "line",
     })
+    expect(membershipService.listMemberLevels).toHaveBeenCalled()
     expect(orderService.listOrders).toHaveBeenCalledWith(
       {
         customer_id: ["cus_123"],
@@ -163,7 +193,7 @@ describe("admin customer membership list helper", () => {
           reward_rate: 5,
           birthday_reward_rate: 8,
           upgrade_gift_points: 1200,
-          upgrade_threshold: 50000,
+          upgrade_threshold: 5000,
           auto_upgrade: true,
           can_join_event: true,
         },

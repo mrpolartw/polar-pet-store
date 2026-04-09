@@ -242,6 +242,10 @@ function CustomerMembershipWidget({
               )}
             />
             <ReadonlyItem
+              label="會員等級"
+              value={membership.summary.current_level?.name ?? "-"}
+            />
+            <ReadonlyItem
               label="累計消費"
               value={formatCurrency(
                 membership.summary.total_spent,
