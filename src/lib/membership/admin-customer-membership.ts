@@ -16,6 +16,7 @@ import { MEMBERSHIP_MODULE } from "../../modules/membership"
 import type MembershipModuleService from "../../modules/membership/service"
 import { retrieveCustomerWithMembershipLevel } from "./customer-membership"
 import { retrieveCustomerMembershipLevelComputation } from "./customer-membership-level"
+import type { MembershipPointsSnapshot } from "./membership-point-balance"
 
 type CustomerMembershipRecord = NonNullable<
   Awaited<ReturnType<typeof retrieveCustomerWithMembershipLevel>>
@@ -57,7 +58,7 @@ async function ensureCustomerMembership(
 function buildMembershipDetailRecord(input: {
   customer: CustomerMembershipRecord
   profile: MembershipCustomerProfileRecord | null
-  points: number
+  pointSummary: MembershipPointsSnapshot
   membershipLevelComputation: Awaited<
     ReturnType<typeof retrieveCustomerMembershipLevelComputation>
   >
@@ -69,7 +70,12 @@ function buildMembershipDetailRecord(input: {
     gender: (input.profile?.gender ?? "undisclosed") as CustomerGender,
     last_login_at: formatDateTimeString(input.profile?.last_login_at),
     summary: {
-      points: input.points,
+      points: input.pointSummary.available_points,
+      total_points: input.pointSummary.total_points,
+      available_points: input.pointSummary.available_points,
+      expired_points: input.pointSummary.expired_points,
+      redeemed_points: input.pointSummary.redeemed_points,
+      refunded_points: input.pointSummary.refunded_points,
       total_spent: input.membershipLevelComputation.total_spent,
       yearly_spent: input.membershipLevelComputation.yearly_spent,
       currency_code: input.membershipLevelComputation.currency_code,
@@ -167,7 +173,7 @@ export async function retrieveAdminCustomerMembershipDetail(
   return buildMembershipDetailRecord({
     customer,
     profile,
-    points: points.balance,
+    pointSummary: points.summary,
     membershipLevelComputation,
   })
 }

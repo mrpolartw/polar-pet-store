@@ -64,6 +64,14 @@ export interface PointLog {
   updated_at?: string | null
 }
 
+export interface MembershipPointSummary {
+  total_points: number
+  available_points: number
+  expired_points: number
+  redeemed_points: number
+  refunded_points: number
+}
+
 export interface Favorite {
   id: string
   customer_id: string
@@ -129,6 +137,8 @@ export interface MembershipCustomerResponse {
   customer: MembershipCustomer
   current_level: MembershipLevelSummary | null
   points_balance: number
+  available_points: number
+  points_summary: MembershipPointSummary
   favorites_count: number
   pets_count: number
   active_subscription: Subscription | null
@@ -136,6 +146,8 @@ export interface MembershipCustomerResponse {
 
 export interface MembershipCustomerPointsResponse {
   balance: number
+  available_balance: number
+  points_summary: MembershipPointSummary
   logs: PointLog[]
   count: number
   offset: number

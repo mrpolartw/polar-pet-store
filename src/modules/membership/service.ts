@@ -24,6 +24,10 @@ import {
 } from "./constants"
 import { MEMBERSHIP_MODULE } from "./index"
 import { recalculateCustomerMembershipLevel } from "../../lib/membership/customer-membership-level"
+import {
+  buildMembershipPointsSnapshot,
+  type MembershipPointsSnapshot,
+} from "../../lib/membership/membership-point-balance"
 import AuditLog from "./models/audit-log"
 import CustomerProfile from "./models/customer-profile"
 import Favorite from "./models/favorite"
@@ -138,6 +142,13 @@ type CreatePointLogInput = {
 type CreatePointLogResult = {
   point_log: PointLogDTO
   created: boolean
+}
+
+type CustomerPointsResult = {
+  balance: number
+  available_balance: number
+  summary: MembershipPointsSnapshot
+  logs: PointLogDTO[]
 }
 
 const CUSTOMER_LINKABLE_KEY = "customer_id"
@@ -291,8 +302,9 @@ class MembershipModuleService extends MedusaService({
   }
 
   async getCustomerPoints(
-    customer_id: string
-  ): Promise<{ balance: number; logs: PointLogDTO[] }> {
+    customer_id: string,
+    referenceAt: Date | string = new Date()
+  ): Promise<CustomerPointsResult> {
     const logs = await super.listPointLogs(
       { customer_id },
       {
@@ -302,9 +314,12 @@ class MembershipModuleService extends MedusaService({
         },
       }
     )
+    const summary = buildMembershipPointsSnapshot(logs, referenceAt)
 
     return {
-      balance: logs[0]?.balance_after ?? 0,
+      balance: summary.total_points,
+      available_balance: summary.available_points,
+      summary,
       logs,
     }
   }

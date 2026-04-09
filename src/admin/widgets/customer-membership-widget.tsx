@@ -238,7 +238,7 @@ function CustomerMembershipWidget({
             <ReadonlyItem
               label="點數"
               value={new Intl.NumberFormat("zh-TW").format(
-                membership.summary.points
+                membership.summary.available_points
               )}
             />
             <ReadonlyItem

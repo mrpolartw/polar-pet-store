@@ -35,10 +35,23 @@ export interface StoreCustomerMembershipResponse {
   customer_id: string
   current_level: MembershipLevelSummary | null
   points_balance: number
+  available_points: number
+  points_summary: MembershipPointsSummary
+  recent_point_logs: PointLogRecord[]
+}
+
+export interface MembershipPointsSummary {
+  total_points: number
+  available_points: number
+  expired_points: number
+  redeemed_points: number
+  refunded_points: number
 }
 
 export interface StoreCustomerPointsResponse {
   balance: number
+  available_balance: number
+  points_summary: MembershipPointsSummary
   logs: PointLogRecord[]
   count: number
   offset: number

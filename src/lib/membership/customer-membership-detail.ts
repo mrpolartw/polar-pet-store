@@ -14,6 +14,11 @@ export interface CustomerMembershipLevelSummary {
 
 export interface CustomerMembershipSummary {
   points: number
+  total_points: number
+  available_points: number
+  expired_points: number
+  redeemed_points: number
+  refunded_points: number
   total_spent: number
   yearly_spent: number
   currency_code: string

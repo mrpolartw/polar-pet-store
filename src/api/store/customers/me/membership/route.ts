@@ -34,6 +34,15 @@ export async function GET(
   res.json({
     customer_id: customerId,
     current_level: computation.current_level,
-    points_balance: points.balance,
+    points_balance: points.available_balance,
+    available_points: points.available_balance,
+    points_summary: {
+      total_points: points.summary.total_points,
+      available_points: points.summary.available_points,
+      expired_points: points.summary.expired_points,
+      redeemed_points: points.summary.redeemed_points,
+      refunded_points: points.summary.refunded_points,
+    },
+    recent_point_logs: points.logs.slice(0, 5),
   })
 }

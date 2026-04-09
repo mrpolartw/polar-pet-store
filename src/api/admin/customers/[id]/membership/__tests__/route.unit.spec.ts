@@ -29,6 +29,11 @@ describe("admin customer membership route", () => {
     last_login_at: null,
     summary: {
       points: 100,
+      total_points: 130,
+      available_points: 100,
+      expired_points: 20,
+      redeemed_points: 5,
+      refunded_points: 5,
       total_spent: 2000,
       yearly_spent: 1200,
       currency_code: "TWD",

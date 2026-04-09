@@ -56,7 +56,22 @@ describe("admin customer membership helper", () => {
     membershipService = {
       getCustomerProfile: jest.fn(async () => currentProfile),
       getCustomerPoints: jest.fn(async () => ({
-        balance: 120,
+        balance: 150,
+        available_balance: 120,
+        summary: {
+          total_points: 150,
+          ledger_balance: 150,
+          available_points: 120,
+          expired_points: 20,
+          pending_expired_points: 20,
+          redeemed_points: 10,
+          refunded_points: 5,
+          expired_logged_points: 0,
+          total_earned_points: 185,
+          adjustment_points: 0,
+          last_balance_after: 150,
+          lots: [],
+        },
         logs: [],
       })),
       listMemberLevels: jest.fn(async () => [
@@ -187,6 +202,11 @@ describe("admin customer membership helper", () => {
     expect(detail.birthday).toBe("1990-05-01")
     expect(detail.gender).toBe("female")
     expect(detail.summary.points).toBe(120)
+    expect(detail.summary.total_points).toBe(150)
+    expect(detail.summary.available_points).toBe(120)
+    expect(detail.summary.expired_points).toBe(20)
+    expect(detail.summary.redeemed_points).toBe(10)
+    expect(detail.summary.refunded_points).toBe(5)
     expect(detail.summary.total_spent).toBe(6700)
     expect(detail.summary.yearly_spent).toBe(4200)
     expect(detail.summary.joined_at).toBe("2025-01-02T03:04:05.000Z")

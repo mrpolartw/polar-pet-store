@@ -58,13 +58,25 @@ export interface AdminMembershipCustomerResponse {
   customer: CustomerMembershipGraph
   current_level: MemberLevelSummary | null
   points_balance: number
+  available_points: number
+  points_summary: MembershipPointsSummary
   favorites_count: number
   pets_count: number
   active_subscription: SubscriptionRecord | null
 }
 
+export interface MembershipPointsSummary {
+  total_points: number
+  available_points: number
+  expired_points: number
+  redeemed_points: number
+  refunded_points: number
+}
+
 export interface AdminMembershipCustomerPointsResponse {
   balance: number
+  available_balance: number
+  points_summary: MembershipPointsSummary
   logs: PointLogRecord[]
   count: number
   offset: number
