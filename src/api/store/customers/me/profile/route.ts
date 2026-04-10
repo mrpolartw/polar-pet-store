@@ -1,4 +1,5 @@
 import type {
+  MedusaRequest,
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
@@ -14,6 +15,14 @@ import {
 import type { StoreCustomerProfileResponse } from "../../../customer-auth/types"
 import type { StoreCustomerProfileUpdateType } from "../../../customer-auth/validators"
 import type { CustomerGender } from "../../../../../modules/membership/constants"
+
+type OptionalAuthenticatedRequest = MedusaRequest & {
+  auth_context?: {
+    actor_id?: string
+  }
+}
+
+type CustomerProfilePayload = NonNullable<StoreCustomerProfileResponse["customer"]>
 
 function formatDateOnly(value: Date | string | null | undefined): string | null {
   if (!value) {
@@ -93,7 +102,7 @@ function toCustomerProfileResponse(input: {
   }
 }
 
-function getAuditSnapshot(input: StoreCustomerProfileResponse["customer"]) {
+function getAuditSnapshot(input: CustomerProfilePayload) {
   return {
     name: input.name,
     phone: input.phone ?? null,
@@ -113,10 +122,18 @@ function getChangedFields(
 }
 
 export async function GET(
-  req: AuthenticatedMedusaRequest,
+  req: MedusaRequest,
   res: MedusaResponse<StoreCustomerProfileResponse>
 ): Promise<void> {
-  const customerId = req.auth_context.actor_id
+  const customerId = (req as OptionalAuthenticatedRequest).auth_context?.actor_id
+
+  if (!customerId) {
+    res.json({
+      customer: null,
+    })
+    return
+  }
+
   const membershipService = getMembershipService(req.scope)
   const [customer, profile] = await Promise.all([
     retrieveCustomerById(req.scope, customerId),
@@ -215,6 +232,8 @@ export async function POST(
     customer: nextCustomer,
     profile: nextProfile,
   })
+  const beforeSnapshot = getAuditSnapshot(before.customer as CustomerProfilePayload)
+  const afterSnapshot = getAuditSnapshot(after.customer as CustomerProfilePayload)
 
   await membershipService.createAuditLog({
     actor_type: "customer",
@@ -222,14 +241,11 @@ export async function POST(
     action: "customer.profile.updated",
     target_type: "customer",
     target_id: customerId,
-    before_state: getAuditSnapshot(before.customer),
-    after_state: getAuditSnapshot(after.customer),
+    before_state: beforeSnapshot,
+    after_state: afterSnapshot,
     ip_address: req.ip ?? null,
     metadata: {
-      changed_fields: getChangedFields(
-        getAuditSnapshot(before.customer),
-        getAuditSnapshot(after.customer)
-      ),
+      changed_fields: getChangedFields(beforeSnapshot, afterSnapshot),
       source: "store_customer_profile_route",
     },
   })

@@ -55,7 +55,7 @@ export interface StoreCustomerLineCompleteResponse {
 }
 
 export interface StoreCustomerProfileResponse {
-  customer: {
+  customer: ({
     id: string
     email: string | null
     phone: string | null
@@ -66,5 +66,5 @@ export interface StoreCustomerProfileResponse {
     birthday: string | null
     gender: "male" | "female" | "undisclosed"
     avatar: string | null
-  } & Record<string, unknown>
+  } & Record<string, unknown>) | null
 }

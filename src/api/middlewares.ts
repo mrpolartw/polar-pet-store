@@ -223,7 +223,12 @@ export default defineMiddlewares({
     },
     {
       matcher: "/store/customers/me/profile",
-      methods: ["ALL"],
+      methods: ["GET"],
+      middlewares: [optionalCustomerAuth],
+    },
+    {
+      matcher: "/store/customers/me/profile",
+      methods: ["POST"],
       middlewares: [customerAuth],
     },
     {
