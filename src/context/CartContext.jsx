@@ -6,6 +6,13 @@ import analytics from '../utils/analytics'
 import { cartStorage } from '../utils/storage'
 import { useToast } from './ToastContext'
 
+// Re-use the same session-flag key written by authService so CartContext
+// does not need to import authService just for this check.
+const SESSION_FLAG = 'pps_has_session'
+function hasSessionFlag() {
+  try { return sessionStorage.getItem(SESSION_FLAG) === '1' } catch { return false }
+}
+
 const CartContext = createContext(null)
 
 const clampCartQuantity = (quantity) => {
@@ -46,6 +53,7 @@ export const CartProvider = ({ children }) => {
     EMPTY_POINT_REDEMPTION
   )
 
+  // Persist cart to localStorage (debounced 300 ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       cartStorage.setItems(cartItems)
@@ -53,13 +61,13 @@ export const CartProvider = ({ children }) => {
     return () => clearTimeout(timer)
   }, [cartItems])
 
+  // Sync cart across tabs
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
 
     const handleStorage = (event) => {
       try {
         if (event.key !== CONFIG.CART_STORAGE_KEY) return
-
         setCartItems(normalizeCartItems(cartStorage.getItems()))
       } catch {
         // fail silently
@@ -81,22 +89,29 @@ export const CartProvider = ({ children }) => {
     }
   }, [])
 
+  // Load cart on mount.
+  // Priority: localStorage → backend API (only when a session exists).
+  // We intentionally skip the API call for anonymous visitors to avoid
+  // an unnecessary network round-trip (and a potential 401 error) on
+  // every cold page load.
   useEffect(() => {
     const loadCart = async () => {
+      // 1. localStorage 有資料就直接用，不打 API
+      const storedItems = normalizeCartItems(cartStorage.getItems())
+      if (storedItems.length > 0) {
+        setCartItems(storedItems)
+        return
+      }
+
+      // 2. 沒有 session 的訪客跳過 API，避免多餘請求
+      if (!hasSessionFlag()) return
+
       setIsCartLoading(true)
       setCartError(null)
 
       try {
-        const storedItems = normalizeCartItems(cartStorage.getItems())
-
-        if (storedItems.length > 0) {
-          setCartItems(storedItems)
-          return
-        }
-
         const data = await cartService.getCart()
         const nextItems = normalizeCartItems(data?.cart?.items ?? data?.items ?? [])
-
         setCartItems(nextItems)
       } catch (err) {
         setCartError(err?.message ?? null)
