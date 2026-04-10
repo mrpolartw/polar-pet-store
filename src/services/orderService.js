@@ -20,7 +20,7 @@ export const getOrder = async (orderId) => {
     return mockOrderHandlers.getOrder(orderId)
   }
 
-  return apiClient.get(`/store/orders/${orderId}`)
+  return apiClient.get(`/store/order-lookups/${orderId}`)
 }
 
 export const getOrders = async (params = {}) => {
@@ -36,7 +36,12 @@ export const getOrders = async (params = {}) => {
   })
 
   const suffix = query.toString() ? `?${query.toString()}` : ''
-  return apiClient.get(`/store/orders${suffix}`)
+
+  if (params.phone) {
+    return apiClient.get(`/store/order-lookups${suffix}`)
+  }
+
+  return apiClient.get(`/store/customers/me/orders${suffix}`)
 }
 
 export const validatePromoCode = async (code) => {

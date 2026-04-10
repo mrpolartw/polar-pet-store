@@ -34,7 +34,7 @@ test('validateRedeemablePoints rejects negative and over-limit inputs', () => {
       requestedPoints: -1,
       orderSubtotal: 80,
     }).validationMessage,
-    '折抵點數不能小於 0。'
+    '折抵點數不可小於 0。'
   )
 
   assert.equal(
@@ -43,7 +43,7 @@ test('validateRedeemablePoints rejects negative and over-limit inputs', () => {
       requestedPoints: 30,
       orderSubtotal: 80,
     }).validationMessage,
-    '折抵點數不能超過可用點數。'
+    '折抵點數不可超過目前可用點數。'
   )
 
   assert.equal(
@@ -52,7 +52,7 @@ test('validateRedeemablePoints rejects negative and over-limit inputs', () => {
       requestedPoints: 90,
       orderSubtotal: 50,
     }).validationMessage,
-    '折抵點數不能超過本次可折抵金額。'
+    '折抵點數不可超過本次訂單可折抵金額。'
   )
 })
 
