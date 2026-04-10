@@ -1,0 +1,21 @@
+{
+  "name": "Mr.Polar 北極先生寵物食品",
+  "short_name": "Mr.Polar",
+  "description": "天然無添加的寵物主食罐、手工零食與保健系列，讓毛孩吃得安心、活得健康。",
+  "start_url": "/polar-pet-store/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#003153",
+  "lang": "zh-TW",
+  "dir": "ltr",
+  "orientation": "portrait-primary",
+  "categories": ["shopping", "food", "lifestyle"],
+  "icons": [
+    {
+      "src": "/polar-pet-store/src/png/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

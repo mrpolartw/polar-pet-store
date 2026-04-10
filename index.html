@@ -2,39 +2,126 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/src/png/icon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- ===================== SEO / Social ===================== -->
+    <!-- ===================== Favicon / PWA ===================== -->
+    <link rel="icon" type="image/svg+xml" href="/polar-pet-store/src/png/icon.svg" />
+    <link rel="manifest" href="/polar-pet-store/site.webmanifest" />
+    <meta name="theme-color" content="#003153" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Mr.Polar" />
+
+    <!-- ===================== SEO ===================== -->
     <title>Mr.Polar 北極先生 | 天然寵物食品</title>
     <meta name="description" content="Mr.Polar 北極先生提供天然無添加的寵物主食罐、手工零食與保健系列，讓毛孩吃得安心、活得健康。" />
-    <meta name="keywords" content="寵物食品,天然貓食,天然狗食,主食罐,寵物保健,Mr.Polar,北極先生" />
-    <meta name="robots" content="index, follow" />
+    <meta name="keywords" content="寵物食品,天然貓食,天然狗食,主食罐,寵物保健,Mr.Polar,北極先生,無添加寵物食品" />
+    <meta name="author" content="北極先生國際股份有限公司" />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <link rel="canonical" href="https://mrpolartw.github.io/polar-pet-store/" />
 
-    <!-- Open Graph -->
+    <!-- ===================== Open Graph ===================== -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Mr.Polar 北極先生" />
     <meta property="og:title" content="Mr.Polar 北極先生 | 天然寵物食品" />
     <meta property="og:description" content="天然無添加的寵物主食罐、手工零食與保健系列，讓毛孩吃得安心、活得健康。" />
     <meta property="og:url" content="https://mrpolartw.github.io/polar-pet-store/" />
     <meta property="og:locale" content="zh_TW" />
+    <meta property="og:image" content="https://mrpolartw.github.io/polar-pet-store/og-default.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Mr.Polar 北極先生天然寵物食品" />
 
-    <!-- Twitter Card -->
+    <!-- ===================== Twitter Card ===================== -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Mr.Polar 北極先生 | 天然寵物食品" />
     <meta name="twitter:description" content="天然無添加的寵物主食罐、手工零食與保健系列，讓毛孩吃得安心、活得健康。" />
+    <meta name="twitter:image" content="https://mrpolartw.github.io/polar-pet-store/og-default.jpg" />
+
+    <!-- ===================== GEO / AI Engines ===================== -->
+    <!-- Structured signals for LLM-based search (ChatGPT, Perplexity, Gemini…) -->
+    <meta name="geo.region" content="TW" />
+    <meta name="geo.placename" content="臺中市" />
+    <meta name="geo.position" content="24.1624;120.6478" />
+    <meta name="ICBM" content="24.1624, 120.6478" />
+    <!-- Indexing permission for major AI crawlers (also set in robots.txt) -->
+    <meta name="robots" content="index, follow" />
 
     <!-- ===================== Performance Hints ===================== -->
-    <!-- DNS prefetch & preconnect for third-party origins -->
     <link rel="preconnect" href="https://www.googletagmanager.com" />
     <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
     <link rel="preconnect" href="https://www.google-analytics.com" />
     <link rel="dns-prefetch" href="https://www.google-analytics.com" />
 
-    <!-- ===================== GA4 (consent-gated, deferred) ===================== -->
-    <!-- GA script 只在取得 Cookie 同意後才由 analytics.js 動態插入            -->
-    <!-- 這裡僅建立 dataLayer / gtag stub，不主動下載 gtag.js                   -->
+    <!-- ===================== JSON-LD Structured Data ===================== -->
+    <!-- Organization schema: helps Google Knowledge Graph + AI engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Mr.Polar 北極先生",
+      "alternateName": "北極先生國際股份有限公司",
+      "url": "https://mrpolartw.github.io/polar-pet-store/",
+      "logo": "https://mrpolartw.github.io/polar-pet-store/og-default.jpg",
+      "description": "提供天然無添加的寵物主食罐、手工零食與保健系列，讓毛孩吃得安心、活得健康。",
+      "foundingDate": "2020",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "臺灣大道二段910號13樓之2",
+        "addressLocality": "西屯區",
+        "addressRegion": "臺中市",
+        "addressCountry": "TW"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "contactType": "customer support",
+        "availableLanguage": "zh-TW",
+        "url": "https://mrpolartw.github.io/polar-pet-store/contact"
+      },
+      "sameAs": [
+        "https://lin.ee/THZqvZ5r"
+      ]
+    }
+    </script>
+
+    <!-- WebSite schema: enables Google Sitelinks Searchbox -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Mr.Polar 北極先生",
+      "url": "https://mrpolartw.github.io/polar-pet-store/",
+      "inLanguage": "zh-TW",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://mrpolartw.github.io/polar-pet-store/products?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- OnlineStore schema: signals e-commerce context to AI engines -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Store",
+      "name": "Mr.Polar 北極先生寵物食品官網",
+      "url": "https://mrpolartw.github.io/polar-pet-store/",
+      "description": "天然無添加的寵物主食罐、手工零食與關節保健系列。",
+      "currenciesAccepted": "TWD",
+      "paymentAccepted": "信用卡, LINE Pay, ATM轉帳",
+      "priceRange": "$$",
+      "areaServed": "TW",
+      "hasMap": "https://maps.google.com/?q=24.1624,120.6478"
+    }
+    </script>
+
+    <!-- ===================== GA4 stub (consent-gated) ===================== -->
+    <!-- The real gtag.js is loaded by analytics.js only after cookie consent. -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}

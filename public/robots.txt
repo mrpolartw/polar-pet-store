@@ -1,0 +1,45 @@
+# Mr.Polar 北極先生寵物食品
+# https://mrpolartw.github.io/polar-pet-store/
+
+User-agent: *
+Allow: /
+
+# 不需索引的系統/功能路徑
+Disallow: /checkout
+Disallow: /order-confirm
+Disallow: /account
+Disallow: /orders
+Disallow: /favorites
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /line-complete
+Disallow: /unauthorized
+Disallow: /500
+
+# AI 爬蟲明確允許（GEO：Generative Engine Optimization）
+User-agent: GPTBot
+Allow: /
+Disallow: /checkout
+Disallow: /account
+Disallow: /reset-password
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /checkout
+Disallow: /account
+Disallow: /reset-password
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /checkout
+Disallow: /account
+Disallow: /reset-password
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Sitemap
+Sitemap: https://mrpolartw.github.io/polar-pet-store/sitemap.xml
