@@ -9,6 +9,7 @@ if (USE_MOCK && import.meta.env.PROD) {
 
 const PATHS = {
   REGISTER: '/store/auth/customer/register',
+  CHECK_REGISTER_EMAIL: '/store/auth/customer/register/email-status',
   LOGIN: '/store/auth/customer/login',
   STATUS: '/store/auth/customer/status',
   LOGOUT: '/auth/session',
@@ -97,6 +98,10 @@ export const register = async (userData) => {
   if (USE_MOCK) return mockAuthHandlers.register(userData)
 
   return apiClient.post(PATHS.REGISTER, userData)
+}
+
+export const checkRegisterEmail = async (email) => {
+  return apiClient.post(PATHS.CHECK_REGISTER_EMAIL, { email })
 }
 
 export const logout = async () => {
@@ -192,6 +197,7 @@ export const getLineBindUrl = (redirectTo) => {
 export default {
   login,
   register,
+  checkRegisterEmail,
   logout,
   getMe,
   getAuthStatus,

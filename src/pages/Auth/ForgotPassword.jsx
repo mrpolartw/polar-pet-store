@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { AlertCircle, ArrowLeft, Mail } from "lucide-react"
 
 import LogoImg from "../../png/LOGO.png"
+import MLogoImg from "../../png/LOGO_remove_background.png"
 import authService from "../../services/authService"
 import { validateEmail } from "../../utils/validators"
 import "./Auth.css"
@@ -30,10 +31,10 @@ const ForgotPassword = () => {
       const response = await authService.requestPasswordReset(email)
       setSuccessMessage(
         response?.message ||
-          "如果此 Email 已註冊，我們已寄出重設密碼信，請在 15 分鐘內完成重設。"
+          "如果這個 E-mail 已完成註冊，我們會寄出重設密碼的信。請在 15 分鐘內完成設定。"
       )
     } catch (err) {
-      setError(err?.body?.message || err?.message || "送出申請失敗，請稍後再試。")
+      setError(err?.body?.message || err?.message || "目前無法送出申請，請稍後再試。")
     } finally {
       setIsLoading(false)
     }
@@ -62,16 +63,16 @@ const ForgotPassword = () => {
           <h2>
             忘記密碼？
             <br />
-            我們幫你找回
+            沒關係，我們陪你找回來
           </h2>
-          <p>輸入你的 Email，我們會寄送重設密碼連結，請在 15 分鐘內完成設定。</p>
+          <p>輸入你的 E-mail，我們會寄送重設密碼連結。請在 15 分鐘內完成設定。</p>
         </div>
         <div className="auth-brand-features">
           <div className="auth-brand-feature">
             <div className="auth-brand-feature-icon">
               <Mail size={16} />
             </div>
-            <span>重設密碼連結會直接寄到你的信箱</span>
+            <span>重設密碼連結會寄到你的信箱</span>
           </div>
         </div>
       </div>
@@ -86,7 +87,7 @@ const ForgotPassword = () => {
           <div className="auth-mobile-logo">
             <Link to="/">
               <img
-                src={LogoImg}
+                src={MLogoImg}
                 alt="Mr. Polar"
                 style={{ height: "auto", width: 293, maxWidth: "100%", display: "block" }}
               />
@@ -95,7 +96,7 @@ const ForgotPassword = () => {
 
           <div className="auth-header">
             <h1>忘記密碼</h1>
-            <p>輸入註冊時使用的 Email，我們會寄送重設密碼連結。</p>
+            <p>輸入註冊時使用的 E-mail，我們會寄送重設密碼連結給你。</p>
           </div>
 
           {successMessage ? (

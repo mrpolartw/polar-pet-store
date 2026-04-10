@@ -9,6 +9,7 @@ import { ROUTES } from "../../constants/routes"
 import { validateEmail, validateRequired } from "../../utils/validators"
 import analytics from "../../utils/analytics"
 import LogoImg from "../../png/LOGO.png"
+import MLogoImg from "../../png/LOGO_remove_background.png"
 import "./Auth.css"
 
 const motion = Motion
@@ -25,13 +26,14 @@ const Login = () => {
   const [searchParams] = useSearchParams()
   const { login, isLoading, authError, setAuthError } = useAuth()
 
-  const [email, setEmail] = useState("")
+  const [email, setEmail] = useState(location.state?.email ?? "")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [errors, setErrors] = useState({})
   const [verificationEmail, setVerificationEmail] = useState("")
   const [isResendingVerification, setIsResendingVerification] = useState(false)
   const [verificationHint, setVerificationHint] = useState("")
+  const registerPromptMessage = location.state?.message ?? ""
 
   const lineErrorMessage = useMemo(() => {
     const lineError = searchParams.get("line_error")
@@ -134,7 +136,8 @@ const Login = () => {
             <br />
             Mr. Polar
           </h2>
-          <p>使用 Email / 密碼或 LINE 登入，繼續查看你的會員資料與訂單紀錄。</p>
+          <p>使用 E-mail / 密碼，或 LINE 進行登入，<br />
+          查看專屬你的會員資料與訂單紀錄。</p>
         </div>
 
         <div className="auth-brand-features">
@@ -148,13 +151,13 @@ const Login = () => {
             <div className="auth-brand-feature-icon">
               <Star size={16} />
             </div>
-            <span>同步掌握會員點數與專屬權益</span>
+            <span>會員點數優惠與專屬權益</span>
           </div>
           <div className="auth-brand-feature">
             <div className="auth-brand-feature-icon">
               <ShieldCheck size={16} />
             </div>
-            <span>完成 Email 驗證後即可安全登入</span>
+            <span>完成 E-mail 驗證後即可安全登入</span>
           </div>
         </div>
       </div>
@@ -164,7 +167,7 @@ const Login = () => {
           <div className="auth-mobile-logo">
             <Link to="/">
               <img
-                src={LogoImg}
+                src={MLogoImg}
                 alt="Mr. Polar"
                 style={{
                   height: "auto",
@@ -178,7 +181,7 @@ const Login = () => {
 
           <div className="auth-header">
             <h1>登入會員</h1>
-            <p>使用 Email / 密碼登入，或以 LINE 快速登入。</p>
+            <p>使用 E-mail / 密碼，或 LINE 進行登入。</p>
           </div>
 
           {(authError || lineErrorMessage) && (
@@ -189,6 +192,25 @@ const Login = () => {
             >
               <AlertCircle size={16} />
               {authError || lineErrorMessage}
+            </motion.div>
+          )}
+
+          {registerPromptMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                background: "#F5F1E8",
+                border: "1px solid rgba(177, 145, 90, 0.22)",
+                borderRadius: 12,
+                padding: "12px 16px",
+                marginBottom: 20,
+                color: "#7A5C2E",
+                fontSize: 14,
+                lineHeight: 1.7,
+              }}
+            >
+              {registerPromptMessage}
             </motion.div>
           )}
 

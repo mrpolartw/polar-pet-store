@@ -36,7 +36,7 @@ export default function LineComplete() {
     const nextErrors = validate()
 
     if (!token) {
-      setServerError("LINE 補資料連結無效，請重新登入 LINE。")
+      setServerError("這個 LINE 連結已失效，請重新登入 LINE。")
       return
     }
 
@@ -56,7 +56,7 @@ export default function LineComplete() {
       })
 
       await reloadSession()
-      setSuccessMessage("LINE 註冊完成，正在為你導回會員中心...")
+      setSuccessMessage("註冊完成，正在帶你前往會員中心...")
       setTimeout(() => {
         window.location.assign(
           response?.redirect_to || `${window.location.origin}/polar-pet-store/account`
@@ -64,7 +64,7 @@ export default function LineComplete() {
       }, 800)
     } catch (error) {
       setServerError(
-        error?.body?.message || error?.message || "LINE 補資料失敗，請稍後再試。"
+        error?.body?.message || error?.message || "目前無法完成註冊，請稍後再試。"
       )
     } finally {
       setIsSubmitting(false)
@@ -82,9 +82,10 @@ export default function LineComplete() {
             <MessageCircle size={32} strokeWidth={1.5} />
           )}
         </div>
+
         <h1 className="reset-password-title">完成 LINE 註冊</h1>
         <p className="reset-password-desc">
-          LINE 尚未提供完整會員資料，請補上 Email 與顯示名稱，以完成帳號建立。
+          只差一步。請填寫 E-mail，並留下你想顯示的名稱，讓我們為你完成帳號設定。
         </p>
 
         {serverError && (
@@ -99,7 +100,7 @@ export default function LineComplete() {
         ) : (
           <form className="reset-password-form" onSubmit={handleSubmit} noValidate>
             <div className="reset-password-field">
-              <label htmlFor="line-email">Email</label>
+              <label htmlFor="line-email">E-mail</label>
               <input
                 id="line-email"
                 type="email"
@@ -126,14 +127,14 @@ export default function LineComplete() {
                   setErrors((prev) => ({ ...prev, name: undefined }))
                 }}
                 className={errors.name ? "is-error" : ""}
-                placeholder="請輸入姓名"
+                placeholder="例如：王小明"
                 autoComplete="name"
               />
               {errors.name && <p className="reset-password-field-error">{errors.name}</p>}
             </div>
 
             <button type="submit" className="btn-blue reset-password-submit" disabled={isSubmitting}>
-              {isSubmitting ? "送出中..." : "完成 LINE 註冊"}
+              {isSubmitting ? "送出中..." : "完成註冊"}
             </button>
           </form>
         )}

@@ -8,7 +8,7 @@ import { useCart } from './context/useCart';
 
 // --- Styles & Assets ---
 import './App.css';
-import LogoImg from './png/LOGO去背景.png';
+import LogoImg from './png/LOGO_remove_background.png';
 
 // --- Shop Pages ---
 // 訂單查詢頁面

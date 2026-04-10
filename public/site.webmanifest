@@ -12,7 +12,7 @@
   "categories": ["shopping", "food", "lifestyle"],
   "icons": [
     {
-      "src": "/polar-pet-store/src/png/icon.svg",
+      "src": "/polar-pet-store/vite.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
