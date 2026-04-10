@@ -1,34 +1,37 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { CheckCircle2, KeyRound, XCircle } from 'lucide-react'
+import { useEffect, useMemo, useState } from "react"
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { CheckCircle2, KeyRound, XCircle } from "lucide-react"
 
-import { SEOHead, LoadingSpinner } from '../../components/common'
-import authService from '../../services/authService'
-import { ROUTES } from '../../constants/routes'
-import { validatePassword, validatePasswordConfirm } from '../../utils/validators'
-import './ResetPassword.css'
+import { SEOHead, LoadingSpinner } from "../../components/common"
+import authService from "../../services/authService"
+import { ROUTES } from "../../constants/routes"
+import { validatePassword, validatePasswordConfirm } from "../../utils/validators"
+import "./ResetPassword.css"
 
 const STATUS = {
-  LOADING: 'loading',
-  VALID: 'valid',
-  INVALID: 'invalid',
-  EXPIRED: 'expired',
-  USED: 'used',
-  SUCCESS: 'success',
+  LOADING: "loading",
+  VALID: "valid",
+  INVALID: "invalid",
+  EXPIRED: "expired",
+  USED: "used",
+  SUCCESS: "success",
 }
 
 export default function ResetPassword() {
   const { token: tokenParam } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const token = useMemo(() => tokenParam || searchParams.get('token') || '', [searchParams, tokenParam])
+  const token = useMemo(
+    () => tokenParam || searchParams.get("token") || "",
+    [searchParams, tokenParam]
+  )
 
   const [status, setStatus] = useState(() => (token ? STATUS.LOADING : STATUS.INVALID))
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
+  const [password, setPassword] = useState("")
+  const [confirm, setConfirm] = useState("")
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [serverMessage, setServerMessage] = useState('')
+  const [serverMessage, setServerMessage] = useState("")
 
   useEffect(() => {
     if (!token) return undefined
@@ -40,30 +43,32 @@ export default function ResetPassword() {
         const response = await authService.validatePasswordResetToken(token)
         if (!isMounted) return
 
-        if (response?.status === 'valid') {
+        if (response?.status === "valid") {
           setStatus(STATUS.VALID)
-          setServerMessage(response?.message || '')
+          setServerMessage(response?.message || "")
           return
         }
 
-        if (response?.status === 'token_expired') {
+        if (response?.status === "token_expired") {
           setStatus(STATUS.EXPIRED)
-          setServerMessage(response?.message || '重設密碼連結已過期')
+          setServerMessage(response?.message || "重設密碼連結已過期。")
           return
         }
 
-        if (response?.status === 'token_used') {
+        if (response?.status === "token_used") {
           setStatus(STATUS.USED)
-          setServerMessage(response?.message || '此重設密碼連結已使用過')
+          setServerMessage(response?.message || "此重設密碼連結已使用。")
           return
         }
 
         setStatus(STATUS.INVALID)
-        setServerMessage(response?.message || '重設密碼連結無效')
+        setServerMessage(response?.message || "重設密碼連結無效。")
       } catch (error) {
         if (!isMounted) return
         setStatus(STATUS.INVALID)
-        setServerMessage(error?.body?.message || error?.message || '重設密碼連結無效')
+        setServerMessage(
+          error?.body?.message || error?.message || "重設密碼連結無效。"
+        )
       }
     }
 
@@ -100,17 +105,17 @@ export default function ResetPassword() {
 
     setIsSubmitting(true)
     setErrors({})
-    setServerMessage('')
+    setServerMessage("")
 
     try {
       const response = await authService.confirmPasswordReset(token, password)
 
-      if (response?.status !== 'reset') {
-        setServerMessage(response?.message || '重設密碼失敗，請重新申請連結')
+      if (response?.status !== "reset") {
+        setServerMessage(response?.message || "重設密碼失敗，請重新申請。")
         setStatus(
-          response?.status === 'token_expired'
+          response?.status === "token_expired"
             ? STATUS.EXPIRED
-            : response?.status === 'token_used'
+            : response?.status === "token_used"
               ? STATUS.USED
               : STATUS.INVALID
         )
@@ -118,9 +123,11 @@ export default function ResetPassword() {
       }
 
       setStatus(STATUS.SUCCESS)
-      setServerMessage(response?.message || '密碼已更新，請使用新密碼登入')
+      setServerMessage(response?.message || "密碼已更新，請使用新密碼登入。")
     } catch (error) {
-      setServerMessage(error?.body?.message || error?.message || '重設密碼失敗，請重新申請連結')
+      setServerMessage(
+        error?.body?.message || error?.message || "重設密碼失敗，請稍後再試。"
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -130,7 +137,7 @@ export default function ResetPassword() {
     return (
       <main className="reset-password-page">
         <SEOHead title="重設密碼" noIndex={true} />
-        <LoadingSpinner size="large" fullPage={true} label="正在驗證連結..." />
+        <LoadingSpinner size="large" fullPage={true} label="正在驗證重設連結..." />
       </main>
     )
   }
@@ -138,10 +145,10 @@ export default function ResetPassword() {
   if (status === STATUS.INVALID || status === STATUS.EXPIRED || status === STATUS.USED) {
     const title =
       status === STATUS.EXPIRED
-        ? '重設連結已過期'
+        ? "重設連結已過期"
         : status === STATUS.USED
-          ? '重設連結已失效'
-          : '重設連結無效'
+          ? "重設連結已使用"
+          : "重設連結無效"
 
     return (
       <main className="reset-password-page">
@@ -152,7 +159,7 @@ export default function ResetPassword() {
           </div>
           <h1 className="reset-password-title">{title}</h1>
           <p className="reset-password-desc">
-            {serverMessage || '請重新申請新的重設密碼連結。'}
+            {serverMessage || "請重新申請重設密碼連結。"}
           </p>
           <Link to={ROUTES.FORGOT_PASSWORD} className="btn-blue reset-password-submit">
             重新申請重設密碼
@@ -168,7 +175,7 @@ export default function ResetPassword() {
   if (status === STATUS.SUCCESS) {
     return (
       <main className="reset-password-page">
-        <SEOHead title="密碼重設完成" noIndex={true} />
+        <SEOHead title="密碼已更新" noIndex={true} />
         <div className="reset-password-card">
           <div className="reset-password-icon reset-password-icon--success">
             <CheckCircle2 size={32} strokeWidth={1.5} />
@@ -180,7 +187,7 @@ export default function ResetPassword() {
             3 秒後將自動導向登入頁。
           </p>
           <Link to={ROUTES.LOGIN} className="btn-blue reset-password-submit">
-            立即登入
+            前往登入
           </Link>
         </div>
       </main>
@@ -196,7 +203,7 @@ export default function ResetPassword() {
         </div>
         <h1 className="reset-password-title">設定新密碼</h1>
         <p className="reset-password-desc">
-          新密碼至少需要 8 個字元，並包含大寫英文字母與數字。
+          新密碼至少需 8 碼，並包含 1 個大寫英文字母與 1 個數字。
         </p>
 
         <form className="reset-password-form" onSubmit={handleSubmit} noValidate>
@@ -210,8 +217,8 @@ export default function ResetPassword() {
                 setPassword(event.target.value)
                 setErrors((prev) => ({ ...prev, password: undefined }))
               }}
-              className={errors.password ? 'is-error' : ''}
-              placeholder="至少 8 個字元"
+              className={errors.password ? "is-error" : ""}
+              placeholder="至少 8 碼"
               autoComplete="new-password"
             />
             {errors.password && (
@@ -229,8 +236,8 @@ export default function ResetPassword() {
                 setConfirm(event.target.value)
                 setErrors((prev) => ({ ...prev, confirm: undefined }))
               }}
-              className={errors.confirm ? 'is-error' : ''}
-              placeholder="再次輸入新密碼"
+              className={errors.confirm ? "is-error" : ""}
+              placeholder="請再次輸入新密碼"
               autoComplete="new-password"
             />
             {errors.confirm && (
@@ -245,7 +252,7 @@ export default function ResetPassword() {
           )}
 
           <button type="submit" className="btn-blue reset-password-submit" disabled={isSubmitting}>
-            {isSubmitting ? '送出中...' : '更新密碼'}
+            {isSubmitting ? "更新中..." : "更新密碼"}
           </button>
         </form>
 

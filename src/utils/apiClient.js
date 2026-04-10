@@ -1,6 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ""
 const DEFAULT_TIMEOUT = 15000
-const PUBLISHABLE_KEY = import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY ?? ''
+const PUBLISHABLE_KEY = import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY ?? ""
 
 function buildApiUrl(path) {
   return `${BASE_URL}${path}`
@@ -46,8 +46,8 @@ async function fetchWithTimeout(url, options = {}) {
     })
     return res
   } catch (err) {
-    if (err.name === 'AbortError') {
-      const timeout = new Error('連線逾時，請稍後再試。')
+    if (err.name === "AbortError") {
+      const timeout = new Error("連線逾時，請稍後再試。")
       timeout.status = 408
       throw timeout
     }
@@ -60,12 +60,12 @@ async function fetchWithTimeout(url, options = {}) {
 
 function getHeaders(extra = {}) {
   const headers = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...extra,
   }
 
   if (PUBLISHABLE_KEY) {
-    headers['x-publishable-api-key'] = PUBLISHABLE_KEY
+    headers["x-publishable-api-key"] = PUBLISHABLE_KEY
   }
 
   return headers
@@ -74,7 +74,7 @@ function getHeaders(extra = {}) {
 function buildRequestOptions(method, body, options = {}) {
   const {
     headers: extraHeaders = {},
-    credentials = 'include',
+    credentials = "include",
     ...rest
   } = options
 
@@ -98,7 +98,7 @@ const apiClient = {
   get: async (path, options = {}) => {
     const res = await fetchWithTimeout(
       buildApiUrl(path),
-      buildRequestOptions('GET', undefined, options)
+      buildRequestOptions("GET", undefined, options)
     )
     return handleResponse(res)
   },
@@ -106,7 +106,7 @@ const apiClient = {
   post: async (path, body = {}, options = {}) => {
     const res = await fetchWithTimeout(
       buildApiUrl(path),
-      buildRequestOptions('POST', body, options)
+      buildRequestOptions("POST", body, options)
     )
     return handleResponse(res)
   },
@@ -114,7 +114,7 @@ const apiClient = {
   put: async (path, body = {}, options = {}) => {
     const res = await fetchWithTimeout(
       buildApiUrl(path),
-      buildRequestOptions('PUT', body, options)
+      buildRequestOptions("PUT", body, options)
     )
     return handleResponse(res)
   },
@@ -122,7 +122,7 @@ const apiClient = {
   del: async (path, options = {}) => {
     const res = await fetchWithTimeout(
       buildApiUrl(path),
-      buildRequestOptions('DELETE', undefined, options)
+      buildRequestOptions("DELETE", undefined, options)
     )
     return handleResponse(res)
   },

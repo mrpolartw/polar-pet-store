@@ -1,24 +1,24 @@
-import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { AlertCircle, CheckCircle2, MessageCircle } from 'lucide-react'
+import { useMemo, useState } from "react"
+import { Link, useSearchParams } from "react-router-dom"
+import { AlertCircle, CheckCircle2, MessageCircle } from "lucide-react"
 
-import { SEOHead } from '../../components/common'
-import authService from '../../services/authService'
-import { useAuth } from '../../context/useAuth'
-import { validateEmail, validateName } from '../../utils/validators'
-import './Auth.css'
+import { SEOHead } from "../../components/common"
+import authService from "../../services/authService"
+import { useAuth } from "../../context/useAuth"
+import { validateEmail, validateName } from "../../utils/validators"
+import "./Auth.css"
 
 export default function LineComplete() {
   const [searchParams] = useSearchParams()
   const { reloadSession } = useAuth()
-  const token = useMemo(() => searchParams.get('token') || '', [searchParams])
+  const token = useMemo(() => searchParams.get("token") || "", [searchParams])
 
-  const [email, setEmail] = useState('')
-  const [name, setName] = useState('')
+  const [email, setEmail] = useState("")
+  const [name, setName] = useState("")
   const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
-  const [serverError, setServerError] = useState('')
+  const [successMessage, setSuccessMessage] = useState("")
+  const [serverError, setServerError] = useState("")
 
   const validate = () => {
     const nextErrors = {}
@@ -36,7 +36,7 @@ export default function LineComplete() {
     const nextErrors = validate()
 
     if (!token) {
-      setServerError('LINE 補資料連結無效，請重新登入 LINE')
+      setServerError("LINE 補資料連結無效，請重新登入 LINE。")
       return
     }
 
@@ -46,7 +46,7 @@ export default function LineComplete() {
     }
 
     setIsSubmitting(true)
-    setServerError('')
+    setServerError("")
 
     try {
       const response = await authService.completeLineRegistration({
@@ -56,12 +56,16 @@ export default function LineComplete() {
       })
 
       await reloadSession()
-      setSuccessMessage('LINE 帳號已完成綁定，正在帶你回到會員中心...')
+      setSuccessMessage("LINE 註冊完成，正在為你導回會員中心...")
       setTimeout(() => {
-        window.location.assign(response?.redirect_to || `${window.location.origin}/polar-pet-store/account`)
+        window.location.assign(
+          response?.redirect_to || `${window.location.origin}/polar-pet-store/account`
+        )
       }, 800)
     } catch (error) {
-      setServerError(error?.body?.message || error?.message || 'LINE 補資料失敗，請稍後再試')
+      setServerError(
+        error?.body?.message || error?.message || "LINE 補資料失敗，請稍後再試。"
+      )
     } finally {
       setIsSubmitting(false)
     }
@@ -72,11 +76,15 @@ export default function LineComplete() {
       <SEOHead title="完成 LINE 註冊" noIndex={true} />
       <div className="reset-password-card">
         <div className="reset-password-icon reset-password-icon--default">
-          {successMessage ? <CheckCircle2 size={32} strokeWidth={1.5} /> : <MessageCircle size={32} strokeWidth={1.5} />}
+          {successMessage ? (
+            <CheckCircle2 size={32} strokeWidth={1.5} />
+          ) : (
+            <MessageCircle size={32} strokeWidth={1.5} />
+          )}
         </div>
         <h1 className="reset-password-title">完成 LINE 註冊</h1>
         <p className="reset-password-desc">
-          LINE 未提供完整會員資料，請補上 Email，必要時也可以同步更新顯示名稱。
+          LINE 尚未提供完整會員資料，請補上 Email 與顯示名稱，以完成帳號建立。
         </p>
 
         {serverError && (
@@ -100,7 +108,7 @@ export default function LineComplete() {
                   setEmail(event.target.value)
                   setErrors((prev) => ({ ...prev, email: undefined }))
                 }}
-                className={errors.email ? 'is-error' : ''}
+                className={errors.email ? "is-error" : ""}
                 placeholder="name@example.com"
                 autoComplete="email"
               />
@@ -117,15 +125,15 @@ export default function LineComplete() {
                   setName(event.target.value)
                   setErrors((prev) => ({ ...prev, name: undefined }))
                 }}
-                className={errors.name ? 'is-error' : ''}
-                placeholder="你的名字"
+                className={errors.name ? "is-error" : ""}
+                placeholder="請輸入姓名"
                 autoComplete="name"
               />
               {errors.name && <p className="reset-password-field-error">{errors.name}</p>}
             </div>
 
             <button type="submit" className="btn-blue reset-password-submit" disabled={isSubmitting}>
-              {isSubmitting ? '送出中...' : '完成 LINE 綁定'}
+              {isSubmitting ? "送出中..." : "完成 LINE 註冊"}
             </button>
           </form>
         )}
