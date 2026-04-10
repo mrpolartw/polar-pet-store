@@ -9,15 +9,6 @@ import {
   getMembershipLevelName,
 } from '../../membership/utils'
 
-function SummaryMetric({ label, value, accent = false }) {
-  return (
-    <div className={`account-membership-metric ${accent ? 'accent' : ''}`}>
-      <span className="account-membership-metric-label">{label}</span>
-      <strong className="account-membership-metric-value">{value}</strong>
-    </div>
-  )
-}
-
 export default function AccountMembershipSummary({
   summary,
   isLoading,
@@ -79,29 +70,6 @@ export default function AccountMembershipSummary({
         </div>
       </div>
 
-      <div className="account-membership-grid">
-        <SummaryMetric
-          label="可用點數"
-          value={formatMembershipPoints(summary?.pointsSummary?.availablePoints)}
-          accent={true}
-        />
-        <SummaryMetric
-          label="總點數"
-          value={formatMembershipPoints(summary?.pointsSummary?.totalPoints)}
-        />
-        <SummaryMetric
-          label="已失效點數"
-          value={formatMembershipPoints(summary?.pointsSummary?.expiredPoints)}
-        />
-        <SummaryMetric
-          label="已折抵點數"
-          value={formatMembershipPoints(summary?.pointsSummary?.redeemedPoints)}
-        />
-        <SummaryMetric
-          label="已退款扣回"
-          value={formatMembershipPoints(summary?.pointsSummary?.refundedPoints)}
-        />
-      </div>
     </section>
   )
 }

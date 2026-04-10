@@ -107,6 +107,19 @@
   margin-bottom: 14px;
 }
 
+.account-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 980px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: rgba(0, 49, 83, 0.08);
+  color: var(--color-brand-blue);
+}
+
 .account-tier-badge {
   display: inline-flex;
   align-items: center;

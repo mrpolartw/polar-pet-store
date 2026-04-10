@@ -1,4 +1,11 @@
-import React, { createContext, useCallback, useEffect, useMemo, useState } from "react"
+import React, {
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 
 import authService from "../services/authService"
 import membershipService from "../services/membershipService"
@@ -36,6 +43,11 @@ export const AuthProvider = ({ children }) => {
   const [isMembershipLoading, setIsMembershipLoading] = useState(false)
   const [membershipError, setMembershipError] = useState("")
   const [authStatus, setAuthStatus] = useState(null)
+  const userRef = useRef(null)
+
+  useEffect(() => {
+    userRef.current = user
+  }, [user])
 
   const clearMembership = useCallback(() => {
     setMembershipSummary(buildEmptyMembershipSummary())
@@ -44,7 +56,7 @@ export const AuthProvider = ({ children }) => {
   }, [])
 
   const refreshMembership = useCallback(
-    async (nextUser = user) => {
+    async (nextUser = userRef.current) => {
       if (!nextUser?.id) {
         clearMembership()
         return buildEmptyMembershipSummary()
@@ -67,7 +79,7 @@ export const AuthProvider = ({ children }) => {
         setIsMembershipLoading(false)
       }
     },
-    [clearMembership, user]
+    [clearMembership]
   )
 
   const refreshAuthStatus = useCallback(async () => {

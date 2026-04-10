@@ -7,10 +7,6 @@ import { useAuth } from '../../../context/useAuth'
 import { useToast } from '../../../context/ToastContext'
 import AccountMembershipSummary from './AccountMembershipSummary'
 import AccountPointHistory from './AccountPointHistory'
-import {
-  formatMembershipPoints,
-  getMembershipLevelName,
-} from '../../membership/utils'
 
 const SUPPORTED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_AVATAR_FILE_SIZE = CONFIG.MAX_AVATAR_SIZE ?? 5 * 1024 * 1024
@@ -26,7 +22,6 @@ const getInitials = (name) => (name ? name.slice(0, 2).toUpperCase() : 'PL')
 
 function AccountProfileCard({
   user,
-  membershipSummary,
   onAvatarUpload,
 }) {
   const inputRef = useRef(null)
@@ -60,17 +55,6 @@ function AccountProfileCard({
       <div className="account-user-name">{user?.name ?? '會員'}</div>
       <div className="account-user-email">{user?.email ?? '尚未設定 Email'}</div>
 
-      <div className="account-tier-badge">
-        <span>{getMembershipLevelName(membershipSummary?.currentLevel)}</span>
-      </div>
-
-      <div className="account-points-row">
-        <span>可用點數</span>
-        <span className="account-points-value">
-          {formatMembershipPoints(membershipSummary?.availablePoints)}
-        </span>
-      </div>
-
       <div
         style={{
           marginTop: 12,
@@ -80,11 +64,11 @@ function AccountProfileCard({
           justifyContent: 'center',
         }}
       >
-        <span className="account-tier-badge">
+        <span className="account-status-chip">
           {user?.emailVerified ? 'Email 已驗證' : 'Email 待驗證'}
         </span>
         {user?.lineLinked && (
-          <span className="account-tier-badge" style={{ background: '#ECFDF3', color: '#15803D' }}>
+          <span className="account-status-chip" style={{ background: '#ECFDF3', color: '#15803D' }}>
             LINE 已綁定
           </span>
         )}
@@ -122,7 +106,12 @@ export default function AccountProfile() {
 
   const handleUpdateProfile = async () => {
     try {
-      const result = await updateProfile(profileForm)
+      const result = await updateProfile({
+        name: profileForm.name.trim(),
+        phone: profileForm.phone.trim() || null,
+        birthday: profileForm.birthday || null,
+        gender: profileForm.gender || 'undisclosed',
+      })
 
       if (result?.success === false) {
         throw new Error(result?.message || '會員資料更新失敗，請稍後再試')
@@ -189,7 +178,6 @@ export default function AccountProfile() {
 
       <AccountProfileCard
         user={user}
-        membershipSummary={membershipSummary}
         onAvatarUpload={handleAvatarUpload}
       />
 

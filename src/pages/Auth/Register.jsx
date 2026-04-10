@@ -488,7 +488,6 @@ const Register = () => {
                           <option value="">未選擇</option>
                           <option value="cat">貓</option>
                           <option value="dog">狗</option>
-                          <option value="bird">鳥</option>
                           <option value="other">其他</option>
                         </select>
                       </div>

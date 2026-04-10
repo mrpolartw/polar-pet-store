@@ -71,16 +71,6 @@ export default function Account() {
 
       <div className="account-layout">
         <aside className="account-sidebar">
-          <div className="account-profile-card">
-            <div className="account-avatar">
-              {user?.avatar
-                ? <img src={user.avatar} alt={user.name} />
-                : <span>{user?.name?.[0] ?? '會'}</span>}
-            </div>
-            <div className="account-user-name">{user?.name}</div>
-            <div className="account-user-email">{user?.email}</div>
-          </div>
-
           <nav className="account-nav">
             {TAB_CONFIG.map((tab) => (
               <button

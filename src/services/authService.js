@@ -12,8 +12,8 @@ const PATHS = {
   LOGIN: '/store/auth/customer/login',
   STATUS: '/store/auth/customer/status',
   LOGOUT: '/auth/session',
-  ME: '/store/customers/me',
-  UPDATE_PROFILE: '/store/customers/me',
+  ME: '/store/customers/me/profile',
+  UPDATE_PROFILE: '/store/customers/me/profile',
   CHANGE_PASSWORD: '/store/customers/me/password',
   REQUEST_EMAIL_VERIFICATION: '/store/auth/customer/email-verification/request',
   CONFIRM_EMAIL_VERIFICATION: '/store/auth/customer/email-verification/confirm',
@@ -105,8 +105,8 @@ export const getAuthStatus = async () => {
 export const updateProfile = async (data) => {
   if (USE_MOCK) return mockAuthHandlers.updateProfile(data)
 
-  await apiClient.post(PATHS.UPDATE_PROFILE, data)
-  return fetchCurrentCustomer()
+  const response = await apiClient.post(PATHS.UPDATE_PROFILE, data)
+  return toCustomerShape(response)
 }
 
 export const changePassword = async (oldPassword, newPassword) => {
