@@ -34,6 +34,13 @@ export const OAUTH_PROVIDERS = [
   "apple",
 ] as const
 
+export const CUSTOMER_AUTH_TOKEN_TYPES = [
+  "email_verification",
+  "password_reset",
+  "line_oauth_state",
+  "line_pending_email",
+] as const
+
 export const PET_SPECIES = [
   "dog",
   "cat",
@@ -59,6 +66,7 @@ export type PointLogSource = (typeof POINT_LOG_SOURCES)[number]
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number]
 export type BillingInterval = (typeof BILLING_INTERVALS)[number]
 export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number]
+export type CustomerAuthTokenType = (typeof CUSTOMER_AUTH_TOKEN_TYPES)[number]
 export type PetSpecies = (typeof PET_SPECIES)[number]
 export type PetGender = (typeof PET_GENDERS)[number]
 export type AuditActorType = (typeof AUDIT_ACTOR_TYPES)[number]

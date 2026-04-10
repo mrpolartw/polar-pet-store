@@ -6,6 +6,7 @@ const CustomerProfile = model.define("membership_customer_profile", {
   customer_id: model.text().unique(),
   birthday: model.dateTime().nullable(),
   gender: model.enum([...CUSTOMER_GENDERS]).default("undisclosed"),
+  email_verified_at: model.dateTime().nullable(),
   last_login_at: model.dateTime().nullable(),
 })
 

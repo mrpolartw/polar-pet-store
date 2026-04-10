@@ -23,6 +23,16 @@ import {
 import { AdminUpdateCustomerMembership } from "./admin/customers/membership/validators"
 import { pointsPaginationQueryConfig } from "./store/membership/query-config"
 import {
+  StoreCustomerEmailVerificationConfirm,
+  StoreCustomerEmailVerificationRequest,
+  StoreCustomerLineComplete,
+  StoreCustomerLogin,
+  StoreCustomerPasswordResetConfirm,
+  StoreCustomerPasswordResetRequest,
+  StoreCustomerPasswordResetValidate,
+  StoreCustomerRegister,
+} from "./store/customer-auth/validators"
+import {
   StoreAddFavorite,
   StoreApplyMembershipPointRedemption,
   StoreCreatePet,
@@ -114,7 +124,63 @@ export default defineMiddlewares({
       middlewares: [validateAndTransformBody(AdminAssignMembershipLevel)],
     },
     {
+      matcher: "/store/auth/customer/status",
+      methods: ["ALL"],
+      middlewares: [customerAuth],
+    },
+    {
+      matcher: "/store/auth/customer/register",
+      methods: ["POST"],
+      middlewares: [validateAndTransformBody(StoreCustomerRegister)],
+    },
+    {
+      matcher: "/store/auth/customer/login",
+      methods: ["POST"],
+      middlewares: [validateAndTransformBody(StoreCustomerLogin)],
+    },
+    {
+      matcher: "/store/auth/customer/email-verification/request",
+      methods: ["POST"],
+      middlewares: [
+        validateAndTransformBody(StoreCustomerEmailVerificationRequest),
+      ],
+    },
+    {
+      matcher: "/store/auth/customer/email-verification/confirm",
+      methods: ["POST"],
+      middlewares: [
+        validateAndTransformBody(StoreCustomerEmailVerificationConfirm),
+      ],
+    },
+    {
+      matcher: "/store/auth/customer/password-reset/request",
+      methods: ["POST"],
+      middlewares: [validateAndTransformBody(StoreCustomerPasswordResetRequest)],
+    },
+    {
+      matcher: "/store/auth/customer/password-reset/validate",
+      methods: ["POST"],
+      middlewares: [
+        validateAndTransformBody(StoreCustomerPasswordResetValidate),
+      ],
+    },
+    {
+      matcher: "/store/auth/customer/password-reset/confirm",
+      methods: ["POST"],
+      middlewares: [validateAndTransformBody(StoreCustomerPasswordResetConfirm)],
+    },
+    {
+      matcher: "/store/auth/customer/line/complete",
+      methods: ["POST"],
+      middlewares: [validateAndTransformBody(StoreCustomerLineComplete)],
+    },
+    {
       matcher: "/store/customers/me/membership",
+      methods: ["ALL"],
+      middlewares: [customerAuth],
+    },
+    {
+      matcher: "/store/customers/me/line/start",
       methods: ["ALL"],
       middlewares: [customerAuth],
     },

@@ -15,6 +15,7 @@ import type { Link } from "@medusajs/modules-sdk"
 import {
   type AuditActorType,
   type BillingInterval,
+  type CustomerAuthTokenType,
   type CustomerGender,
   type OAuthProvider,
   type PetGender,
@@ -29,6 +30,7 @@ import {
   type MembershipPointsSnapshot,
 } from "../../lib/membership/membership-point-balance"
 import AuditLog from "./models/audit-log"
+import CustomerAuthToken from "./models/customer-auth-token"
 import CustomerProfile from "./models/customer-profile"
 import Favorite from "./models/favorite"
 import MemberLevel from "./models/member-level"
@@ -46,6 +48,7 @@ type OAuthLinkDTO = InferTypeOf<typeof OAuthLink>
 type PetDTO = InferTypeOf<typeof Pet>
 type FavoriteDTO = InferTypeOf<typeof Favorite>
 type AuditLogDTO = InferTypeOf<typeof AuditLog>
+type CustomerAuthTokenDTO = InferTypeOf<typeof CustomerAuthToken>
 type CustomerProfileDTO = InferTypeOf<typeof CustomerProfile>
 
 type MemberLevelListFilters = Partial<
@@ -126,7 +129,18 @@ type CreateAuditLogInput = {
 type UpdateCustomerProfileInput = {
   birthday?: Date | null
   gender?: CustomerGender
+  email_verified_at?: Date | null
   last_login_at?: Date | null
+}
+
+type CreateCustomerAuthTokenInput = {
+  customer_id?: string | null
+  auth_identity_id?: string | null
+  token_type: CustomerAuthTokenType
+  token_hash: string
+  expires_at: Date
+  used_at?: Date | null
+  metadata?: Record<string, unknown> | null
 }
 
 type CreatePointLogInput = {
@@ -162,6 +176,7 @@ class MembershipModuleService extends MedusaService({
   Pet,
   Favorite,
   AuditLog,
+  CustomerAuthToken,
   CustomerProfile,
 }) {
   declare protected readonly __container__: Record<string, unknown>
@@ -555,6 +570,93 @@ class MembershipModuleService extends MedusaService({
     })
   }
 
+  async createCustomerAuthToken(
+    data: CreateCustomerAuthTokenInput
+  ): Promise<CustomerAuthTokenDTO> {
+    return await super.createCustomerAuthTokens({
+      customer_id: data.customer_id ?? null,
+      auth_identity_id: data.auth_identity_id ?? null,
+      token_type: data.token_type,
+      token_hash: data.token_hash,
+      expires_at: data.expires_at,
+      used_at: data.used_at ?? null,
+      metadata: data.metadata ?? null,
+    })
+  }
+
+  async findCustomerAuthTokenByHash(
+    tokenHash: string,
+    tokenType: CustomerAuthTokenType
+  ): Promise<CustomerAuthTokenDTO | null> {
+    const [token] = await super.listCustomerAuthTokens(
+      {
+        token_hash: tokenHash,
+        token_type: tokenType,
+      },
+      {
+        order: {
+          created_at: "DESC",
+          id: "DESC",
+        },
+        take: 1,
+      }
+    )
+
+    return token ?? null
+  }
+
+  async invalidateCustomerAuthTokens(
+    filters: Partial<
+      Pick<
+        CustomerAuthTokenDTO,
+        "customer_id" | "auth_identity_id" | "token_type"
+      >
+    >,
+    metadata?: Record<string, unknown> | null
+  ): Promise<CustomerAuthTokenDTO[]> {
+    const tokens = await super.listCustomerAuthTokens(filters)
+    const pendingTokens = tokens.filter((token) => !token.used_at)
+
+    if (!pendingTokens.length) {
+      return []
+    }
+
+    return (await super.updateCustomerAuthTokens(
+      pendingTokens.map((token) => ({
+        id: token.id,
+        used_at: new Date(),
+        metadata: metadata
+          ? {
+              ...(token.metadata ?? {}),
+              ...metadata,
+            }
+          : token.metadata ?? null,
+      }))
+    )) as CustomerAuthTokenDTO[]
+  }
+
+  async markCustomerAuthTokenUsed(
+    id: string,
+    metadata?: Record<string, unknown> | null
+  ): Promise<CustomerAuthTokenDTO> {
+    const [token] = await super.updateCustomerAuthTokens({
+      selector: { id },
+      data: {
+        used_at: new Date(),
+        metadata,
+      },
+    })
+
+    if (!token) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Customer auth token ${id} was not found`
+      )
+    }
+
+    return token
+  }
+
   async getCustomerProfile(
     customer_id: string
   ): Promise<CustomerProfileDTO | null> {
@@ -581,6 +683,7 @@ class MembershipModuleService extends MedusaService({
         customer_id,
         birthday: data.birthday ?? null,
         gender: data.gender ?? "undisclosed",
+        email_verified_at: data.email_verified_at ?? null,
         last_login_at: data.last_login_at ?? null,
       })
     }
