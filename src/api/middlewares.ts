@@ -18,10 +18,15 @@ import {
   AdminGetMembershipCustomerPointsParams,
   AdminGetMembershipCustomersParams,
   AdminGetMembershipMemberLevelsParams,
+  AdminProcessMembershipOrderRefund,
   AdminUpdateMemberLevel,
 } from "./admin/membership/validators"
 import { AdminUpdateCustomerMembership } from "./admin/customers/membership/validators"
 import { pointsPaginationQueryConfig } from "./store/membership/query-config"
+import {
+  StoreCreateOrder,
+  StoreLookupOrdersByPhone,
+} from "./store/orders/validators"
 import {
   StoreCustomerEmailVerificationConfirm,
   StoreCustomerEmailVerificationRequest,
@@ -45,6 +50,9 @@ import {
 
 const adminAuth = authenticate("user", ["session", "bearer", "api-key"])
 const customerAuth = authenticate("customer", ["session", "bearer"])
+const optionalCustomerAuth = authenticate("customer", ["session", "bearer"], {
+  allowUnauthenticated: true,
+})
 
 export default defineMiddlewares({
   routes: [
@@ -124,9 +132,32 @@ export default defineMiddlewares({
       middlewares: [validateAndTransformBody(AdminAssignMembershipLevel)],
     },
     {
+      matcher: "/admin/membership/orders/:id/refund",
+      methods: ["POST"],
+      middlewares: [validateAndTransformBody(AdminProcessMembershipOrderRefund)],
+    },
+    {
       matcher: "/store/auth/customer/status",
       methods: ["ALL"],
       middlewares: [customerAuth],
+    },
+    {
+      matcher: "/store/orders",
+      methods: ["POST"],
+      middlewares: [
+        optionalCustomerAuth,
+        validateAndTransformBody(StoreCreateOrder),
+      ],
+    },
+    {
+      matcher: "/store/order-lookups",
+      methods: ["GET"],
+      middlewares: [
+        validateAndTransformQuery(StoreLookupOrdersByPhone, {
+          defaults: [],
+          isList: true,
+        }),
+      ],
     },
     {
       matcher: "/store/auth/customer/register",
@@ -176,6 +207,11 @@ export default defineMiddlewares({
     },
     {
       matcher: "/store/customers/me/membership",
+      methods: ["ALL"],
+      middlewares: [customerAuth],
+    },
+    {
+      matcher: "/store/customers/me/orders",
       methods: ["ALL"],
       middlewares: [customerAuth],
     },

@@ -1,3 +1,4 @@
+import { updateOrderWorkflow } from "@medusajs/core-flows"
 import type { MedusaContainer } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -8,6 +9,13 @@ import { MEMBERSHIP_MODULE } from "../../modules/membership"
 import type MembershipModuleService from "../../modules/membership/service"
 import { recalculateCustomerMembershipLevel } from "./customer-membership-level"
 import { formatDateTimeString } from "./customer-membership-detail"
+import {
+  appendMembershipOrderRefundMetadata,
+  getMembershipOrderInitialRewardableTotal,
+  getMembershipOrderRefundHistory,
+  getMembershipOrderRefundReferences,
+  getMembershipOrderRefundedAmount,
+} from "./membership-order-accounting"
 import { buildMembershipPointsSnapshot } from "./membership-point-balance"
 
 type QueryGraphService = {
@@ -15,6 +23,11 @@ type QueryGraphService = {
     entity: string
     fields: string[]
     filters?: Record<string, unknown>
+    pagination?: {
+      skip?: number
+      take?: number
+      order?: Record<string, "ASC" | "DESC">
+    }
   }) => Promise<{ data: unknown[] }>
 }
 
@@ -26,6 +39,7 @@ type OrderRecord = GraphResultSet<"order">["data"][number] & {
   currency_code?: string | null
   created_at?: string | Date | null
   status?: string | null
+  metadata?: Record<string, unknown> | null
 }
 
 type ActorType = "admin" | "customer" | "system"
@@ -46,6 +60,8 @@ export interface MembershipOrderRefundEffectsResult {
   customer_id: string
   reference_id: string
   original_refund_amount: number
+  refund_applied_amount: number
+  total_refunded_amount: number
   clawed_back_points: number
   actual_refund_amount: number
   processed: boolean
@@ -130,6 +146,14 @@ function buildExpireReferenceId(pointLogId: string): string {
   return `expire:grant:${pointLogId}`
 }
 
+function normalizeActorType(actorType: ActorType): "admin" | "system" {
+  return actorType === "admin" ? "admin" : "system"
+}
+
+function normalizeActorId(actorType: ActorType, actorId: string): string {
+  return actorType === "customer" ? "system" : actorId
+}
+
 async function retrieveOrder(
   scope: MedusaContainer,
   orderId: string
@@ -144,6 +168,7 @@ async function retrieveOrder(
       "currency_code",
       "created_at",
       "status",
+      "metadata",
     ],
     filters: {
       id: orderId,
@@ -179,6 +204,35 @@ async function listOrderRewardPointLogs(
   )
 }
 
+async function listOrderRefundPointLogs(
+  scope: MedusaContainer,
+  customerId: string,
+  orderId: string
+): Promise<PointLogRecord[]> {
+  const membershipService = getMembershipService(scope)
+  const pointLogs = (await membershipService.listPointLogs(
+    {
+      customer_id: customerId,
+      source: "refund",
+    },
+    {
+      order: {
+        created_at: "ASC",
+        id: "ASC",
+      },
+    }
+  )) as PointLogRecord[]
+
+  return pointLogs.filter((pointLog) => {
+    const metadata =
+      pointLog.metadata && typeof pointLog.metadata === "object"
+        ? pointLog.metadata
+        : null
+
+    return metadata?.["order_id"] === orderId && pointLog.points < 0
+  })
+}
+
 async function createPointsAuditLog(input: {
   scope: MedusaContainer
   actorType: ActorType
@@ -201,6 +255,42 @@ async function createPointsAuditLog(input: {
     after_state: input.afterState ?? null,
     metadata: input.metadata ?? null,
   })
+}
+
+async function persistOrderRefundMetadata(input: {
+  scope: MedusaContainer
+  order: OrderRecord
+  actorId: string
+  processedAt: Date
+  referenceId: string
+  originalRefundAmount: number
+  refundAppliedAmount: number
+  clawedBackPoints: number
+  actualRefundAmount: number
+  pointLogId: string | null
+}): Promise<OrderRecord> {
+  const nextMetadata = appendMembershipOrderRefundMetadata(input.order, {
+    reference_id: input.referenceId,
+    original_refund_amount: input.originalRefundAmount,
+    refund_applied_amount: input.refundAppliedAmount,
+    clawed_back_points: input.clawedBackPoints,
+    actual_refund_amount: input.actualRefundAmount,
+    point_log_id: input.pointLogId,
+    processed_at: input.processedAt.toISOString(),
+  })
+
+  await updateOrderWorkflow(input.scope).run({
+    input: {
+      id: input.order.id,
+      user_id: input.actorId,
+      metadata: nextMetadata,
+    },
+  })
+
+  return {
+    ...input.order,
+    metadata: nextMetadata,
+  }
 }
 
 export async function applyMembershipPointRedemption(
@@ -310,6 +400,13 @@ export async function processOrderRefundMembershipEffects(
   scope: MedusaContainer,
   input: ProcessOrderRefundMembershipEffectsInput
 ): Promise<MembershipOrderRefundEffectsResult | null> {
+  if (!Number.isFinite(input.originalRefundAmount) || input.originalRefundAmount <= 0) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "originalRefundAmount must be a positive number"
+    )
+  }
+
   const order = await retrieveOrder(scope, input.orderId)
 
   if (!order?.customer_id) {
@@ -319,83 +416,129 @@ export async function processOrderRefundMembershipEffects(
   const membershipService = getMembershipService(scope)
   const processedAt = getProcessedAt(input.processedAt)
   const referenceId = buildRefundReferenceId(order.id, input.referenceId)
+  const existingRefundHistory = getMembershipOrderRefundHistory(order).find(
+    (entry) => entry.reference_id === referenceId
+  )
   const existingPointLog = await membershipService.getPointLogByReference(
     order.customer_id,
     "refund",
     referenceId
   )
 
-  if (existingPointLog) {
+  if (
+    existingPointLog ||
+    getMembershipOrderRefundReferences(order).includes(referenceId) ||
+    existingRefundHistory
+  ) {
+    const clawedBackPoints =
+      existingRefundHistory?.clawed_back_points ??
+      Math.abs(existingPointLog?.points ?? 0)
+    const actualRefundAmount =
+      existingRefundHistory?.actual_refund_amount ??
+      Math.max(0, input.originalRefundAmount - clawedBackPoints)
+    const refundAppliedAmount =
+      existingRefundHistory?.refund_applied_amount ?? 0
+
     return {
       order_id: order.id,
       customer_id: order.customer_id,
       reference_id: referenceId,
       original_refund_amount: input.originalRefundAmount,
-      clawed_back_points: Math.abs(existingPointLog.points),
-      actual_refund_amount: Math.max(
-        0,
-        input.originalRefundAmount - Math.abs(existingPointLog.points)
-      ),
+      refund_applied_amount: refundAppliedAmount,
+      total_refunded_amount: getMembershipOrderRefundedAmount(order),
+      clawed_back_points: clawedBackPoints,
+      actual_refund_amount: actualRefundAmount,
       processed: false,
-      point_log_id: existingPointLog.id,
+      point_log_id: existingRefundHistory?.point_log_id ?? existingPointLog?.id ?? null,
       recalculated: false,
     }
   }
 
-  const [rewardLogs, beforePoints] = await Promise.all([
+  const [rewardLogs, refundLogs, beforePoints] = await Promise.all([
     listOrderRewardPointLogs(scope, order.customer_id, order.id),
+    listOrderRefundPointLogs(scope, order.customer_id, order.id),
     membershipService.getCustomerPoints(order.customer_id, processedAt),
   ])
+
+  const rewardableBaseAmount = getMembershipOrderInitialRewardableTotal(order)
+  const refundedAmountBefore = getMembershipOrderRefundedAmount(order)
+  const remainingRefundableAmount = Math.max(
+    0,
+    rewardableBaseAmount - refundedAmountBefore
+  )
+  const refundAppliedAmount = Math.min(
+    Math.floor(input.originalRefundAmount),
+    remainingRefundableAmount
+  )
   const rewardedPoints = rewardLogs.reduce(
     (sum, pointLog) => sum + toNumberValue(pointLog.points),
     0
   )
+  const alreadyClawedBackPoints = refundLogs.reduce(
+    (sum, pointLog) => sum + Math.abs(toNumberValue(pointLog.points)),
+    0
+  )
+  const cumulativeRefundedAmount = refundedAmountBefore + refundAppliedAmount
+  const targetClawbackPoints =
+    rewardableBaseAmount > 0
+      ? Math.min(
+          rewardedPoints,
+          Math.floor((rewardedPoints * cumulativeRefundedAmount) / rewardableBaseAmount)
+        )
+      : 0
+  const clawbackDelta = Math.max(
+    0,
+    targetClawbackPoints - alreadyClawedBackPoints
+  )
   const clawedBackPoints = Math.min(
-    rewardedPoints,
+    clawbackDelta,
     beforePoints.summary.available_points
   )
-
-  if (clawedBackPoints <= 0) {
-    return {
-      order_id: order.id,
-      customer_id: order.customer_id,
-      reference_id: referenceId,
-      original_refund_amount: input.originalRefundAmount,
-      clawed_back_points: 0,
-      actual_refund_amount: input.originalRefundAmount,
-      processed: false,
-      point_log_id: null,
-      recalculated: false,
-    }
-  }
-
-  const pointLogResult = await membershipService.createPointLogOnce({
-    customer_id: order.customer_id,
-    points: -clawedBackPoints,
-    source: "refund",
-    reference_id: referenceId,
-    note: input.note ?? `訂單 ${order.id} 退款扣回點數`,
-    expired_at: null,
-    metadata: {
-      order_id: order.id,
-      rewarded_points: rewardedPoints,
-      clawed_back_points: clawedBackPoints,
-      original_refund_amount: input.originalRefundAmount,
-      actual_refund_amount: Math.max(0, input.originalRefundAmount - clawedBackPoints),
-      related_reward_log_ids: rewardLogs.map((pointLog) => pointLog.id),
-    },
-  })
   const actualRefundAmount = Math.max(
     0,
-    input.originalRefundAmount - clawedBackPoints
+    Math.floor(input.originalRefundAmount) - clawedBackPoints
   )
 
-  if (pointLogResult.created) {
-    const afterPoints = await membershipService.getCustomerPoints(
-      order.customer_id,
-      processedAt
-    )
+  const pointLogResult =
+    clawedBackPoints > 0
+      ? await membershipService.createPointLogOnce({
+          customer_id: order.customer_id,
+          points: -clawedBackPoints,
+          source: "refund",
+          reference_id: referenceId,
+          note: input.note ?? `訂單 ${order.id} 退款回扣點數`,
+          expired_at: null,
+          metadata: {
+            order_id: order.id,
+            rewarded_points: rewardedPoints,
+            refund_applied_amount: refundAppliedAmount,
+            clawed_back_points: clawedBackPoints,
+            original_refund_amount: Math.floor(input.originalRefundAmount),
+            actual_refund_amount: actualRefundAmount,
+            related_reward_log_ids: rewardLogs.map((pointLog) => pointLog.id),
+          },
+        })
+      : null
 
+  const updatedOrder = await persistOrderRefundMetadata({
+    scope,
+    order,
+    actorId: normalizeActorId(input.actorType, input.actorId),
+    processedAt,
+    referenceId,
+    originalRefundAmount: Math.floor(input.originalRefundAmount),
+    refundAppliedAmount,
+    clawedBackPoints,
+    actualRefundAmount,
+    pointLogId: pointLogResult?.point_log.id ?? null,
+  })
+
+  const afterPoints =
+    pointLogResult?.created
+      ? await membershipService.getCustomerPoints(order.customer_id, processedAt)
+      : beforePoints
+
+  if (pointLogResult?.created) {
     await createPointsAuditLog({
       scope,
       actorType: input.actorType,
@@ -414,34 +557,61 @@ export async function processOrderRefundMembershipEffects(
       metadata: {
         order_id: order.id,
         reference_id: referenceId,
-        original_refund_amount: input.originalRefundAmount,
+        original_refund_amount: Math.floor(input.originalRefundAmount),
+        refund_applied_amount: refundAppliedAmount,
         actual_refund_amount: actualRefundAmount,
         clawed_back_points: clawedBackPoints,
       },
     })
-
-    await recalculateCustomerMembershipLevel(scope, {
+  } else {
+    await createPointsAuditLog({
+      scope,
+      actorType: input.actorType,
+      actorId: input.actorId,
       customerId: order.customer_id,
-      actorType: input.actorType === "customer" ? "system" : input.actorType,
-      actorId: input.actorType === "customer" ? "system" : input.actorId,
-      reason: `order_refund:${referenceId}`,
-      action:
-        input.actorType === "admin"
-          ? "customer.membership_level.recalculated_by_admin"
-          : "customer.membership_level.recalculated_by_system",
+      action: "customer.membership_points.refund_processed",
+      beforeState: {
+        available_points: beforePoints.summary.available_points,
+        total_points: beforePoints.summary.total_points,
+      },
+      afterState: {
+        available_points: afterPoints.summary.available_points,
+        total_points: afterPoints.summary.total_points,
+      },
+      metadata: {
+        order_id: order.id,
+        reference_id: referenceId,
+        original_refund_amount: Math.floor(input.originalRefundAmount),
+        refund_applied_amount: refundAppliedAmount,
+        actual_refund_amount: actualRefundAmount,
+        clawed_back_points: 0,
+      },
     })
   }
+
+  await recalculateCustomerMembershipLevel(scope, {
+    customerId: order.customer_id,
+    actorType: normalizeActorType(input.actorType),
+    actorId: normalizeActorId(input.actorType, input.actorId),
+    reason: `order_refund:${referenceId}`,
+    action:
+      input.actorType === "admin"
+        ? "customer.membership_level.recalculated_by_admin"
+        : "customer.membership_level.recalculated_by_system",
+  })
 
   return {
     order_id: order.id,
     customer_id: order.customer_id,
     reference_id: referenceId,
-    original_refund_amount: input.originalRefundAmount,
-    clawed_back_points: Math.abs(pointLogResult.point_log.points),
+    original_refund_amount: Math.floor(input.originalRefundAmount),
+    refund_applied_amount: refundAppliedAmount,
+    total_refunded_amount: getMembershipOrderRefundedAmount(updatedOrder),
+    clawed_back_points: clawedBackPoints,
     actual_refund_amount: actualRefundAmount,
-    processed: pointLogResult.created,
-    point_log_id: pointLogResult.point_log.id,
-    recalculated: pointLogResult.created,
+    processed: true,
+    point_log_id: pointLogResult?.point_log.id ?? null,
+    recalculated: true,
   }
 }
 

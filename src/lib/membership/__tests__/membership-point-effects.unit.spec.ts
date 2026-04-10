@@ -1,5 +1,5 @@
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MedusaContainer } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { MEMBERSHIP_MODULE } from "../../../modules/membership"
 import {
   applyMembershipPointRedemption,
@@ -8,6 +8,14 @@ import {
 } from "../membership-point-effects"
 import { buildMembershipPointsSnapshot } from "../membership-point-balance"
 import { recalculateCustomerMembershipLevel } from "../customer-membership-level"
+
+const updateOrderRunMock = jest.fn(async () => ({ result: {} }))
+
+jest.mock("@medusajs/core-flows", () => ({
+  updateOrderWorkflow: jest.fn(() => ({
+    run: updateOrderRunMock,
+  })),
+}))
 
 jest.mock("../customer-membership-level", () => ({
   recalculateCustomerMembershipLevel: jest.fn(),
@@ -31,6 +39,7 @@ describe("membership point effects", () => {
   }
 
   let pointLogs: PointLogInput[]
+  let orderMetadataById: Record<string, Record<string, unknown> | null>
   let createdLogCount: number
 
   function buildScope(): MedusaContainer {
@@ -38,12 +47,11 @@ describe("membership point effects", () => {
       getCustomerPoints: jest.fn(async (customerId: string, referenceAt?: Date | string) => {
         const logs = pointLogs
           .filter((log) => log.customer_id === customerId)
-          .sort((current, next) => {
-            const currentTime = new Date(next.created_at).getTime()
-            const nextTime = new Date(current.created_at).getTime()
-
-            return currentTime - nextTime
-          })
+          .sort(
+            (current, next) =>
+              new Date(current.created_at).getTime() -
+              new Date(next.created_at).getTime()
+          )
           .map((log) => ({
             ...log,
             balance_after: pointLogs
@@ -128,10 +136,11 @@ describe("membership point effects", () => {
       listPointLogs: jest.fn(async (selector: Record<string, unknown>) =>
         pointLogs
           .filter((log) => {
-            if (
-              selector.customer_id &&
-              log.customer_id !== selector.customer_id
-            ) {
+            if (selector.customer_id && log.customer_id !== selector.customer_id) {
+              return false
+            }
+
+            if (selector.source && log.source !== selector.source) {
               return false
             }
 
@@ -179,6 +188,23 @@ describe("membership point effects", () => {
                 currency_code: "TWD",
                 created_at: "2026-04-09T08:00:00.000Z",
                 status: "completed",
+                metadata: orderMetadataById.ord_123,
+              },
+            ],
+          }
+        }
+
+        if (input.filters?.id === "ord_no_reward") {
+          return {
+            data: [
+              {
+                id: "ord_no_reward",
+                customer_id: "cus_123",
+                total: 1000,
+                currency_code: "TWD",
+                created_at: "2026-04-09T08:00:00.000Z",
+                status: "completed",
+                metadata: orderMetadataById.ord_no_reward,
               },
             ],
           }
@@ -205,7 +231,26 @@ describe("membership point effects", () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    updateOrderRunMock.mockClear()
     createdLogCount = 0
+    orderMetadataById = {
+      ord_123: {
+        membership_order_subtotal: 2000,
+        membership_promo_discount: 0,
+        membership_redemption_amount: 0,
+        membership_refunded_amount: 0,
+        membership_refund_references: [],
+        membership_refunds: [],
+      },
+      ord_no_reward: {
+        membership_order_subtotal: 1000,
+        membership_promo_discount: 0,
+        membership_redemption_amount: 0,
+        membership_refunded_amount: 0,
+        membership_refund_references: [],
+        membership_refunds: [],
+      },
+    }
     pointLogs = [
       {
         id: "pl_order_reward",
@@ -310,38 +355,67 @@ describe("membership point effects", () => {
     ).rejects.toThrow("Insufficient available points")
   })
 
-  it("claws back order reward points on refund and does not process the same refund twice", async () => {
+  it("claws back points proportionally for a partial refund and prevents the same reference from running twice", async () => {
     const scope = buildScope()
 
     const created = await processOrderRefundMembershipEffects(scope, {
       orderId: "ord_123",
+      referenceId: "refund:ord_123:1",
       originalRefundAmount: 500,
       actorType: "admin",
       actorId: "user_123",
-      processedAt: "2026-04-09T12:00:00.000Z",
+      processedAt: "2026-04-10T12:00:00.000Z",
     })
 
     expect(created).toEqual(
       expect.objectContaining({
         order_id: "ord_123",
-        clawed_back_points: 35,
-        actual_refund_amount: 465,
+        refund_applied_amount: 500,
+        total_refunded_amount: 500,
+        clawed_back_points: 8,
+        actual_refund_amount: 492,
         processed: true,
         recalculated: true,
       })
     )
-    expect(recalculateCustomerMembershipLevelMock).toHaveBeenCalled()
+    expect(updateOrderRunMock).toHaveBeenCalled()
 
     const repeated = await processOrderRefundMembershipEffects(scope, {
       orderId: "ord_123",
+      referenceId: "refund:ord_123:1",
       originalRefundAmount: 500,
       actorType: "admin",
       actorId: "user_123",
-      processedAt: "2026-04-09T12:00:00.000Z",
+      processedAt: "2026-04-10T12:00:00.000Z",
     })
 
     expect(repeated?.processed).toBe(false)
-    expect(repeated?.actual_refund_amount).toBe(465)
+    expect(repeated?.clawed_back_points).toBe(8)
+  })
+
+  it("records a refund reference even when the order has no reward logs to claw back", async () => {
+    const scope = buildScope()
+
+    const created = await processOrderRefundMembershipEffects(scope, {
+      orderId: "ord_no_reward",
+      referenceId: "refund:ord_no_reward:1",
+      originalRefundAmount: 300,
+      actorType: "admin",
+      actorId: "user_123",
+      processedAt: "2026-04-10T12:00:00.000Z",
+    })
+
+    expect(created).toEqual(
+      expect.objectContaining({
+        order_id: "ord_no_reward",
+        refund_applied_amount: 300,
+        clawed_back_points: 0,
+        actual_refund_amount: 300,
+        processed: true,
+        recalculated: true,
+      })
+    )
+    expect(updateOrderRunMock).toHaveBeenCalled()
   })
 
   it("materializes pending expired points into expire logs without duplicating the same grant", async () => {

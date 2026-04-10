@@ -18,6 +18,7 @@ import {
   isBirthdayRewardDate,
   type MembershipRewardLevel,
 } from "./membership-points"
+import { getMembershipOrderInitialRewardableTotal } from "./membership-order-accounting"
 import {
   formatDateTimeString,
   type CustomerMembershipLevelSummary,
@@ -41,6 +42,7 @@ type OrderRecord = GraphResultSet<"order">["data"][number] & {
   currency_code?: string | null
   created_at?: string | Date | null
   status?: string | null
+  metadata?: Record<string, unknown> | null
 }
 
 type OrderRewardEvaluation = {
@@ -159,6 +161,7 @@ async function retrieveOrder(
       "currency_code",
       "created_at",
       "status",
+      "metadata",
     ],
     filters: {
       id: orderId,
@@ -182,6 +185,7 @@ async function listCustomerOrders(
       "currency_code",
       "created_at",
       "status",
+      "metadata",
     ],
     filters: {
       customer_id: customerId,
@@ -227,7 +231,7 @@ export function evaluateOrderRewardFromMembershipRules(input: {
     input.order.created_at ?? new Date()
   )
   const rewardComputation = calculateOrderRewardPoints({
-    orderTotal: input.order.total,
+    orderTotal: getMembershipOrderInitialRewardableTotal(input.order),
     level: (priorLevelComputation.resolved_level ?? null) as MembershipRewardLevel | null,
     isBirthdayRewardDate: birthdayEligible,
   })
@@ -320,6 +324,7 @@ export async function processOrderCompletionMembershipEffects(
   const rewardMetadata = {
     order_id: order.id,
     order_total: order.total ?? 0,
+    rewardable_total: getMembershipOrderInitialRewardableTotal(order),
     currency_code: order.currency_code ?? "TWD",
     level_id: rewardEvaluation.reward_level?.id ?? null,
     level_name: rewardEvaluation.reward_level?.name ?? null,

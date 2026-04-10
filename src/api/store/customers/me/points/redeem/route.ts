@@ -27,7 +27,7 @@ export async function POST(
   if (!validation.is_valid || validation.redeemable_points <= 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      validation.validation_message ?? "點數折抵資料不正確"
+      validation.validation_message ?? "點數折抵資料無效"
     )
   }
 
@@ -39,7 +39,7 @@ export async function POST(
     actorId: customerId,
     note:
       req.validatedBody.note ??
-      `前台結帳點數折抵 ${req.validatedBody.reference_id}`,
+      `前台會員點數折抵 ${req.validatedBody.reference_id}`,
     metadata: {
       order_subtotal: validation.order_subtotal,
       requested_points: validation.requested_points,

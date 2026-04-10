@@ -18,6 +18,7 @@ import {
   type MembershipSpendOrder,
 } from "./membership-spend"
 import { selectMembershipLevelByYearlySpent } from "./membership-level-rules"
+import { getMembershipOrderRewardableTotal } from "./membership-order-accounting"
 
 const CUSTOMER_LINKABLE_KEY = "customer_id"
 const MEMBER_LEVEL_LINKABLE_KEY = "membership_member_level_id"
@@ -29,6 +30,7 @@ export type CustomerMembershipOrderRecord = MembershipSpendOrder & {
   id?: string
   customer_id?: string | null
   currency_code?: string | null
+  metadata?: Record<string, unknown> | null
 }
 
 type QueryGraphService = {
@@ -158,6 +160,7 @@ async function listCustomerOrders(
       "currency_code",
       "created_at",
       "status",
+      "metadata",
     ],
     filters: {
       customer_id: customerId,
@@ -206,7 +209,13 @@ export function evaluateCustomerMembershipLevelFromOrders(
   levels: MembershipLevelRecord[],
   referenceAt: Date | string = new Date()
 ): CustomerMembershipLevelComputation {
-  const spendSnapshot = buildMembershipSpendSnapshot(orders, referenceAt)
+  const spendSnapshot = buildMembershipSpendSnapshot(
+    orders.map((order) => ({
+      ...order,
+      total: getMembershipOrderRewardableTotal(order),
+    })),
+    referenceAt
+  )
   const levelMatch = selectMembershipLevelByYearlySpent(
     levels,
     spendSnapshot.yearly_spent

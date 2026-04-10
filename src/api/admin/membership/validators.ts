@@ -140,6 +140,12 @@ export const AdminAssignMembershipLevel = z.object({
   member_level_id: z.string().min(1),
 })
 
+export const AdminProcessMembershipOrderRefund = z.object({
+  refund_amount: z.coerce.number().int().positive(),
+  reference_id: z.string().trim().min(1).optional(),
+  note: z.string().trim().min(1).optional(),
+})
+
 export type AdminGetMembershipMemberLevelsParamsType = z.infer<
   typeof AdminGetMembershipMemberLevelsParams
 >
@@ -159,4 +165,7 @@ export type AdminAdjustMembershipPointsType = z.infer<
 >
 export type AdminAssignMembershipLevelType = z.infer<
   typeof AdminAssignMembershipLevel
+>
+export type AdminProcessMembershipOrderRefundType = z.infer<
+  typeof AdminProcessMembershipOrderRefund
 >
