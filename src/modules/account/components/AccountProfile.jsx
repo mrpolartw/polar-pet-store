@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Camera, User } from 'lucide-react'
+import { BadgeCheck, Camera, User } from 'lucide-react'
+
 import { CONFIG } from '../../../constants/config'
 import { useAuth } from '../../../context/useAuth'
 import { useToast } from '../../../context/ToastContext'
@@ -57,7 +58,7 @@ function AccountProfileCard({
       </button>
 
       <div className="account-user-name">{user?.name ?? '會員'}</div>
-      <div className="account-user-email">{user?.email ?? '尚未提供 Email'}</div>
+      <div className="account-user-email">{user?.email ?? '尚未設定 Email'}</div>
 
       <div className="account-tier-badge">
         <span>{getMembershipLevelName(membershipSummary?.currentLevel)}</span>
@@ -68,6 +69,25 @@ function AccountProfileCard({
         <span className="account-points-value">
           {formatMembershipPoints(membershipSummary?.availablePoints)}
         </span>
+      </div>
+
+      <div
+        style={{
+          marginTop: 12,
+          display: 'flex',
+          gap: 8,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+        }}
+      >
+        <span className="account-tier-badge">
+          {user?.emailVerified ? 'Email 已驗證' : 'Email 待驗證'}
+        </span>
+        {user?.lineLinked && (
+          <span className="account-tier-badge" style={{ background: '#ECFDF3', color: '#15803D' }}>
+            LINE 已綁定
+          </span>
+        )}
       </div>
     </div>
   )
@@ -105,13 +125,13 @@ export default function AccountProfile() {
       const result = await updateProfile(profileForm)
 
       if (result?.success === false) {
-        throw new Error(result?.message || '資料更新失敗，請稍後再試')
+        throw new Error(result?.message || '會員資料更新失敗，請稍後再試')
       }
 
-      toast.success('會員資料已儲存')
+      toast.success('會員資料已更新')
       await refreshMembership()
     } catch (err) {
-      toast.error(err?.message || '資料更新失敗，請稍後再試')
+      toast.error(err?.message || '會員資料更新失敗，請稍後再試')
     }
   }
 
@@ -122,7 +142,7 @@ export default function AccountProfile() {
     if (!file) return
 
     if (!SUPPORTED_AVATAR_TYPES.includes(file.type)) {
-      toast.error('僅支援 JPG / PNG / WebP / GIF 格式')
+      toast.error('頭像格式僅支援 JPG、PNG、WebP 或 GIF')
       return
     }
 
@@ -147,7 +167,7 @@ export default function AccountProfile() {
           throw new Error(result?.message || '頭像更新失敗，請稍後再試')
         }
 
-        toast.success('頭像更新成功')
+        toast.success('頭像已更新')
       } catch (err) {
         toast.error(err?.message || '頭像更新失敗，請稍後再試')
       }
@@ -164,7 +184,7 @@ export default function AccountProfile() {
     <motion.div key="profile" {...fadeUp}>
       <h2 className="account-section-title">
         <User size={22} className="account-nav-icon" />
-        會員中心
+        會員資料
       </h2>
 
       <AccountProfileCard
@@ -252,13 +272,28 @@ export default function AccountProfile() {
           </select>
         </div>
 
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            marginBottom: 16,
+            color: '#6e6e73',
+            fontSize: 13,
+          }}
+        >
+          <BadgeCheck size={16} color={user?.emailVerified ? '#16A34A' : '#F59E0B'} />
+          <span>{user?.emailVerified ? 'Email 已完成驗證' : 'Email 尚未完成驗證'}</span>
+        </div>
+
         <div>
           <button
             className="btn-blue profile-save-btn"
             onClick={handleUpdateProfile}
             disabled={isLoading}
           >
-            {isLoading ? '儲存中...' : '儲存資料'}
+            {isLoading ? '儲存中...' : '儲存會員資料'}
           </button>
         </div>
       </div>

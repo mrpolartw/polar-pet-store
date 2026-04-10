@@ -42,6 +42,8 @@ const Unauthorized = React.lazy(() => import('./pages/Unauthorized'));
 const Login = React.lazy(() => import('./pages/Auth/Login'));
 const Register = React.lazy(() => import('./pages/Auth/Register'));
 const ForgotPassword = React.lazy(() => import('./pages/Auth/ForgotPassword'));
+const VerifyEmail = React.lazy(() => import('./pages/Auth/VerifyEmail'));
+const LineComplete = React.lazy(() => import('./pages/Auth/LineComplete'));
 const ServerError   = React.lazy(() => import('./pages/Error/ServerError'))
 const ResetPassword = React.lazy(() => import('./pages/ResetPassword/ResetPassword'))
 const Founder          = React.lazy(() => import('./pages/Brand/Founder'))
@@ -97,6 +99,10 @@ function AppContent() {
     location.pathname === '/login' ||
     location.pathname === '/register' ||
     location.pathname === '/forgot-password' ||
+    location.pathname === '/verify-email' ||
+    location.pathname === '/line-complete' ||
+    location.pathname === '/reset-password' ||
+    location.pathname.startsWith('/reset-password/') ||
     location.pathname === '/contact';
 
   const isHomePage =
@@ -211,7 +217,11 @@ function AppContent() {
             <Routes>
               <Route path={ROUTES.LOGIN} element={<PublicRoute><Login /></PublicRoute>} />
               <Route path={ROUTES.REGISTER} element={<PublicRoute><Register /></PublicRoute>} />
-              <Route path={ROUTES.FORGOT_PASSWORD} element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+              <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+              <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmail />} />
+              <Route path={ROUTES.LINE_COMPLETE} element={<LineComplete />} />
+              <Route path={ROUTES.RESET_PASSWORD} element={<ResetPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
               <Route path="/contact" element={<Contact />} />
             </Routes>
           </Suspense>

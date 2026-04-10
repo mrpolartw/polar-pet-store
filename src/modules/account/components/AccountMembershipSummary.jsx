@@ -1,5 +1,6 @@
 import React from 'react'
 import { Coins, Crown, RefreshCw, WalletCards } from 'lucide-react'
+
 import { ErrorState, LoadingSpinner } from '../../../components/common'
 import {
   formatMembershipCurrency,
@@ -26,7 +27,7 @@ export default function AccountMembershipSummary({
   if (isLoading) {
     return (
       <div className="account-membership-panel">
-        <LoadingSpinner size="medium" label="正在載入會員資料..." />
+        <LoadingSpinner size="medium" label="會員資料載入中..." />
       </div>
     )
   }
@@ -55,7 +56,7 @@ export default function AccountMembershipSummary({
             {formatMembershipPoints(summary?.availablePoints)}
           </strong>
           <p className="account-membership-subcopy">
-            可用點數可於結帳時折抵，1 點可折抵 1 元。
+            可用點數已自動扣除已折抵、已過期與退款扣回的影響。
           </p>
         </div>
 

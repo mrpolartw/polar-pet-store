@@ -1,10 +1,30 @@
-import React, { createContext, useCallback, useEffect, useState } from 'react'
+import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react'
 
 import authService from '../services/authService'
 import membershipService from '../services/membershipService'
 import { buildEmptyMembershipSummary } from '../modules/membership/utils'
 
 const AuthContext = createContext(null)
+
+function decorateCustomer(customer, authStatus) {
+  if (!customer) {
+    return null
+  }
+
+  return {
+    ...customer,
+    name:
+      customer?.name ||
+      `${customer?.first_name ?? ''} ${customer?.last_name ?? ''}`.trim() ||
+      customer?.email ||
+      '會員',
+    emailVerified: Boolean(authStatus?.email_verified),
+    emailVerifiedAt: authStatus?.email_verified_at ?? null,
+    lineLinked: Boolean(authStatus?.line_linked),
+    lineDisplayName: authStatus?.line_display_name ?? null,
+    lineBoundAt: authStatus?.line_bound_at ?? null,
+  }
+}
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
@@ -15,6 +35,7 @@ export const AuthProvider = ({ children }) => {
   )
   const [isMembershipLoading, setIsMembershipLoading] = useState(false)
   const [membershipError, setMembershipError] = useState('')
+  const [authStatus, setAuthStatus] = useState(null)
 
   const clearMembership = useCallback(() => {
     setMembershipSummary(buildEmptyMembershipSummary())
@@ -46,113 +67,122 @@ export const AuthProvider = ({ children }) => {
     }
   }, [clearMembership, user])
 
+  const refreshAuthStatus = useCallback(async () => {
+    try {
+      const status = await authService.getAuthStatus()
+      setAuthStatus(status)
+      return status
+    } catch {
+      setAuthStatus(null)
+      return null
+    }
+  }, [])
+
+  const hydrateSession = useCallback(async () => {
+    const currentCustomer = await authService.getMe()
+
+    if (!currentCustomer?.id) {
+      setUser(null)
+      setAuthStatus(null)
+      clearMembership()
+      return null
+    }
+
+    const nextAuthStatus = await refreshAuthStatus()
+    const nextUser = decorateCustomer(currentCustomer, nextAuthStatus)
+    setUser(nextUser)
+    return nextUser
+  }, [clearMembership, refreshAuthStatus])
+
   useEffect(() => {
+    let isMounted = true
+
     const checkSession = async () => {
       try {
-        const data = await authService.getMe()
-        setUser(data?.customer ?? data ?? null)
+        const nextUser = await hydrateSession()
+
+        if (isMounted && nextUser?.id) {
+          await refreshMembership(nextUser)
+        }
       } catch {
-        setUser(null)
+        if (isMounted) {
+          setUser(null)
+          setAuthStatus(null)
+          clearMembership()
+        }
       } finally {
-        setIsLoading(false)
+        if (isMounted) {
+          setIsLoading(false)
+        }
       }
     }
 
     checkSession()
-  }, [])
-
-  useEffect(() => {
-    if (!user?.id) {
-      clearMembership()
-      return undefined
-    }
-
-    let isCancelled = false
-
-    const loadMembership = async () => {
-      setIsMembershipLoading(true)
-      setMembershipError('')
-
-      try {
-        const summary = await membershipService.getCustomerMembershipSummary()
-
-        if (!isCancelled) {
-          setMembershipSummary(summary)
-        }
-      } catch (err) {
-        if (!isCancelled) {
-          setMembershipSummary(buildEmptyMembershipSummary(user.id))
-          setMembershipError(err?.message ?? '會員資料載入失敗，請稍後再試')
-        }
-      } finally {
-        if (!isCancelled) {
-          setIsMembershipLoading(false)
-        }
-      }
-    }
-
-    loadMembership()
 
     return () => {
-      isCancelled = true
+      isMounted = false
     }
-  }, [clearMembership, user?.id])
+  }, [clearMembership, hydrateSession, refreshMembership])
 
   const login = useCallback(async (email, password) => {
     setIsLoading(true)
     setAuthError('')
 
     try {
-      const data = await authService.login(email, password)
-      const nextUser = data?.customer ?? data ?? null
+      await authService.login(email, password)
+      const nextUser = await hydrateSession()
 
       if (!nextUser) {
-        throw new Error('登入成功，但未取得會員資料')
+        throw new Error('登入成功，但暫時無法取得會員資料')
       }
 
-      setUser(nextUser)
       await refreshMembership(nextUser)
-      return { success: true }
+      return { success: true, user: nextUser }
     } catch (err) {
-      const message = err?.message ?? '登入失敗，請稍後再試'
+      const message = err?.body?.message ?? err?.message ?? '登入失敗，請稍後再試'
+      const code = err?.body?.code ?? null
+      const nextEmail = err?.body?.email ?? email
+
       setAuthError(message)
-      return { success: false, message }
+
+      return {
+        success: false,
+        code,
+        message,
+        email: nextEmail,
+      }
     } finally {
       setIsLoading(false)
     }
-  }, [refreshMembership])
+  }, [hydrateSession, refreshMembership])
 
   const register = useCallback(async (userData) => {
     setIsLoading(true)
     setAuthError('')
 
     try {
-      const data = await authService.register(userData)
-      const nextUser = data?.customer ?? data ?? null
-
-      if (!nextUser) {
-        throw new Error('註冊成功，但未取得會員資料')
+      const response = await authService.register(userData)
+      return {
+        success: true,
+        ...response,
       }
-
-      setUser(nextUser)
-      await refreshMembership(nextUser)
-      return { success: true }
     } catch (err) {
-      const message = err?.message ?? '註冊失敗，請稍後再試'
+      const message = err?.body?.message ?? err?.message ?? '註冊失敗，請稍後再試'
       setAuthError(message)
       return { success: false, message }
     } finally {
       setIsLoading(false)
     }
-  }, [refreshMembership])
+  }, [])
 
   const logout = useCallback(async () => {
     try {
       await authService.logout()
     } catch {
-      // logout failure should not block local sign-out
+      // ignore logout failure and always clear local state
     } finally {
       setUser(null)
+      setAuthStatus(null)
       setAuthError('')
       clearMembership()
     }
@@ -162,23 +192,20 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(true)
 
     try {
-      const data = await authService.updateProfile(updates)
-      const updated = data?.customer ?? data ?? updates
-      setUser((prev) => ({ ...prev, ...updated }))
-      await refreshMembership({
-        ...(user ?? {}),
-        ...(updated ?? {}),
-      })
-      return { success: true }
+      const current = await authService.updateProfile(updates)
+      const nextUser = decorateCustomer(current, authStatus)
+      setUser(nextUser)
+      await refreshMembership(nextUser)
+      return { success: true, customer: nextUser }
     } catch (err) {
       return {
         success: false,
-        message: err?.message ?? '資料更新失敗，請稍後再試',
+        message: err?.body?.message ?? err?.message ?? '會員資料更新失敗，請稍後再試',
       }
     } finally {
       setIsLoading(false)
     }
-  }, [refreshMembership, user])
+  }, [authStatus, refreshMembership])
 
   const changePassword = useCallback(async (oldPassword, newPassword) => {
     setIsLoading(true)
@@ -189,32 +216,61 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       return {
         success: false,
-        message: err?.message ?? '密碼更新失敗，請稍後再試',
+        message: err?.body?.message ?? err?.message ?? '密碼更新失敗，請稍後再試',
       }
     } finally {
       setIsLoading(false)
     }
   }, [])
 
+  const reloadSession = useCallback(async () => {
+    const nextUser = await hydrateSession()
+
+    if (nextUser?.id) {
+      await refreshMembership(nextUser)
+    }
+
+    return nextUser
+  }, [hydrateSession, refreshMembership])
+
+  const value = useMemo(() => ({
+    user,
+    isLoading,
+    authError,
+    authStatus,
+    setAuthError,
+    login,
+    register,
+    logout,
+    updateProfile,
+    changePassword,
+    isLoggedIn: !!user,
+    membershipSummary,
+    isMembershipLoading,
+    membershipError,
+    refreshMembership,
+    refreshAuthStatus,
+    reloadSession,
+  }), [
+    authError,
+    authStatus,
+    changePassword,
+    isLoading,
+    isMembershipLoading,
+    login,
+    logout,
+    membershipError,
+    membershipSummary,
+    refreshAuthStatus,
+    refreshMembership,
+    register,
+    reloadSession,
+    updateProfile,
+    user,
+  ])
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        authError,
-        setAuthError,
-        login,
-        register,
-        logout,
-        updateProfile,
-        changePassword,
-        isLoggedIn: !!user,
-        membershipSummary,
-        isMembershipLoading,
-        membershipError,
-        refreshMembership,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )

@@ -14,7 +14,7 @@ export const POINT_LOG_SOURCE_LABELS = {
   refund: '退款扣回',
   redeem: '點數折抵',
   expire: '點數到期',
-  bonus: '點數贈送',
+  bonus: '活動贈點',
 }
 
 export function buildEmptyMembershipSummary(customerId = '') {
@@ -106,13 +106,13 @@ export function formatMembershipPoints(value) {
 
 export function formatMembershipDate(value) {
   if (!value) {
-    return '—'
+    return '--'
   }
 
   const date = new Date(value)
 
   if (Number.isNaN(date.getTime())) {
-    return '—'
+    return '--'
   }
 
   return new Intl.DateTimeFormat('zh-TW', {
@@ -123,5 +123,5 @@ export function formatMembershipDate(value) {
 }
 
 export function getMembershipLevelName(level) {
-  return level?.name ?? '尚未符合會員等級'
+  return level?.name ?? '尚未設定會員等級'
 }

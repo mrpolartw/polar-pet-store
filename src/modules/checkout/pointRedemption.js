@@ -31,7 +31,7 @@ export function validateRedeemablePoints({
       orderSubtotal: normalizedSubtotal,
       remainingAmount: normalizedSubtotal,
       isValid: false,
-      validationMessage: '折抵點數必須為整數',
+      validationMessage: '折抵點數必須是整數。',
     }
   }
 
@@ -45,7 +45,7 @@ export function validateRedeemablePoints({
       orderSubtotal: normalizedSubtotal,
       remainingAmount: normalizedSubtotal,
       isValid: false,
-      validationMessage: '折抵點數不可為負數',
+      validationMessage: '折抵點數不能小於 0。',
     }
   }
 
@@ -73,7 +73,7 @@ export function validateRedeemablePoints({
       orderSubtotal: normalizedSubtotal,
       remainingAmount: Math.max(0, normalizedSubtotal - maxRedeemablePoints),
       isValid: false,
-      validationMessage: '折抵點數不可超過可用點數',
+      validationMessage: '折抵點數不能超過可用點數。',
     }
   }
 
@@ -87,7 +87,7 @@ export function validateRedeemablePoints({
       orderSubtotal: normalizedSubtotal,
       remainingAmount: Math.max(0, normalizedSubtotal - maxRedeemablePoints),
       isValid: false,
-      validationMessage: '折抵點數不可超過本次可折抵金額',
+      validationMessage: '折抵點數不能超過本次可折抵金額。',
     }
   }
 

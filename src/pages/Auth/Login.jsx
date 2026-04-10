@@ -1,69 +1,98 @@
-﻿import React, { useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Eye, EyeOff, AlertCircle, Package, Star, ShieldCheck } from 'lucide-react'
+import React, { useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { AlertCircle, Eye, EyeOff, Package, ShieldCheck, Star } from 'lucide-react'
+import { motion as Motion } from 'framer-motion'
+
 import { useAuth } from '../../context/useAuth'
+import authService from '../../services/authService'
 import { ROUTES } from '../../constants/routes'
 import { validateEmail, validateRequired } from '../../utils/validators'
 import analytics from '../../utils/analytics'
-// 桌面版：LOGO.png（含淺色背景）
-import LogoDesktop from '../../png/LOGO.png'
-// 手機版：LOGO去背景.png（透明底，在淺色頁面直接顯示原色）
-import LogoMobile from '../../png/LOGO去背景.png'
-
+import LogoImg from '../../png/LOGO.png'
 import './Auth.css'
-import { motion as Motion, AnimatePresence } from "framer-motion"
+
+const motion = Motion
+
+const LINE_ERROR_MESSAGES = {
+  invalid_callback: 'LINE 登入流程無效，請重新操作一次。',
+  line_auth_failed: 'LINE 登入失敗，請稍後再試。',
+  line_unexpected_error: 'LINE 登入發生未預期錯誤，請稍後再試。',
+}
+
 const Login = () => {
-  const motion = Motion
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const { login, isLoading, authError, setAuthError } = useAuth()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
   const [errors, setErrors] = useState({})
-  const [notRegistered, setNotRegistered] = useState(false)
-  const [prefillEmail, setPrefillEmail] = useState('')
+  const [verificationEmail, setVerificationEmail] = useState('')
+  const [isResendingVerification, setIsResendingVerification] = useState(false)
+  const [verificationHint, setVerificationHint] = useState('')
+
+  const lineErrorMessage = useMemo(() => {
+    const lineError = searchParams.get('line_error')
+    return lineError ? LINE_ERROR_MESSAGES[lineError] ?? 'LINE 登入失敗，請稍後再試。' : ''
+  }, [searchParams])
 
   const validate = () => {
-    const e = {}
-
+    const nextErrors = {}
     const emailError = validateEmail(email)
-    if (emailError) e.email = emailError
+    if (emailError) nextErrors.email = emailError
 
     const passwordError = validateRequired(password, '密碼')
-    if (passwordError) e.password = passwordError
+    if (passwordError) nextErrors.password = passwordError
 
-    return e
+    return nextErrors
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = async (event) => {
+    event.preventDefault()
     setAuthError('')
-    const errs = validate()
-    if (Object.keys(errs).length > 0) { setErrors(errs); return }
+    setVerificationHint('')
+    const nextErrors = validate()
 
-    const MOCK_REGISTERED_EMAILS = ['test@polar.com', 'vip@polar.com']
-    const exists = MOCK_REGISTERED_EMAILS.includes(email.toLowerCase().trim())
-    if (!exists) {
-      setPrefillEmail(email)
-      setNotRegistered(true)
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors)
       return
     }
-    setNotRegistered(false)
 
     const result = await login(email, password)
+
     if (!result.success) {
+      setVerificationEmail(result.code === 'EMAIL_NOT_VERIFIED' ? result.email || email : '')
       return
     }
 
-    setNotRegistered(false)
-    if (result.success) {
-      analytics.login('email')
-      const destination = location.state?.from || ROUTES.HOME
-      navigate(destination, { replace: true })
-    }  }
+    analytics.login('email')
+    const destination = location.state?.from || ROUTES.HOME
+    navigate(destination, { replace: true })
+  }
+
+  const handleLineLogin = () => {
+    const redirectPath = location.state?.from || ROUTES.ACCOUNT
+    const redirectTo = `${window.location.origin}/polar-pet-store${redirectPath}`
+    window.location.assign(authService.getLineLoginUrl(redirectTo))
+  }
+
+  const handleResendVerification = async () => {
+    if (!verificationEmail) return
+
+    setIsResendingVerification(true)
+    setVerificationHint('')
+
+    try {
+      const response = await authService.requestEmailVerification(verificationEmail)
+      setVerificationHint(response?.message || '驗證信已重新寄出，請前往信箱確認。')
+    } catch (error) {
+      setVerificationHint(error?.body?.message || error?.message || '重新寄送失敗，請稍後再試。')
+    } finally {
+      setIsResendingVerification(false)
+    }
+  }
 
   const fadeUp = {
     initial: { opacity: 0, y: 24 },
@@ -73,65 +102,52 @@ const Login = () => {
 
   return (
     <div className="auth-page">
-
-      {/* ══════════════════════════════════
-          左側品牌面板（桌面版）
-          使用 LOGO.png（含淺色背景），
-          圓角卡片樣式讓它自然嵌入深色面板
-      ══════════════════════════════════ */}
       <div className="auth-brand-panel">
-
-        {/* 桌面 Logo：直接顯示 LOGO.png，不加 filter */}
         <div className="auth-brand-logo">
           <Link to="/">
             <img
-              src={LogoDesktop}
+              src={LogoImg}
               alt="Mr. Polar"
               style={{
                 height: 'auto',
-                width: 293,          /* 固定寬度，高度等比縮放 */
+                width: 293,
                 maxWidth: '100%',
                 display: 'block',
-                borderRadius: 14,    /* 圓角讓方形背景變成卡片 */
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',  /* 輕微陰影增加浮起感 */
+                borderRadius: 14,
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.25)',
               }}
             />
           </Link>
         </div>
 
         <div className="auth-brand-content">
-          <h2>歡迎回到<br />Polar 的世界</h2>
-          <p>登入後享有完整購物體驗，輕鬆管理訂單與收藏您心愛的毛孩食品。</p>
+          <h2>歡迎回到<br />Mr. Polar</h2>
+          <p>使用 Email / 密碼或 LINE 登入，管理你的會員資料、點數與訂單紀錄。</p>
         </div>
 
         <div className="auth-brand-features">
           <div className="auth-brand-feature">
             <div className="auth-brand-feature-icon"><Package size={16} /></div>
-            <span>即時追蹤所有訂單狀態</span>
+            <span>快速查看訂單與配送狀態</span>
           </div>
           <div className="auth-brand-feature">
             <div className="auth-brand-feature-icon"><Star size={16} /></div>
-            <span>累積點數兌換專屬優惠</span>
+            <span>同步會員等級、點數與回饋紀錄</span>
           </div>
           <div className="auth-brand-feature">
             <div className="auth-brand-feature-icon"><ShieldCheck size={16} /></div>
-            <span>個人資料受 256-bit 加密保護</span>
+            <span>完整支援 Email 驗證與帳號安全流程</span>
           </div>
         </div>
       </div>
 
-      {/* ══════════════════════════════════
-          右側表單區域
-      ══════════════════════════════════ */}
       <div className="auth-form-panel">
         <motion.div className="auth-form-container" {...fadeUp}>
-
-          {/* 手機版 Logo：透明底，原色顯示 */}
           <div className="auth-mobile-logo">
             <Link to="/">
               <img
-                src={LogoMobile}
-                alt="Polar"
+                src={LogoImg}
+                alt="Mr. Polar"
                 style={{
                   height: 'auto',
                   width: 293,
@@ -142,73 +158,67 @@ const Login = () => {
             </Link>
           </div>
 
-          {/* 表單標題 */}
           <div className="auth-header">
             <h1>登入會員</h1>
-            <p>輸入您的帳號密碼以繼續</p>
+            <p>請使用 Email / 密碼登入，或選擇 LINE 快速登入。</p>
           </div>
 
-          {/* 全域錯誤訊息 */}
-          {authError && (
+          {(authError || lineErrorMessage) && (
             <motion.div
               className="auth-global-error"
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
             >
               <AlertCircle size={16} />
-              {authError}
+              {authError || lineErrorMessage}
             </motion.div>
           )}
 
-          {notRegistered && (
+          {verificationEmail && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               style={{
-                background: '#fff7ed',
-                border: '1px solid #fed7aa',
-                borderRadius: 10,
+                background: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                borderRadius: 12,
                 padding: '12px 16px',
-                fontSize: 14,
-                color: '#9a3412',
                 marginBottom: 20,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 10,
+                color: '#1D4ED8',
+                fontSize: 14,
+                lineHeight: 1.7,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <AlertCircle size={16} />
-                <strong>此帳號尚未註冊</strong>
-              </div>
-              <p style={{ fontSize: 13, margin: 0 }}>
-                找不到與 <strong>{prefillEmail}</strong> 相符的帳號，是否前往註冊？
+              <p style={{ margin: 0 }}>
+                帳號 <strong>{verificationEmail}</strong> 尚未完成 Email 驗證。
               </p>
-              <Link
-                to="/register"
-                state={{ email: prefillEmail }}
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={isResendingVerification}
                 style={{
-                  background: '#003153',
-                  color: '#fff',
-                  padding: '8px 18px',
-                  borderRadius: 980,
-                  fontSize: 13,
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  display: 'inline-block',
-                  alignSelf: 'flex-start',
+                  marginTop: 10,
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#1D4ED8',
+                  fontWeight: 700,
+                  cursor: isResendingVerification ? 'default' : 'pointer',
+                  padding: 0,
                 }}
               >
-                前往註冊（自動帶入信箱）
-              </Link>
+                {isResendingVerification ? '重新寄送中...' : '重新寄送驗證信'}
+              </button>
+              {verificationHint && (
+                <p style={{ margin: '8px 0 0', fontSize: 13 }}>
+                  {verificationHint}
+                </p>
+              )}
             </motion.div>
           )}
 
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
-
-            {/* 電子郵件 */}
             <div className="auth-field">
-              <label htmlFor="login-email">電子郵件</label>
+              <label htmlFor="login-email">Email</label>
               <input
                 id="login-email"
                 type="email"
@@ -216,10 +226,11 @@ const Login = () => {
                 placeholder="name@example.com"
                 value={email}
                 autoComplete="email"
-                onChange={e => {
-                  setEmail(e.target.value)
-                  setNotRegistered(false)
-                  setErrors(p => ({ ...p, email: '' }))
+                onChange={(event) => {
+                  setEmail(event.target.value)
+                  setVerificationEmail('')
+                  setVerificationHint('')
+                  setErrors((prev) => ({ ...prev, email: '' }))
                 }}
               />
               {errors.email && (
@@ -229,7 +240,6 @@ const Login = () => {
               )}
             </div>
 
-            {/* 密碼 */}
             <div className="auth-field">
               <label htmlFor="login-password">密碼</label>
               <div className="auth-password-wrapper">
@@ -240,15 +250,15 @@ const Login = () => {
                   placeholder="請輸入密碼"
                   value={password}
                   autoComplete="current-password"
-                  onChange={e => {
-                    setPassword(e.target.value)
-                    setErrors(p => ({ ...p, password: '' }))
+                  onChange={(event) => {
+                    setPassword(event.target.value)
+                    setErrors((prev) => ({ ...prev, password: '' }))
                   }}
                 />
                 <button
                   type="button"
                   className="auth-password-toggle"
-                  onClick={() => setShowPassword(v => !v)}
+                  onClick={() => setShowPassword((value) => !value)}
                   tabIndex={-1}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -261,20 +271,15 @@ const Login = () => {
               )}
             </div>
 
-            {/* 記住我 + 忘記密碼 */}
             <div className="auth-options-row">
-              <label className="auth-remember">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                />
-                記住我
-              </label>
-              <Link to="/forgot-password" className="auth-forgot-link">忘記密碼？</Link>
+              <span className="auth-remember" style={{ cursor: 'default' }}>
+                安全登入
+              </span>
+              <Link to={ROUTES.FORGOT_PASSWORD} className="auth-forgot-link">
+                忘記密碼？
+              </Link>
             </div>
 
-            {/* 登入按鈕 */}
             <button
               type="submit"
               className="btn-blue auth-submit-btn"
@@ -282,48 +287,26 @@ const Login = () => {
             >
               {isLoading
                 ? <><span className="auth-spinner" />登入中...</>
-                : '登入'
-              }
+                : '登入'}
             </button>
 
-            {/* 分隔線 */}
             <div className="auth-divider">或</div>
 
-            {/* LINE 登入 */}
             <button
               type="button"
               className="auth-social-btn"
-              onClick={() => alert('LINE 登入功能開發中')}
-              style={{ marginBottom: 10 }}
+              onClick={handleLineLogin}
+              style={{ marginBottom: 20 }}
             >
               <svg viewBox="0 0 24 24" width="20" height="20" fill="#06C755">
                 <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.281.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
               </svg>
-              使用 LINE 繼續登入
+              使用 LINE 登入
             </button>
 
-            {/* Google 登入 */}
-            <button
-              type="button"
-              className="auth-social-btn"
-              onClick={() => alert('Google 登入功能開發中')}
-              style={{ marginBottom: 24 }}
-            >
-              <svg viewBox="0 0 24 24" width="20" height="20">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
-              使用 Google 繼續登入
-            </button>
-
-            {/* 切換到註冊 */}
             <p className="auth-switch">
-              還沒有帳號？{' '}
-              <Link to="/register">立即加入 Polar 會員</Link>
+              還沒有會員帳號？ <Link to={ROUTES.REGISTER}>立即註冊</Link>
             </p>
-
           </form>
         </motion.div>
       </div>
@@ -332,4 +315,3 @@ const Login = () => {
 }
 
 export default Login
-

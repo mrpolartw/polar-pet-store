@@ -1,9 +1,15 @@
 import { Suspense, lazy } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
-  User, Package, Heart, MapPin,
-  PawPrint, RefreshCw, Shield,
+  User,
+  Package,
+  Heart,
+  MapPin,
+  PawPrint,
+  RefreshCw,
+  Shield,
 } from 'lucide-react'
+
 import { useAuth } from '../../context/useAuth'
 import { useAccountTab } from '../../modules/account/hooks/useAccountTab'
 import { SEOHead, LoadingSpinner } from '../../components/common'
@@ -18,12 +24,12 @@ const AccountPets = lazy(() => import('../../modules/account/components/AccountP
 const AccountSecurity = lazy(() => import('../../modules/account/components/AccountSecurity'))
 
 const TAB_CONFIG = [
-  { key: 'profile', label: '個人資料', icon: User, component: AccountProfile },
-  { key: 'orders', label: '我的訂單', icon: Package, component: AccountOrders },
-  { key: 'subscription', label: '月訂管理', icon: RefreshCw, component: AccountSubscription },
+  { key: 'profile', label: '會員資料', icon: User, component: AccountProfile },
+  { key: 'orders', label: '訂單紀錄', icon: Package, component: AccountOrders },
+  { key: 'subscription', label: '訂閱服務', icon: RefreshCw, component: AccountSubscription },
   { key: 'favorites', label: '收藏商品', icon: Heart, component: AccountFavorites },
-  { key: 'addresses', label: '地址管理', icon: MapPin, component: AccountAddresses },
-  { key: 'pets', label: '我的毛孩', icon: PawPrint, component: AccountPets },
+  { key: 'addresses', label: '收件地址', icon: MapPin, component: AccountAddresses },
+  { key: 'pets', label: '毛孩資料', icon: PawPrint, component: AccountPets },
   { key: 'security', label: '帳號安全', icon: Shield, component: AccountSecurity },
 ]
 
@@ -57,7 +63,7 @@ export default function Account() {
         <div className="account-avatar">
           {user?.avatar
             ? <img src={user.avatar} alt={user.name} />
-            : <span>{user?.name?.[0] ?? '?'}</span>}
+            : <span>{user?.name?.[0] ?? '會'}</span>}
         </div>
         <div className="account-user-name">{user?.name}</div>
         <div className="account-user-email">{user?.email}</div>
@@ -69,7 +75,7 @@ export default function Account() {
             <div className="account-avatar">
               {user?.avatar
                 ? <img src={user.avatar} alt={user.name} />
-                : <span>{user?.name?.[0] ?? '?'}</span>}
+                : <span>{user?.name?.[0] ?? '會'}</span>}
             </div>
             <div className="account-user-name">{user?.name}</div>
             <div className="account-user-email">{user?.email}</div>

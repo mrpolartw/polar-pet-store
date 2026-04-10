@@ -1,97 +1,161 @@
-import { useState, useEffect } from 'react'
-import { Link, useParams, useNavigate } from 'react-router-dom'
-import { KeyRound, XCircle, CheckCircle2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { CheckCircle2, KeyRound, XCircle } from 'lucide-react'
+
 import { SEOHead, LoadingSpinner } from '../../components/common'
+import authService from '../../services/authService'
 import { ROUTES } from '../../constants/routes'
+import { validatePassword, validatePasswordConfirm } from '../../utils/validators'
 import './ResetPassword.css'
 
 const STATUS = {
-  LOADING:  'loading',
-  VALID:    'valid',
-  INVALID:  'invalid',
-  SUCCESS:  'success',
+  LOADING: 'loading',
+  VALID: 'valid',
+  INVALID: 'invalid',
+  EXPIRED: 'expired',
+  USED: 'used',
+  SUCCESS: 'success',
 }
 
 export default function ResetPassword() {
-  const { token } = useParams()
+  const { token: tokenParam } = useParams()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const token = useMemo(() => tokenParam || searchParams.get('token') || '', [searchParams, tokenParam])
 
-  const [status, setStatus]       = useState(() => (
-    token ? STATUS.LOADING : STATUS.INVALID
-  ))
-  const [password, setPassword]   = useState('')
-  const [confirm, setConfirm]     = useState('')
-  const [errors, setErrors]       = useState({})
+  const [status, setStatus] = useState(() => (token ? STATUS.LOADING : STATUS.INVALID))
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [errors, setErrors] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [serverMessage, setServerMessage] = useState('')
 
   useEffect(() => {
     if (!token) return undefined
-    // TODO BACKEND: 驗證 token 是否有效
-    // await authService.validateResetToken(token)
-    const timer = setTimeout(() => setStatus(STATUS.VALID), 800)
-    return () => clearTimeout(timer)
+
+    let isMounted = true
+
+    const validateToken = async () => {
+      try {
+        const response = await authService.validatePasswordResetToken(token)
+        if (!isMounted) return
+
+        if (response?.status === 'valid') {
+          setStatus(STATUS.VALID)
+          setServerMessage(response?.message || '')
+          return
+        }
+
+        if (response?.status === 'token_expired') {
+          setStatus(STATUS.EXPIRED)
+          setServerMessage(response?.message || '重設密碼連結已過期')
+          return
+        }
+
+        if (response?.status === 'token_used') {
+          setStatus(STATUS.USED)
+          setServerMessage(response?.message || '此重設密碼連結已使用過')
+          return
+        }
+
+        setStatus(STATUS.INVALID)
+        setServerMessage(response?.message || '重設密碼連結無效')
+      } catch (error) {
+        if (!isMounted) return
+        setStatus(STATUS.INVALID)
+        setServerMessage(error?.body?.message || error?.message || '重設密碼連結無效')
+      }
+    }
+
+    validateToken()
+
+    return () => {
+      isMounted = false
+    }
   }, [token])
 
   useEffect(() => {
-    if (status !== STATUS.SUCCESS) return
+    if (status !== STATUS.SUCCESS) return undefined
+
     const timer = setTimeout(() => navigate(ROUTES.LOGIN), 3000)
     return () => clearTimeout(timer)
-  }, [status, navigate])
+  }, [navigate, status])
 
   const validate = () => {
-    const next = {}
-    if (!password) {
-      next.password = '請輸入新密碼'
-    } else if (password.length < 8) {
-      next.password = '密碼長度至少 8 個字元'
-    }
-    if (!confirm) {
-      next.confirm = '請再次輸入密碼'
-    } else if (password !== confirm) {
-      next.confirm = '兩次輸入的密碼不一致'
-    }
-    return next
+    const nextErrors = {}
+    const passwordError = validatePassword(password)
+    if (passwordError) nextErrors.password = passwordError
+    const confirmError = validatePasswordConfirm(password, confirm)
+    if (confirmError) nextErrors.confirm = confirmError
+    return nextErrors
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    const next = validate()
-    if (Object.keys(next).length > 0) {
-      setErrors(next)
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    const nextErrors = validate()
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors)
       return
     }
+
     setIsSubmitting(true)
     setErrors({})
-    // TODO BACKEND: await authService.resetPassword(token, password)
-    await new Promise((r) => setTimeout(r, 900))
-    setIsSubmitting(false)
-    setStatus(STATUS.SUCCESS)
+    setServerMessage('')
+
+    try {
+      const response = await authService.confirmPasswordReset(token, password)
+
+      if (response?.status !== 'reset') {
+        setServerMessage(response?.message || '重設密碼失敗，請重新申請連結')
+        setStatus(
+          response?.status === 'token_expired'
+            ? STATUS.EXPIRED
+            : response?.status === 'token_used'
+              ? STATUS.USED
+              : STATUS.INVALID
+        )
+        return
+      }
+
+      setStatus(STATUS.SUCCESS)
+      setServerMessage(response?.message || '密碼已更新，請使用新密碼登入')
+    } catch (error) {
+      setServerMessage(error?.body?.message || error?.message || '重設密碼失敗，請重新申請連結')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (status === STATUS.LOADING) {
     return (
       <main className="reset-password-page">
-        <SEOHead title="密碼重設" noIndex={true} />
-        <LoadingSpinner size="large" fullPage={true} label="驗證連結中..." />
+        <SEOHead title="重設密碼" noIndex={true} />
+        <LoadingSpinner size="large" fullPage={true} label="正在驗證連結..." />
       </main>
     )
   }
 
-  if (status === STATUS.INVALID) {
+  if (status === STATUS.INVALID || status === STATUS.EXPIRED || status === STATUS.USED) {
+    const title =
+      status === STATUS.EXPIRED
+        ? '重設連結已過期'
+        : status === STATUS.USED
+          ? '重設連結已失效'
+          : '重設連結無效'
+
     return (
       <main className="reset-password-page">
-        <SEOHead title="密碼重設" noIndex={true} />
+        <SEOHead title="重設密碼" noIndex={true} />
         <div className="reset-password-card">
           <div className="reset-password-icon reset-password-icon--error">
             <XCircle size={32} strokeWidth={1.5} />
           </div>
-          <h1 className="reset-password-title">連結已失效</h1>
+          <h1 className="reset-password-title">{title}</h1>
           <p className="reset-password-desc">
-            此密碼重設連結已過期或無效（有效期限 24 小時），
-            請重新申請。
+            {serverMessage || '請重新申請新的重設密碼連結。'}
           </p>
-          <Link to={ROUTES.FORGOTPASSWORD} className="btn-blue reset-password-submit">
-            重新申請密碼重設
+          <Link to={ROUTES.FORGOT_PASSWORD} className="btn-blue reset-password-submit">
+            重新申請重設密碼
           </Link>
           <p className="reset-password-link">
             想起密碼了？<Link to={ROUTES.LOGIN}>返回登入</Link>
@@ -104,18 +168,19 @@ export default function ResetPassword() {
   if (status === STATUS.SUCCESS) {
     return (
       <main className="reset-password-page">
-        <SEOHead title="密碼重設成功" noIndex={true} />
+        <SEOHead title="密碼重設完成" noIndex={true} />
         <div className="reset-password-card">
           <div className="reset-password-icon reset-password-icon--success">
             <CheckCircle2 size={32} strokeWidth={1.5} />
           </div>
-          <h1 className="reset-password-title">密碼已更新！</h1>
+          <h1 className="reset-password-title">密碼已更新</h1>
           <p className="reset-password-desc">
-            您的密碼已成功更新。<br />
-            3 秒後自動跳轉至登入頁面...
+            {serverMessage}
+            <br />
+            3 秒後將自動導向登入頁。
           </p>
           <Link to={ROUTES.LOGIN} className="btn-blue reset-password-submit">
-            立即前往登入
+            立即登入
           </Link>
         </div>
       </main>
@@ -131,7 +196,7 @@ export default function ResetPassword() {
         </div>
         <h1 className="reset-password-title">設定新密碼</h1>
         <p className="reset-password-desc">
-          請輸入您的新密碼，長度至少 8 個字元。
+          新密碼至少需要 8 個字元，並包含大寫英文字母與數字。
         </p>
 
         <form className="reset-password-form" onSubmit={handleSubmit} noValidate>
@@ -141,8 +206,8 @@ export default function ResetPassword() {
               id="new-password"
               type="password"
               value={password}
-              onChange={(e) => {
-                setPassword(e.target.value)
+              onChange={(event) => {
+                setPassword(event.target.value)
                 setErrors((prev) => ({ ...prev, password: undefined }))
               }}
               className={errors.password ? 'is-error' : ''}
@@ -160,12 +225,12 @@ export default function ResetPassword() {
               id="confirm-password"
               type="password"
               value={confirm}
-              onChange={(e) => {
-                setConfirm(e.target.value)
+              onChange={(event) => {
+                setConfirm(event.target.value)
                 setErrors((prev) => ({ ...prev, confirm: undefined }))
               }}
               className={errors.confirm ? 'is-error' : ''}
-              placeholder="再次輸入密碼"
+              placeholder="再次輸入新密碼"
               autoComplete="new-password"
             />
             {errors.confirm && (
@@ -173,12 +238,14 @@ export default function ResetPassword() {
             )}
           </div>
 
-          <button
-            type="submit"
-            className="btn-blue reset-password-submit"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? '更新中...' : '確認更新密碼'}
+          {serverMessage && (
+            <p className="reset-password-field-error" style={{ marginTop: -4 }}>
+              {serverMessage}
+            </p>
+          )}
+
+          <button type="submit" className="btn-blue reset-password-submit" disabled={isSubmitting}>
+            {isSubmitting ? '送出中...' : '更新密碼'}
           </button>
         </form>
 
