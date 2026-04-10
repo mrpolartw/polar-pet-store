@@ -25,6 +25,25 @@ const PATHS = {
   LINE_BIND_START: '/store/customers/me/line/start',
 }
 
+// ─── session hint ────────────────────────────────────────────────────────────
+// We store a lightweight flag in sessionStorage so that on a fresh page load
+// (no active session) we skip the /me/profile request entirely and avoid the
+// browser printing a red 401 in the Network tab for anonymous visitors.
+const SESSION_FLAG = 'pps_has_session'
+
+function markSessionActive() {
+  try { sessionStorage.setItem(SESSION_FLAG, '1') } catch { /* ignore */ }
+}
+
+function clearSessionFlag() {
+  try { sessionStorage.removeItem(SESSION_FLAG) } catch { /* ignore */ }
+}
+
+function hasSessionFlag() {
+  try { return sessionStorage.getItem(SESSION_FLAG) === '1' } catch { return false }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function isAnonymousState(error) {
   return [400, 401, 403, 404].includes(Number(error?.status))
 }
@@ -69,7 +88,9 @@ export const login = async (email, password) => {
     password,
   })
 
-  return fetchCurrentCustomer()
+  const customer = await fetchCurrentCustomer()
+  markSessionActive()
+  return customer
 }
 
 export const register = async (userData) => {
@@ -80,12 +101,27 @@ export const register = async (userData) => {
 
 export const logout = async () => {
   if (USE_MOCK) return mockAuthHandlers.logout()
+  clearSessionFlag()
   return apiClient.del(PATHS.LOGOUT)
 }
 
 export const getMe = async () => {
   if (USE_MOCK) return mockAuthHandlers.getMe()
-  return fetchCurrentCustomer({ allowAnonymous: true })
+
+  // If there is no session hint, skip the network request entirely.
+  // This prevents the 401 red-line in DevTools on every cold page load.
+  if (!hasSessionFlag()) {
+    return null
+  }
+
+  const customer = await fetchCurrentCustomer({ allowAnonymous: true })
+
+  // If the server no longer recognises the session, clear the flag.
+  if (!customer) {
+    clearSessionFlag()
+  }
+
+  return customer
 }
 
 export const getAuthStatus = async () => {
@@ -141,6 +177,7 @@ export const confirmPasswordReset = async (token, password) => {
 }
 
 export const completeLineRegistration = async ({ token, email, name }) => {
+  markSessionActive()
   return apiClient.post(PATHS.LINE_COMPLETE, { token, email, name })
 }
 
