@@ -60,6 +60,14 @@ export const StoreCustomerLineComplete = z.object({
   name: z.string().trim().min(1).nullish(),
 })
 
+export const StoreCustomerProfileUpdate = z.object({
+  name: z.string().trim().min(1).nullish(),
+  phone: z.string().trim().min(1).nullish(),
+  birthday: nullableDateString,
+  gender: z.enum(CUSTOMER_GENDERS).nullish(),
+  avatar: z.string().trim().min(1).nullish(),
+})
+
 export type StoreCustomerRegisterType = z.infer<typeof StoreCustomerRegister>
 export type StoreCustomerLoginType = z.infer<typeof StoreCustomerLogin>
 export type StoreCustomerEmailVerificationRequestType = z.infer<
@@ -79,4 +87,7 @@ export type StoreCustomerPasswordResetConfirmType = z.infer<
 >
 export type StoreCustomerLineCompleteType = z.infer<
   typeof StoreCustomerLineComplete
+>
+export type StoreCustomerProfileUpdateType = z.infer<
+  typeof StoreCustomerProfileUpdate
 >

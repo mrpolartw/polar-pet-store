@@ -53,3 +53,18 @@ export interface StoreCustomerLineCompleteResponse {
   customer_id: string
   redirect_to: string
 }
+
+export interface StoreCustomerProfileResponse {
+  customer: {
+    id: string
+    email: string | null
+    phone: string | null
+    first_name: string | null
+    last_name: string | null
+    metadata?: Record<string, unknown> | null
+    name: string
+    birthday: string | null
+    gender: "male" | "female" | "undisclosed"
+    avatar: string | null
+  } & Record<string, unknown>
+}

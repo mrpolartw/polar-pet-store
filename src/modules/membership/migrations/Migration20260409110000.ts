@@ -24,15 +24,51 @@ export class Migration20260409110000 extends Migration {
       `alter table if exists "membership_member_level" add column if not exists "can_join_event" boolean not null default false;`
     )
 
-    this.addSql(
-      `update "membership_member_level" set "sort_order" = coalesce("rank", 0) where exists (select 1);`
-    )
-    this.addSql(
-      `update "membership_member_level" set "reward_rate" = coalesce("discount_rate", 0) where exists (select 1);`
-    )
-    this.addSql(
-      `update "membership_member_level" set "upgrade_threshold" = coalesce("min_points", 0) where exists (select 1);`
-    )
+    this.addSql(`
+      do $$
+      begin
+        if exists (
+          select 1
+          from information_schema.columns
+          where table_name = 'membership_member_level'
+            and column_name = 'rank'
+        ) then
+          update "membership_member_level"
+          set "sort_order" = coalesce("rank", 0);
+        end if;
+      end
+      $$;
+    `)
+    this.addSql(`
+      do $$
+      begin
+        if exists (
+          select 1
+          from information_schema.columns
+          where table_name = 'membership_member_level'
+            and column_name = 'discount_rate'
+        ) then
+          update "membership_member_level"
+          set "reward_rate" = coalesce("discount_rate", 0);
+        end if;
+      end
+      $$;
+    `)
+    this.addSql(`
+      do $$
+      begin
+        if exists (
+          select 1
+          from information_schema.columns
+          where table_name = 'membership_member_level'
+            and column_name = 'min_points'
+        ) then
+          update "membership_member_level"
+          set "upgrade_threshold" = coalesce("min_points", 0);
+        end if;
+      end
+      $$;
+    `)
 
     this.addSql(
       `alter table if exists "membership_member_level" drop column if exists "rank";`
@@ -74,15 +110,51 @@ export class Migration20260409110000 extends Migration {
     this.addSql(
       `alter table if exists "membership_member_level" add column if not exists "benefits" jsonb null;`
     )
-    this.addSql(
-      `update "membership_member_level" set "rank" = coalesce("sort_order", 0) where exists (select 1);`
-    )
-    this.addSql(
-      `update "membership_member_level" set "min_points" = coalesce("upgrade_threshold", 0) where exists (select 1);`
-    )
-    this.addSql(
-      `update "membership_member_level" set "discount_rate" = coalesce("reward_rate", 0) where exists (select 1);`
-    )
+    this.addSql(`
+      do $$
+      begin
+        if exists (
+          select 1
+          from information_schema.columns
+          where table_name = 'membership_member_level'
+            and column_name = 'rank'
+        ) then
+          update "membership_member_level"
+          set "rank" = coalesce("sort_order", 0);
+        end if;
+      end
+      $$;
+    `)
+    this.addSql(`
+      do $$
+      begin
+        if exists (
+          select 1
+          from information_schema.columns
+          where table_name = 'membership_member_level'
+            and column_name = 'min_points'
+        ) then
+          update "membership_member_level"
+          set "min_points" = coalesce("upgrade_threshold", 0);
+        end if;
+      end
+      $$;
+    `)
+    this.addSql(`
+      do $$
+      begin
+        if exists (
+          select 1
+          from information_schema.columns
+          where table_name = 'membership_member_level'
+            and column_name = 'discount_rate'
+        ) then
+          update "membership_member_level"
+          set "discount_rate" = coalesce("reward_rate", 0);
+        end if;
+      end
+      $$;
+    `)
     this.addSql(
       `alter table if exists "membership_member_level" drop column if exists "sort_order";`
     )

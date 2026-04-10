@@ -34,6 +34,7 @@ import {
   StoreCustomerLogin,
   StoreCustomerPasswordResetConfirm,
   StoreCustomerPasswordResetRequest,
+  StoreCustomerProfileUpdate,
   StoreCustomerPasswordResetValidate,
   StoreCustomerRegister,
 } from "./store/customer-auth/validators"
@@ -219,6 +220,16 @@ export default defineMiddlewares({
       matcher: "/store/customers/me/line/start",
       methods: ["ALL"],
       middlewares: [customerAuth],
+    },
+    {
+      matcher: "/store/customers/me/profile",
+      methods: ["ALL"],
+      middlewares: [customerAuth],
+    },
+    {
+      matcher: "/store/customers/me/profile",
+      methods: ["POST"],
+      middlewares: [validateAndTransformBody(StoreCustomerProfileUpdate)],
     },
     {
       matcher: "/store/customers/me/points",
