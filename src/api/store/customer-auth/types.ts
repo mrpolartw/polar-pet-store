@@ -25,6 +25,13 @@ export interface StoreCustomerEmailVerificationRequestResponse {
   message: string
 }
 
+export interface StoreCustomerRegisterEmailStatusResponse {
+  status: "available" | "registered_verified" | "registered_unverified"
+  email: string
+  verification_sent: boolean
+  message: string
+}
+
 export interface StoreCustomerEmailVerificationConfirmResponse {
   status:
     | "verified"

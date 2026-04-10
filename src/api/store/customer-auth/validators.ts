@@ -37,6 +37,10 @@ export const StoreCustomerEmailVerificationRequest = z.object({
   email: normalizedEmail,
 })
 
+export const StoreCustomerRegisterEmailStatus = z.object({
+  email: normalizedEmail,
+})
+
 export const StoreCustomerEmailVerificationConfirm = z.object({
   token: z.string().trim().min(1),
 })
@@ -72,6 +76,9 @@ export type StoreCustomerRegisterType = z.infer<typeof StoreCustomerRegister>
 export type StoreCustomerLoginType = z.infer<typeof StoreCustomerLogin>
 export type StoreCustomerEmailVerificationRequestType = z.infer<
   typeof StoreCustomerEmailVerificationRequest
+>
+export type StoreCustomerRegisterEmailStatusType = z.infer<
+  typeof StoreCustomerRegisterEmailStatus
 >
 export type StoreCustomerEmailVerificationConfirmType = z.infer<
   typeof StoreCustomerEmailVerificationConfirm

@@ -36,6 +36,7 @@ import {
   StoreCustomerPasswordResetRequest,
   StoreCustomerProfileUpdate,
   StoreCustomerPasswordResetValidate,
+  StoreCustomerRegisterEmailStatus,
   StoreCustomerRegister,
 } from "./store/customer-auth/validators"
 import {
@@ -164,6 +165,11 @@ export default defineMiddlewares({
       matcher: "/store/auth/customer/register",
       methods: ["POST"],
       middlewares: [validateAndTransformBody(StoreCustomerRegister)],
+    },
+    {
+      matcher: "/store/auth/customer/register/email-status",
+      methods: ["POST"],
+      middlewares: [validateAndTransformBody(StoreCustomerRegisterEmailStatus)],
     },
     {
       matcher: "/store/auth/customer/login",

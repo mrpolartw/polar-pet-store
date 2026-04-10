@@ -68,6 +68,11 @@ export type PasswordResetTokenStatus =
   | "token_expired"
   | "token_used"
 
+export type CustomerRegisterEmailStatus =
+  | "available"
+  | "registered_verified"
+  | "registered_unverified"
+
 export async function requestCustomerEmailVerification(
   scope: MedusaContainer,
   email: string
@@ -115,6 +120,59 @@ export async function requestCustomerEmailVerification(
   return {
     sent: true,
     email_verified: false,
+  }
+}
+
+export async function inspectCustomerRegisterEmailStatus(
+  scope: MedusaContainer,
+  email: string
+): Promise<{
+  status: CustomerRegisterEmailStatus
+  email: string
+  verification_sent: boolean
+}> {
+  const normalizedEmail = normalizeCustomerEmail(email)
+  const membershipService = getMembershipService(scope)
+  const existingCustomer = await findCustomerByEmail(scope, normalizedEmail)
+  const existingAuthIdentity = await findCustomerAuthIdentityByEmail(
+    scope,
+    normalizedEmail
+  )
+  const linkedCustomerId =
+    typeof existingAuthIdentity?.app_metadata?.customer_id === "string"
+      ? existingAuthIdentity.app_metadata.customer_id
+      : null
+
+  if (!existingCustomer?.has_account && !linkedCustomerId) {
+    return {
+      status: "available",
+      email: normalizedEmail,
+      verification_sent: false,
+    }
+  }
+
+  const customerId = linkedCustomerId ?? existingCustomer?.id ?? null
+  const profile = customerId
+    ? await membershipService.getCustomerProfile(customerId)
+    : null
+
+  if (profile?.email_verified_at) {
+    return {
+      status: "registered_verified",
+      email: normalizedEmail,
+      verification_sent: false,
+    }
+  }
+
+  const verificationResult = await requestCustomerEmailVerification(
+    scope,
+    normalizedEmail
+  )
+
+  return {
+    status: "registered_unverified",
+    email: normalizedEmail,
+    verification_sent: verificationResult.sent,
   }
 }
 
