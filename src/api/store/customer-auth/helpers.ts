@@ -12,15 +12,15 @@ export function getEmailVerificationMessage(
 ): string {
   switch (status) {
     case "verified":
-      return "Email 驗證成功，現在可以登入會員中心。"
+      return "Email 驗證成功，現在可以登入會員帳號。"
     case "already_verified":
-      return "這個 Email 已經完成驗證，請直接登入。"
+      return "此 Email 已完成驗證，請直接登入。"
     case "token_expired":
-      return "驗證連結已過期，請重新申請新的驗證信。"
+      return "驗證連結已過期，請重新申請驗證信。"
     case "token_used":
-      return "這個驗證連結已失效，請重新申請新的驗證信。"
+      return "此驗證連結已使用，請重新申請驗證信。"
     default:
-      return "驗證連結無效，請重新申請新的驗證信。"
+      return "驗證連結無效，請重新申請驗證信。"
   }
 }
 
@@ -31,11 +31,11 @@ export function getPasswordResetMessage(
     case "reset":
       return "密碼已重設完成，請使用新密碼登入。"
     case "valid":
-      return "重設連結有效，請輸入新密碼。"
+      return "重設密碼連結有效，請繼續設定新密碼。"
     case "token_expired":
       return "重設密碼連結已過期，請重新申請。"
     case "token_used":
-      return "這個重設密碼連結已經使用過，請重新申請。"
+      return "此重設密碼連結已使用，請重新申請。"
     default:
       return "重設密碼連結無效，請重新申請。"
   }

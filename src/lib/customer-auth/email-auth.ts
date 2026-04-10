@@ -142,7 +142,7 @@ export async function registerCustomerEmailAccount(
   if (existingCustomer?.has_account || linkedCustomerId) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "這個 Email 已完成註冊，請直接登入或使用忘記密碼功能。"
+      "此 Email 已註冊，請直接登入或使用忘記密碼。"
     )
   }
 
@@ -157,7 +157,7 @@ export async function registerCustomerEmailAccount(
   if (!success || !authIdentity) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      error || "建立會員帳號失敗。"
+      error || "註冊失敗，請稍後再試。"
     )
   }
 
@@ -235,7 +235,7 @@ export async function loginCustomerWithEmailPassword(
     return {
       success: false,
       code: "ACCOUNT_INCOMPLETE",
-      message: "帳號資料尚未完成初始化，請聯繫客服協助處理。",
+      message: "帳號資料尚未完成，請聯絡客服協助處理。",
     }
   }
 
@@ -495,16 +495,21 @@ export async function confirmCustomerPasswordReset(
     }
   }
 
-  const customer = await retrieveCustomerById(scope, tokenState.tokenRecord.customer_id)
+  const customer = await retrieveCustomerById(
+    scope,
+    tokenState.tokenRecord.customer_id
+  )
   const normalizedEmail =
     typeof tokenState.tokenRecord.metadata?.["email"] === "string"
-      ? normalizeCustomerEmail(String(tokenState.tokenRecord.metadata?.["email"]))
+      ? normalizeCustomerEmail(
+          String(tokenState.tokenRecord.metadata?.["email"])
+        )
       : normalizeCustomerEmail(customer.email ?? "")
 
   if (!normalizedEmail) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "找不到對應的 Email，無法重設密碼。"
+      "找不到可重設密碼的 Email，請重新申請重設密碼。"
     )
   }
 
@@ -518,7 +523,7 @@ export async function confirmCustomerPasswordReset(
   if (!success) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      error || "重設密碼失敗。"
+      error || "重設密碼失敗，請稍後再試。"
     )
   }
 

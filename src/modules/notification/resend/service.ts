@@ -1,5 +1,8 @@
 import { AbstractNotificationProviderService } from "@medusajs/framework/utils"
-import { ProviderSendNotificationDTO, ProviderSendNotificationResultsDTO } from "@medusajs/framework/types"
+import {
+  ProviderSendNotificationDTO,
+  ProviderSendNotificationResultsDTO,
+} from "@medusajs/framework/types"
 import { Resend } from "resend"
 
 type ResendOptions = {
@@ -9,7 +12,7 @@ type ResendOptions = {
 
 export class ResendNotificationProviderService extends AbstractNotificationProviderService {
   static identifier = "resend"
-  
+
   protected resendClient: Resend
   protected options: ResendOptions
 
@@ -26,18 +29,20 @@ export class ResendNotificationProviderService extends AbstractNotificationProvi
       const { data, error } = await this.resendClient.emails.send({
         from: this.options.from,
         to: notification.to,
-        subject: (notification.data?.title as string) || "Medusa 系統通知",
-        html: (notification.data?.description as string) || "這是一封來自 Medusa v2 的信件",
+        subject: (notification.data?.title as string) || "Mr. Polar 通知",
+        html:
+          (notification.data?.description as string) ||
+          "<p>這是一封來自 Mr. Polar 的系統通知。</p>",
       })
 
       if (error) {
-        console.error("❌ Resend API 錯誤:", error)
+        console.error("Resend API 錯誤:", error)
         throw new Error(error.message)
       }
 
       return { id: data?.id || "unknown_id" }
     } catch (error) {
-      console.error("❌ 無法透過 Resend 發送郵件:", error)
+      console.error("寄送 Resend 郵件時發生錯誤:", error)
       throw error
     }
   }

@@ -16,7 +16,7 @@ export async function POST(
   res.json({
     ...result,
     message: result.email_verified
-      ? "這個 Email 已經完成驗證，請直接登入。"
-      : "如果此 Email 已註冊，我們已重新寄出驗證信，請前往信箱確認。",
+      ? "此 Email 已完成驗證，請直接登入。"
+      : "驗證信已重新寄出，請前往信箱完成驗證。",
   })
 }

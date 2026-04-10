@@ -8,14 +8,10 @@ export async function POST(
   req: MedusaRequest<StoreCustomerRegisterType>,
   res: MedusaResponse<StoreCustomerRegisterResponse>
 ): Promise<void> {
-  const result = await registerCustomerEmailAccount(
-    req.scope,
-    req,
-    {
-      ...req.validatedBody,
-      gender: req.validatedBody.gender ?? undefined,
-    }
-  )
+  const result = await registerCustomerEmailAccount(req.scope, req, {
+    ...req.validatedBody,
+    gender: req.validatedBody.gender ?? undefined,
+  })
 
   res.status(201).json({
     ...result,

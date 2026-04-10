@@ -50,24 +50,27 @@ function normalizeRecordToStrings(
     return {}
   }
 
-  return Object.entries(input).reduce<Record<string, string>>((acc, [key, value]) => {
-    if (value === undefined || value === null) {
-      return acc
-    }
-
-    if (Array.isArray(value)) {
-      const [first] = value
-
-      if (first !== undefined && first !== null) {
-        acc[key] = String(first)
+  return Object.entries(input).reduce<Record<string, string>>(
+    (acc, [key, value]) => {
+      if (value === undefined || value === null) {
+        return acc
       }
 
-      return acc
-    }
+      if (Array.isArray(value)) {
+        const [first] = value
 
-    acc[key] = String(value)
-    return acc
-  }, {})
+        if (first !== undefined && first !== null) {
+          acc[key] = String(first)
+        }
+
+        return acc
+      }
+
+      acc[key] = String(value)
+      return acc
+    },
+    {}
+  )
 }
 
 export function normalizeCustomerEmail(email: string): string {
@@ -206,7 +209,7 @@ export async function ensureCustomerAuthIdentity(
   if (!normalizedEmail) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "既有顧客缺少 Email，無法建立登入身分。"
+      "Customer 缺少 Email，無法建立登入身分。"
     )
   }
 
@@ -225,7 +228,7 @@ export async function ensureCustomerAuthIdentity(
     if (linkedCustomerId && linkedCustomerId !== customer.id) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "這個 Email 已綁定其他會員帳號。"
+        "此 Email 已綁定其他會員帳號。"
       )
     }
 
@@ -256,7 +259,7 @@ export async function ensureCustomerAuthIdentity(
   if (!success || !authIdentity) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      error || "建立會員登入身分失敗。"
+      error || "建立會員登入身分失敗，請稍後再試。"
     )
   }
 

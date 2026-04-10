@@ -1,6 +1,6 @@
-import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+import { loadEnv, defineConfig } from "@medusajs/framework/utils"
 
-loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
 module.exports = defineConfig({
   projectConfig: {
@@ -11,23 +11,23 @@ module.exports = defineConfig({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
-    }
+    },
   },
   modules: [
     {
-      resolve: "./src/modules/membership", // 本地模組，這沒問題
+      resolve: "./src/modules/membership",
     },
     {
       resolve: "@medusajs/notification",
       options: {
         providers: [
           {
-            resolve: "./src/modules/notification/resend", 
+            resolve: "./src/modules/notification/resend",
             id: "resend",
             options: {
               channels: ["email"],
-              api_key: process.env.RESEND_API_KEY, 
-              from: `Mr.Polar北極先生通知信 <${process.env.RESEND_FROM_EMAIL}>`,
+              api_key: process.env.RESEND_API_KEY,
+              from: `Mr. Polar 會員中心 <${process.env.RESEND_FROM_EMAIL}>`,
             },
           },
         ],
