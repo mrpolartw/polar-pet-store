@@ -1,15 +1,15 @@
-import React, {
+﻿import React, {
   createContext,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-} from "react"
+} from 'react'
 
-import authService from "../services/authService"
-import membershipService from "../services/membershipService"
-import { buildEmptyMembershipSummary } from "../modules/membership/utils"
+import authService from '../services/authService'
+import membershipService from '../services/membershipService'
+import { buildEmptyMembershipSummary } from '../modules/membership/utils'
 
 const AuthContext = createContext(null)
 
@@ -22,9 +22,9 @@ function decorateCustomer(customer, authStatus) {
     ...customer,
     name:
       customer?.name ||
-      `${customer?.first_name ?? ""} ${customer?.last_name ?? ""}`.trim() ||
+      `${customer?.first_name ?? ''} ${customer?.last_name ?? ''}`.trim() ||
       customer?.email ||
-      "會員",
+      '會員',
     emailVerified: Boolean(authStatus?.email_verified),
     emailVerifiedAt: authStatus?.email_verified_at ?? null,
     lineLinked: Boolean(authStatus?.line_linked),
@@ -36,12 +36,12 @@ function decorateCustomer(customer, authStatus) {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [authError, setAuthError] = useState("")
+  const [authError, setAuthError] = useState('')
   const [membershipSummary, setMembershipSummary] = useState(
     buildEmptyMembershipSummary()
   )
   const [isMembershipLoading, setIsMembershipLoading] = useState(false)
-  const [membershipError, setMembershipError] = useState("")
+  const [membershipError, setMembershipError] = useState('')
   const [authStatus, setAuthStatus] = useState(null)
   const userRef = useRef(null)
 
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
 
   const clearMembership = useCallback(() => {
     setMembershipSummary(buildEmptyMembershipSummary())
-    setMembershipError("")
+    setMembershipError('')
     setIsMembershipLoading(false)
   }, [])
 
@@ -63,14 +63,14 @@ export const AuthProvider = ({ children }) => {
       }
 
       setIsMembershipLoading(true)
-      setMembershipError("")
+      setMembershipError('')
 
       try {
         const summary = await membershipService.getCustomerMembershipSummary()
         setMembershipSummary(summary)
         return summary
       } catch (err) {
-        const message = err?.message ?? "會員資料讀取失敗，請稍後再試。"
+        const message = err?.message ?? '會員資料載入失敗，請稍後再試。'
         setMembershipError(message)
         const fallback = buildEmptyMembershipSummary(nextUser.id)
         setMembershipSummary(fallback)
@@ -132,7 +132,7 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    checkSession()
+    void checkSession()
 
     return () => {
       isMounted = false
@@ -142,20 +142,20 @@ export const AuthProvider = ({ children }) => {
   const login = useCallback(
     async (email, password) => {
       setIsLoading(true)
-      setAuthError("")
+      setAuthError('')
 
       try {
         await authService.login(email, password)
         const nextUser = await hydrateSession()
 
         if (!nextUser) {
-          throw new Error("登入成功，但讀取會員資料失敗。")
+          throw new Error('登入成功，但讀取會員資料失敗，請重新整理後再試。')
         }
 
         await refreshMembership(nextUser)
         return { success: true, user: nextUser }
       } catch (err) {
-        const message = err?.body?.message ?? err?.message ?? "登入失敗，請稍後再試。"
+        const message = err?.body?.message ?? err?.message ?? '登入失敗，請稍後再試。'
         const code = err?.body?.code ?? null
         const nextEmail = err?.body?.email ?? email
 
@@ -176,7 +176,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = useCallback(async (userData) => {
     setIsLoading(true)
-    setAuthError("")
+    setAuthError('')
 
     try {
       const response = await authService.register(userData)
@@ -185,7 +185,7 @@ export const AuthProvider = ({ children }) => {
         ...response,
       }
     } catch (err) {
-      const message = err?.body?.message ?? err?.message ?? "註冊失敗，請稍後再試。"
+      const message = err?.body?.message ?? err?.message ?? '註冊失敗，請稍後再試。'
       setAuthError(message)
       return { success: false, message }
     } finally {
@@ -201,7 +201,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null)
       setAuthStatus(null)
-      setAuthError("")
+      setAuthError('')
       clearMembership()
     }
   }, [clearMembership])
@@ -219,7 +219,7 @@ export const AuthProvider = ({ children }) => {
       } catch (err) {
         return {
           success: false,
-          message: err?.body?.message ?? err?.message ?? "會員資料更新失敗，請稍後再試。",
+          message: err?.body?.message ?? err?.message ?? '會員資料更新失敗，請稍後再試。',
         }
       } finally {
         setIsLoading(false)
@@ -237,7 +237,7 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       return {
         success: false,
-        message: err?.body?.message ?? err?.message ?? "密碼更新失敗，請稍後再試。",
+        message: err?.body?.message ?? err?.message ?? '密碼更新失敗，請稍後再試。',
       }
     } finally {
       setIsLoading(false)

@@ -84,9 +84,12 @@ async function fetchCurrentCustomer({ allowAnonymous = false } = {}) {
 export const login = async (email, password) => {
   if (USE_MOCK) return mockAuthHandlers.login(email, password)
 
+  const normalizedEmail = String(email ?? '').trim().toLowerCase()
+  const normalizedPassword = String(password ?? '')
+
   await apiClient.post(PATHS.LOGIN, {
-    email,
-    password,
+    email: normalizedEmail,
+    password: normalizedPassword,
   })
 
   const customer = await fetchCurrentCustomer()
