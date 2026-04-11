@@ -40,6 +40,17 @@ export interface StoreCustomerMembershipResponse {
   total_spent: number
   points_summary: MembershipPointsSummary
   recent_point_logs: PointLogRecord[]
+  recent_history: MembershipHistoryRecord[]
+}
+
+export interface MembershipHistoryRecord {
+  id: string
+  action: string
+  label: string
+  actor_type: "customer" | "admin" | "system"
+  actor_id: string
+  created_at: string | null
+  metadata: Record<string, unknown> | null
 }
 
 export interface MembershipPointsSummary {
@@ -107,6 +118,9 @@ export interface StoreCustomerPetResponse {
 
 export interface StoreCustomerSubscriptionsResponse {
   subscription: SubscriptionRecord | null
+  subscriptions: SubscriptionRecord[]
+  active_subscription: SubscriptionRecord | null
+  latest_subscription: SubscriptionRecord | null
   count: number
 }
 
@@ -118,4 +132,9 @@ export interface StoreDeletedResponse {
   id: string
   object: string
   deleted: boolean
+}
+
+export interface StoreCustomerMembershipHistoryResponse {
+  items: MembershipHistoryRecord[]
+  count: number
 }

@@ -22,12 +22,32 @@ export async function PATCH(
   const customerId = getCustomerId(req)
   const membershipService = getMembershipService(req.scope)
 
-  await ensurePetOwnership(req.scope, customerId, req.params.id)
+  const existingPet = await ensurePetOwnership(req.scope, customerId, req.params.id)
 
   const pet = (await membershipService.updatePet(
     req.params.id,
     normalizePetPayload(req.validatedBody)
   )) as PetRecord
+
+  await membershipService.createAuditLog({
+    actor_type: "customer",
+    actor_id: customerId,
+    action: "customer.pet.updated",
+    target_type: "customer",
+    target_id: customerId,
+    before_state: {
+      pet_id: existingPet.id,
+      name: existingPet.name,
+      species: existingPet.species,
+      gender: existingPet.gender,
+    },
+    after_state: {
+      pet_id: pet.id,
+      name: pet.name,
+      species: pet.species,
+      gender: pet.gender,
+    },
+  })
 
   res.status(200).json({
     pet,
@@ -41,8 +61,21 @@ export async function DELETE(
   const customerId = getCustomerId(req)
   const membershipService = getMembershipService(req.scope)
 
-  await ensurePetOwnership(req.scope, customerId, req.params.id)
+  const pet = await ensurePetOwnership(req.scope, customerId, req.params.id)
   await membershipService.deletePet(req.params.id)
+  await membershipService.createAuditLog({
+    actor_type: "customer",
+    actor_id: customerId,
+    action: "customer.pet.deleted",
+    target_type: "customer",
+    target_id: customerId,
+    before_state: {
+      pet_id: pet.id,
+      name: pet.name,
+      species: pet.species,
+      gender: pet.gender,
+    },
+  })
 
   res.status(200).json({
     id: req.params.id,

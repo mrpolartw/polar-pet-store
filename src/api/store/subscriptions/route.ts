@@ -20,13 +20,26 @@ export async function GET(
 ): Promise<void> {
   const customerId = getCustomerId(req)
   const membershipService = getMembershipService(req.scope)
-  const subscription = (await membershipService.getActiveSubscription(
-    customerId
-  )) as SubscriptionRecord | null
+  const subscriptions = (await membershipService.listSubscriptions(
+    { customer_id: customerId },
+    {
+      order: {
+        created_at: "DESC",
+        id: "DESC",
+      },
+    }
+  )) as SubscriptionRecord[]
+  const activeSubscription =
+    subscriptions.find((subscription) => subscription.status === "active") ??
+    null
+  const latestSubscription = subscriptions[0] ?? null
 
   res.json({
-    subscription,
-    count: subscription ? 1 : 0,
+    subscription: activeSubscription,
+    subscriptions,
+    active_subscription: activeSubscription,
+    latest_subscription: latestSubscription,
+    count: subscriptions.length,
   })
 }
 
@@ -40,6 +53,19 @@ export async function POST(
     customerId,
     normalizeCreateSubscriptionPayload(req.validatedBody)
   )) as SubscriptionRecord
+
+  await membershipService.createAuditLog({
+    actor_type: "customer",
+    actor_id: customerId,
+    action: "customer.subscription.created",
+    target_type: "customer",
+    target_id: customerId,
+    after_state: {
+      subscription_id: subscription.id,
+      status: subscription.status,
+      plan_name: subscription.plan_name,
+    },
+  })
 
   res.status(200).json({
     subscription,

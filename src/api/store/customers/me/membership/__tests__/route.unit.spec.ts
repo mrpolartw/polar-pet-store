@@ -74,6 +74,20 @@ describe("store customer membership route", () => {
           },
         ],
       })),
+      listAuditLogs: jest.fn(async () => [
+        {
+          id: "audit_1",
+          action: "customer.favorite.added",
+          actor_type: "customer",
+          actor_id: "cus_123",
+          target_type: "customer",
+          target_id: "cus_123",
+          metadata: {
+            product_id: "prod_123",
+          },
+          created_at: "2026-04-10T12:00:00.000Z",
+        },
+      ]),
     } as never)
     retrieveCustomerMembershipLevelComputationMock.mockResolvedValue({
       current_level: {
@@ -92,7 +106,7 @@ describe("store customer membership route", () => {
     } as never)
   })
 
-  it("returns the new point summary fields and recent point logs", async () => {
+  it("returns the new point summary fields, recent point logs, and recent history", async () => {
     const req = {
       scope: {},
       auth_context: {
@@ -123,6 +137,12 @@ describe("store customer membership route", () => {
         expect.objectContaining({
           id: "pl_1",
           source: "order",
+        }),
+      ],
+      recent_history: [
+        expect.objectContaining({
+          id: "audit_1",
+          action: "customer.favorite.added",
         }),
       ],
     })

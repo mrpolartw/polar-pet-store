@@ -53,6 +53,20 @@ export async function POST(
     }
   )) as PetRecord
 
+  await membershipService.createAuditLog({
+    actor_type: "customer",
+    actor_id: customerId,
+    action: "customer.pet.created",
+    target_type: "customer",
+    target_id: customerId,
+    after_state: {
+      pet_id: pet.id,
+      name: pet.name,
+      species: pet.species,
+      gender: pet.gender,
+    },
+  })
+
   res.status(200).json({
     pet,
   })

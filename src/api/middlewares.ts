@@ -218,6 +218,11 @@ export default defineMiddlewares({
       middlewares: [customerAuth],
     },
     {
+      matcher: "/store/customers/me/membership/history",
+      methods: ["ALL"],
+      middlewares: [customerAuth],
+    },
+    {
       matcher: "/store/customers/me/orders",
       methods: ["ALL"],
       middlewares: [customerAuth],

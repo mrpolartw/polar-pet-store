@@ -44,6 +44,18 @@ export async function POST(
     req.validatedBody.variant_id ?? undefined
   )) as FavoriteRecord
 
+  await membershipService.createAuditLog({
+    actor_type: "customer",
+    actor_id: customerId,
+    action: "customer.favorite.added",
+    target_type: "customer",
+    target_id: customerId,
+    after_state: {
+      product_id: favorite.product_id,
+      variant_id: favorite.variant_id,
+    },
+  })
+
   res.status(200).json({
     favorite,
   })

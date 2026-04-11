@@ -9,6 +9,7 @@ import {
   retrieveCustomerMembership,
 } from "../../../membership/helpers"
 import { retrieveCustomerMembershipLevelComputation } from "../../../../../lib/membership/customer-membership-level"
+import { normalizeMembershipHistoryItem } from "../../../../../lib/membership/customer-membership-history"
 import type { StoreCustomerMembershipResponse } from "../../../membership/types"
 
 export async function GET(
@@ -26,9 +27,22 @@ export async function GET(
     )
   }
 
-  const [points, computation] = await Promise.all([
+  const [points, computation, auditLogs] = await Promise.all([
     membershipService.getCustomerPoints(customerId),
     retrieveCustomerMembershipLevelComputation(req.scope, customerId),
+    membershipService.listAuditLogs(
+      {
+        target_type: "customer",
+        target_id: customerId,
+      },
+      {
+        order: {
+          created_at: "DESC",
+          id: "DESC",
+        },
+        take: 10,
+      }
+    ),
   ])
 
   res.json({
@@ -46,5 +60,6 @@ export async function GET(
       refunded_points: points.summary.refunded_points,
     },
     recent_point_logs: points.logs.slice(0, 5),
+    recent_history: auditLogs.map(normalizeMembershipHistoryItem),
   })
 }

@@ -13,6 +13,16 @@ export async function DELETE(
   const membershipService = getMembershipService(req.scope)
 
   await membershipService.removeFavorite(customerId, req.params.product_id)
+  await membershipService.createAuditLog({
+    actor_type: "customer",
+    actor_id: customerId,
+    action: "customer.favorite.removed",
+    target_type: "customer",
+    target_id: customerId,
+    before_state: {
+      product_id: req.params.product_id,
+    },
+  })
 
   res.status(200).json({
     id: req.params.product_id,
