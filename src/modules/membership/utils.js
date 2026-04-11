@@ -6,6 +6,8 @@ const EMPTY_POINTS_SUMMARY = {
   refundedPoints: 0,
 }
 
+const EMPTY_HISTORY = []
+
 export const POINT_LOG_SOURCE_LABELS = {
   order: '訂單回饋',
   birthday_bonus: '生日加碼',
@@ -27,6 +29,7 @@ export function buildEmptyMembershipSummary(customerId = '') {
     totalSpent: 0,
     pointsSummary: { ...EMPTY_POINTS_SUMMARY },
     recentPointLogs: [],
+    recentHistory: [...EMPTY_HISTORY],
   }
 }
 
@@ -93,6 +96,27 @@ export function normalizeMembershipSummaryResponse(payload) {
           .map(normalizeMembershipPointLog)
           .filter(Boolean)
       : [],
+    recentHistory: Array.isArray(payload?.recent_history)
+      ? payload.recent_history
+          .map(normalizeMembershipHistoryItem)
+          .filter(Boolean)
+      : [],
+  }
+}
+
+export function normalizeMembershipHistoryItem(item) {
+  if (!item) {
+    return null
+  }
+
+  return {
+    id: item.id ?? '',
+    action: item.action ?? '',
+    label: item.label ?? item.action ?? '會員歷程',
+    actorType: item.actor_type ?? '',
+    actorId: item.actor_id ?? '',
+    createdAt: item.created_at ?? null,
+    metadata: item.metadata ?? null,
   }
 }
 

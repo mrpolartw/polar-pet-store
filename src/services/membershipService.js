@@ -2,6 +2,7 @@ import apiClient from '../utils/apiClient'
 import authService from './authService'
 import {
   normalizeMembershipSummaryResponse,
+  normalizeMembershipHistoryItem,
   normalizeMembershipPointLog,
 } from '../modules/membership/utils'
 import { validateRedeemablePoints } from '../modules/checkout/pointRedemption'
@@ -199,6 +200,152 @@ export async function getCustomerPointHistory({ limit = 20, offset = 0 } = {}) {
   return apiClient.get(`/store/customers/me/points?${params.toString()}`)
 }
 
+function normalizeProductDetailPayload(payload) {
+  const product = payload?.product ?? payload ?? null
+
+  if (!product) {
+    return null
+  }
+
+  return {
+    id: product.id ?? '',
+    title: product.title ?? product.name ?? '',
+    handle: product.handle ?? product.slug ?? product.id ?? '',
+    thumbnail: product.thumbnail ?? product.images?.[0]?.url ?? '',
+    variants: Array.isArray(product.variants)
+      ? product.variants.map((variant) => ({
+          id: variant.id ?? '',
+          title: variant.title ?? variant.name ?? '',
+          price:
+            Number(
+              variant.calculated_price?.calculated_amount ??
+                variant.prices?.[0]?.amount ??
+                variant.price ??
+                0
+            ) || 0,
+          currencyCode:
+            variant.calculated_price?.currency_code ??
+            variant.prices?.[0]?.currency_code ??
+            'TWD',
+        }))
+      : [],
+    isAvailable:
+      product.status ? product.status === 'published' : true,
+  }
+}
+
+async function fetchFavoriteProductDetail(productId) {
+  try {
+    const payload = await apiClient.get(`/store/products/${productId}`)
+    return normalizeProductDetailPayload(payload)
+  } catch {
+    return null
+  }
+}
+
+export async function getCustomerFavorites() {
+  const data = await apiClient.get('/store/customers/me/favorites')
+  const items = Array.isArray(data?.items) ? data.items : []
+  const productMap = new Map()
+
+  await Promise.all(
+    items.map(async (item) => {
+      if (!item?.product_id || productMap.has(item.product_id)) {
+        return
+      }
+
+      productMap.set(item.product_id, await fetchFavoriteProductDetail(item.product_id))
+    })
+  )
+
+  return {
+    items: items.map((item) => {
+      const product = productMap.get(item.product_id)
+      const variant = product?.variants?.find((entry) => entry.id === item.variant_id) ?? null
+
+      return {
+        id: item.id,
+        productId: item.product_id,
+        variantId: item.variant_id ?? '',
+        createdAt: item.created_at ?? null,
+        productName: product?.title ?? item.product_id,
+        productHandle: product?.handle ?? item.product_id,
+        productImage: product?.thumbnail ?? '',
+        variantName: variant?.title ?? '',
+        price: variant?.price ?? 0,
+        currencyCode: variant?.currencyCode ?? 'TWD',
+        isAvailable: Boolean(product?.isAvailable),
+      }
+    }),
+    count: Number(data?.count ?? items.length),
+  }
+}
+
+export async function addCustomerFavorite({ productId, variantId }) {
+  return apiClient.post('/store/customers/me/favorites', {
+    product_id: productId,
+    variant_id: variantId || null,
+  })
+}
+
+export async function removeCustomerFavorite(productId) {
+  return apiClient.del(`/store/customers/me/favorites/${productId}`)
+}
+
+export async function getCustomerPets() {
+  const data = await apiClient.get('/store/customers/me/pets')
+  return {
+    items: Array.isArray(data?.items) ? data.items : [],
+    count: Number(data?.count ?? 0),
+  }
+}
+
+export async function createCustomerPet(payload) {
+  return apiClient.post('/store/customers/me/pets', payload)
+}
+
+export async function updateCustomerPet(id, payload) {
+  return apiClient.patch(`/store/customers/me/pets/${id}`, payload)
+}
+
+export async function deleteCustomerPet(id) {
+  return apiClient.del(`/store/customers/me/pets/${id}`)
+}
+
+export async function getCustomerSubscriptions() {
+  const data = await apiClient.get('/store/subscriptions')
+
+  return {
+    items: Array.isArray(data?.subscriptions)
+      ? data.subscriptions
+      : data?.subscription
+        ? [data.subscription]
+        : [],
+    activeSubscription: data?.active_subscription ?? data?.subscription ?? null,
+    latestSubscription: data?.latest_subscription ?? data?.subscription ?? null,
+    count: Number(data?.count ?? 0),
+  }
+}
+
+export async function updateCustomerSubscription(id, payload) {
+  return apiClient.patch(`/store/subscriptions/${id}`, payload)
+}
+
+export async function cancelCustomerSubscription(id) {
+  return apiClient.del(`/store/subscriptions/${id}`)
+}
+
+export async function getCustomerMembershipHistory() {
+  const data = await apiClient.get('/store/customers/me/membership/history')
+
+  return {
+    items: Array.isArray(data?.items)
+      ? data.items.map(normalizeMembershipHistoryItem).filter(Boolean)
+      : [],
+    count: Number(data?.count ?? 0),
+  }
+}
+
 export async function previewPointRedemption({ points, orderSubtotal }) {
   if (USE_MOCK) {
     const summary = await getMockMembershipState()
@@ -337,6 +484,17 @@ export async function applyPointRedemption({
 const membershipService = {
   getCustomerMembershipSummary,
   getCustomerPointHistory,
+  getCustomerFavorites,
+  addCustomerFavorite,
+  removeCustomerFavorite,
+  getCustomerPets,
+  createCustomerPet,
+  updateCustomerPet,
+  deleteCustomerPet,
+  getCustomerSubscriptions,
+  updateCustomerSubscription,
+  cancelCustomerSubscription,
+  getCustomerMembershipHistory,
   previewPointRedemption,
   applyPointRedemption,
 }

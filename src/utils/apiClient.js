@@ -119,6 +119,14 @@ const apiClient = {
     return handleResponse(res)
   },
 
+  patch: async (path, body = {}, options = {}) => {
+    const res = await fetchWithTimeout(
+      buildApiUrl(path),
+      buildRequestOptions("PATCH", body, options)
+    )
+    return handleResponse(res)
+  },
+
   del: async (path, options = {}) => {
     const res = await fetchWithTimeout(
       buildApiUrl(path),

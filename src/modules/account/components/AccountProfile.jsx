@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+﻿import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { BadgeCheck, Camera, User } from 'lucide-react'
 
@@ -20,10 +20,7 @@ const fadeUp = {
 
 const getInitials = (name) => (name ? name.slice(0, 2).toUpperCase() : 'PL')
 
-function AccountProfileCard({
-  user,
-  onAvatarUpload,
-}) {
+function AccountProfileCard({ user, onAvatarUpload }) {
   const inputRef = useRef(null)
 
   return (
@@ -53,7 +50,7 @@ function AccountProfileCard({
       </button>
 
       <div className="account-user-name">{user?.name ?? '會員'}</div>
-      <div className="account-user-email">{user?.email ?? '尚未設定 Email'}</div>
+      <div className="account-user-email">{user?.email ?? '尚未提供 Email'}</div>
 
       <div
         style={{
@@ -65,13 +62,16 @@ function AccountProfileCard({
         }}
       >
         <span className="account-status-chip">
-          {user?.emailVerified ? 'Email 已驗證' : 'Email 待驗證'}
+          {user?.emailVerified ? 'Email 已驗證' : 'Email 未驗證'}
         </span>
-        {user?.lineLinked && (
-          <span className="account-status-chip" style={{ background: '#ECFDF3', color: '#15803D' }}>
+        {user?.lineLinked ? (
+          <span
+            className="account-status-chip"
+            style={{ background: '#ECFDF3', color: '#15803D' }}
+          >
             LINE 已綁定
           </span>
-        )}
+        ) : null}
       </div>
     </div>
   )
@@ -114,13 +114,13 @@ export default function AccountProfile() {
       })
 
       if (result?.success === false) {
-        throw new Error(result?.message || '會員資料更新失敗，請稍後再試')
+        throw new Error(result?.message || '會員資料更新失敗，請稍後再試。')
       }
 
-      toast.success('會員資料已更新')
+      toast.success('會員資料已儲存。')
       await refreshMembership()
     } catch (err) {
-      toast.error(err?.message || '會員資料更新失敗，請稍後再試')
+      toast.error(err?.message || '會員資料更新失敗，請稍後再試。')
     }
   }
 
@@ -131,12 +131,12 @@ export default function AccountProfile() {
     if (!file) return
 
     if (!SUPPORTED_AVATAR_TYPES.includes(file.type)) {
-      toast.error('頭像格式僅支援 JPG、PNG、WebP 或 GIF')
+      toast.error('頭像僅支援 JPG、PNG、WebP 或 GIF 格式。')
       return
     }
 
     if (file.size > MAX_AVATAR_FILE_SIZE) {
-      toast.error(`頭像大小不可超過 ${MAX_AVATAR_SIZE_MB}MB`)
+      toast.error(`頭像大小不可超過 ${MAX_AVATAR_SIZE_MB}MB。`)
       return
     }
 
@@ -147,23 +147,23 @@ export default function AccountProfile() {
         const avatar = typeof reader.result === 'string' ? reader.result : ''
 
         if (!avatar) {
-          throw new Error('頭像讀取失敗，請重新選擇檔案')
+          throw new Error('頭像讀取失敗，請重新選擇檔案。')
         }
 
         const result = await updateProfile({ avatar })
 
         if (result?.success === false) {
-          throw new Error(result?.message || '頭像更新失敗，請稍後再試')
+          throw new Error(result?.message || '頭像更新失敗，請稍後再試。')
         }
 
-        toast.success('頭像已更新')
+        toast.success('頭像已更新。')
       } catch (err) {
-        toast.error(err?.message || '頭像更新失敗，請稍後再試')
+        toast.error(err?.message || '頭像更新失敗，請稍後再試。')
       }
     }
 
     reader.onerror = () => {
-      toast.error('頭像讀取失敗，請重新選擇檔案')
+      toast.error('頭像讀取失敗，請重新選擇檔案。')
     }
 
     reader.readAsDataURL(file)
@@ -176,10 +176,7 @@ export default function AccountProfile() {
         會員資料
       </h2>
 
-      <AccountProfileCard
-        user={user}
-        onAvatarUpload={handleAvatarUpload}
-      />
+      <AccountProfileCard user={user} onAvatarUpload={handleAvatarUpload} />
 
       <AccountMembershipSummary
         summary={{
@@ -254,9 +251,9 @@ export default function AccountProfile() {
               setProfileForm((prev) => ({ ...prev, gender: event.target.value }))
             }}
           >
-            <option value="undisclosed">未透露</option>
-            <option value="male">男性</option>
-            <option value="female">女性</option>
+            <option value="undisclosed">不便透露</option>
+            <option value="male">男</option>
+            <option value="female">女</option>
           </select>
         </div>
 
