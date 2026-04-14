@@ -20,6 +20,11 @@ type OptionalAuthenticatedRequest = MedusaRequest & {
   auth_context?: {
     actor_id?: string
   }
+  session?: {
+    auth_context?: {
+      actor_id?: string
+    }
+  }
 }
 
 type CustomerProfilePayload = NonNullable<StoreCustomerProfileResponse["customer"]>
@@ -125,7 +130,9 @@ export async function GET(
   req: MedusaRequest,
   res: MedusaResponse<StoreCustomerProfileResponse>
 ): Promise<void> {
-  const customerId = (req as OptionalAuthenticatedRequest).auth_context?.actor_id
+  const request = req as OptionalAuthenticatedRequest
+  const customerId =
+    request.auth_context?.actor_id ?? request.session?.auth_context?.actor_id
 
   if (!customerId) {
     res.json({

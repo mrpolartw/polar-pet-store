@@ -19,6 +19,28 @@ export type SubscriptionRecord =
 export type AuditLogRecord =
   GraphResultSet<"membership_audit_log">["data"][number]
 
+export interface AdminCustomerAddressRecord {
+  id: string
+  type: "home" | "711"
+  label: string
+  name: string
+  phone: string
+  city: string
+  district: string
+  address: string
+  is_default: boolean
+  store_name: string
+  store_id: string
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface PointLogActorRecord {
+  actor_type: "customer" | "admin" | "system"
+  actor_id: string
+  actor_label: string
+}
+
 export type CustomerMembershipGraph = GraphResultSet<"customer">["data"][number] & {
   membership_member_level?: MembershipLevelRecord | null
 }
@@ -60,6 +82,8 @@ export interface AdminMembershipCustomerResponse {
   points_balance: number
   available_points: number
   points_summary: MembershipPointsSummary
+  addresses: AdminCustomerAddressRecord[]
+  addresses_count: number
   favorites_count: number
   pets_count: number
   active_subscription: SubscriptionRecord | null
@@ -77,7 +101,7 @@ export interface AdminMembershipCustomerPointsResponse {
   balance: number
   available_balance: number
   points_summary: MembershipPointsSummary
-  logs: PointLogRecord[]
+  logs: Array<PointLogRecord & { actor: PointLogActorRecord }>
   count: number
   offset: number
   limit: number

@@ -40,6 +40,10 @@ import {
   StoreCustomerRegister,
 } from "./store/customer-auth/validators"
 import {
+  StoreCreateCustomerAddress,
+  StoreUpdateCustomerAddress,
+} from "./store/customers/validators"
+import {
   StoreAddFavorite,
   StoreApplyMembershipPointRedemption,
   StoreCreatePet,
@@ -234,11 +238,6 @@ export default defineMiddlewares({
     },
     {
       matcher: "/store/customers/me/profile",
-      methods: ["GET"],
-      middlewares: [optionalCustomerAuth],
-    },
-    {
-      matcher: "/store/customers/me/profile",
       methods: ["POST"],
       middlewares: [customerAuth],
     },
@@ -246,6 +245,26 @@ export default defineMiddlewares({
       matcher: "/store/customers/me/profile",
       methods: ["POST"],
       middlewares: [validateAndTransformBody(StoreCustomerProfileUpdate)],
+    },
+    {
+      matcher: "/store/customers/me/addresses",
+      methods: ["ALL"],
+      middlewares: [customerAuth],
+    },
+    {
+      matcher: "/store/customers/me/addresses",
+      methods: ["POST"],
+      middlewares: [validateAndTransformBody(StoreCreateCustomerAddress)],
+    },
+    {
+      matcher: "/store/customers/me/addresses/:id",
+      methods: ["ALL"],
+      middlewares: [customerAuth],
+    },
+    {
+      matcher: "/store/customers/me/addresses/:id",
+      methods: ["PATCH"],
+      middlewares: [validateAndTransformBody(StoreUpdateCustomerAddress)],
     },
     {
       matcher: "/store/customers/me/points",

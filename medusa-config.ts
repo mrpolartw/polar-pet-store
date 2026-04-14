@@ -1,6 +1,9 @@
 import { loadEnv, defineConfig } from "@medusajs/framework/utils"
 
+import { logDevelopmentAuthDiagnostics } from "./src/lib/customer-auth/dev-auth-diagnostics"
+
 loadEnv(process.env.NODE_ENV || "development", process.cwd())
+logDevelopmentAuthDiagnostics(process.env)
 
 module.exports = defineConfig({
   projectConfig: {

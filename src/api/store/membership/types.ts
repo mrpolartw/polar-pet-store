@@ -34,13 +34,23 @@ export type MembershipLevelSummary = Pick<
 export interface StoreCustomerMembershipResponse {
   customer_id: string
   current_level: MembershipLevelSummary | null
+  next_level: MembershipLevelSummary | null
   points_balance: number
   available_points: number
   yearly_spent: number
   total_spent: number
+  level_progress: MembershipLevelProgressSummary
   points_summary: MembershipPointsSummary
   recent_point_logs: PointLogRecord[]
   recent_history: MembershipHistoryRecord[]
+}
+
+export interface MembershipLevelProgressSummary {
+  current_threshold: number
+  next_threshold: number | null
+  progress_amount: number
+  remaining_amount: number
+  progress_percentage: number
 }
 
 export interface MembershipHistoryRecord {

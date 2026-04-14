@@ -6,6 +6,13 @@ import {
   expireMembershipPoints,
   processOrderRefundMembershipEffects,
 } from "../membership-point-effects"
+import {
+  buildMembershipOrderAccountingMetadata,
+  getMembershipOrderRedemptionAmount,
+  getMembershipOrderRedeemedPoints,
+  getMembershipOrderRefundHistory,
+  getMembershipOrderRefundedAmount,
+} from "../membership-order-accounting"
 import { buildMembershipPointsSnapshot } from "../membership-point-balance"
 import { recalculateCustomerMembershipLevel } from "../customer-membership-level"
 
@@ -340,6 +347,58 @@ describe("membership point effects", () => {
     expect(repeated.created).toBe(false)
   })
 
+  it("keeps order metadata, point logs, and membership summary aligned after checkout redemption", async () => {
+    const scope = buildScope()
+
+    const redemption = await applyMembershipPointRedemption(scope, {
+      customerId: "cus_123",
+      referenceId: "order:ord_checkout:redeem",
+      points: 15,
+      actorType: "customer",
+      actorId: "cus_123",
+      processedAt: "2026-04-09T12:00:00.000Z",
+    })
+
+    const metadata = buildMembershipOrderAccountingMetadata({
+      subtotal: 1200,
+      shipping_fee: 80,
+      promo_discount: 50,
+      redeemed_points: redemption.redeemed_points,
+      redemption_amount: redemption.redemption_amount,
+      redemption_reference: redemption.reference_id,
+      payment_method: "credit_card",
+      shipping_method: "home_delivery",
+      promo_code: "SPRING50",
+      buyer_name: "測試會員",
+      buyer_phone: "0912345678",
+      buyer_email: "test@gmail.com",
+      recipient_name: "測試會員",
+      recipient_phone: "0912345678",
+    })
+
+    const createdPointLog = pointLogs.find(
+      (log) =>
+        log.customer_id === "cus_123" &&
+        log.source === "redeem" &&
+        log.reference_id === "order:ord_checkout:redeem"
+    )
+    const summary = await (
+      scope.resolve as jest.Mock
+    )(MEMBERSHIP_MODULE).getCustomerPoints("cus_123", "2026-04-09T12:00:00.000Z")
+
+    expect(createdPointLog).toEqual(
+      expect.objectContaining({
+        points: -15,
+        source: "redeem",
+        reference_id: "order:ord_checkout:redeem",
+      })
+    )
+    expect(getMembershipOrderRedeemedPoints({ metadata })).toBe(15)
+    expect(getMembershipOrderRedemptionAmount({ metadata })).toBe(15)
+    expect(summary.summary.available_points).toBe(20)
+    expect(summary.summary.redeemed_points).toBe(15)
+  })
+
   it("does not allow redeeming more than the available points", async () => {
     const scope = buildScope()
 
@@ -348,6 +407,33 @@ describe("membership point effects", () => {
         customerId: "cus_123",
         referenceId: "cart_999",
         points: 60,
+        actorType: "customer",
+        actorId: "cus_123",
+        processedAt: "2026-04-09T12:00:00.000Z",
+      })
+    ).rejects.toThrow("Insufficient available points")
+  })
+
+  it("does not allow expired points to be used for redemption", async () => {
+    const scope = buildScope()
+
+    pointLogs = [
+      {
+        id: "pl_expired_only",
+        customer_id: "cus_123",
+        points: 25,
+        source: "bonus",
+        reference_id: "expired_bonus",
+        expired_at: "2026-04-08T00:00:00.000Z",
+        created_at: "2025-04-08T00:00:00.000Z",
+      },
+    ]
+
+    await expect(
+      applyMembershipPointRedemption(scope, {
+        customerId: "cus_123",
+        referenceId: "cart_expired_only",
+        points: 1,
         actorType: "customer",
         actorId: "cus_123",
         processedAt: "2026-04-09T12:00:00.000Z",
@@ -391,6 +477,67 @@ describe("membership point effects", () => {
 
     expect(repeated?.processed).toBe(false)
     expect(repeated?.clawed_back_points).toBe(8)
+  })
+
+  it("handles two partial refunds cumulatively without re-clawing processed portions", async () => {
+    const scope = buildScope()
+
+    const firstRefund = await processOrderRefundMembershipEffects(scope, {
+      orderId: "ord_123",
+      referenceId: "refund:ord_123:1",
+      originalRefundAmount: 500,
+      actorType: "admin",
+      actorId: "user_123",
+      processedAt: "2026-04-10T12:00:00.000Z",
+    })
+
+    const updateOrderCalls = updateOrderRunMock.mock.calls as unknown as Array<[{
+      input: { metadata: Record<string, unknown> }
+    }]>
+    const firstUpdateCall = updateOrderCalls[0]?.[0]
+    if (!firstUpdateCall) {
+      throw new Error("Expected first refund metadata update call")
+    }
+    orderMetadataById.ord_123 = firstUpdateCall.input.metadata
+
+    const secondRefund = await processOrderRefundMembershipEffects(scope, {
+      orderId: "ord_123",
+      referenceId: "refund:ord_123:2",
+      originalRefundAmount: 700,
+      actorType: "admin",
+      actorId: "user_123",
+      processedAt: "2026-04-10T12:30:00.000Z",
+    })
+
+    const secondUpdateCall = updateOrderCalls[1]?.[0]
+    if (!secondUpdateCall) {
+      throw new Error("Expected second refund metadata update call")
+    }
+    orderMetadataById.ord_123 = secondUpdateCall.input.metadata
+
+    expect(firstRefund).toEqual(
+      expect.objectContaining({
+        refund_applied_amount: 500,
+        clawed_back_points: 8,
+        actual_refund_amount: 492,
+      })
+    )
+    expect(secondRefund).toEqual(
+      expect.objectContaining({
+        refund_applied_amount: 700,
+        total_refunded_amount: 1200,
+        clawed_back_points: 13,
+        actual_refund_amount: 687,
+        processed: true,
+        recalculated: true,
+      })
+    )
+    expect(getMembershipOrderRefundedAmount({ metadata: orderMetadataById.ord_123 })).toBe(1200)
+    expect(getMembershipOrderRefundHistory({ metadata: orderMetadataById.ord_123 })).toHaveLength(2)
+    expect(
+      pointLogs.filter((log) => log.source === "refund" && log.customer_id === "cus_123")
+    ).toHaveLength(2)
+    expect(recalculateCustomerMembershipLevelMock).toHaveBeenCalledTimes(2)
   })
 
   it("records a refund reference even when the order has no reward logs to claw back", async () => {

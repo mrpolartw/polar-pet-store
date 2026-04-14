@@ -128,13 +128,24 @@ export const AdminGetMembershipCustomerAuditLogsParams = listQueryBase.extend({
   action: stringOrArray.optional(),
 })
 
-export const AdminAdjustMembershipPoints = z.object({
-  delta: z.number().finite().refine((value) => value !== 0, {
-    message: "點數異動不可為 0",
-  }),
-  note: z.string().nullish(),
-  source: z.literal("admin").optional(),
-})
+export const AdminAdjustMembershipPoints = z
+  .object({
+    delta: z.number().finite().refine((value) => value !== 0, {
+      message: "點數異動不可為 0",
+    }),
+    note: z.string().nullish(),
+    expired_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish(),
+    source: z.literal("admin").optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.delta > 0 && !data.expired_at) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["expired_at"],
+        message: "新增點數時，請選擇到期日期",
+      })
+    }
+  })
 
 export const AdminAssignMembershipLevel = z.object({
   member_level_id: z.string().min(1),

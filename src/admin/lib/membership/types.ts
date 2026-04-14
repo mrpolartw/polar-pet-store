@@ -60,6 +60,11 @@ export interface PointLog {
   note: string | null
   expired_at: string | null
   metadata: JsonRecord | null
+  actor: {
+    actor_type: "customer" | "admin" | "system"
+    actor_id: string
+    actor_label: string
+  }
   created_at?: string | null
   updated_at?: string | null
 }
@@ -139,9 +144,27 @@ export interface MembershipCustomerResponse {
   points_balance: number
   available_points: number
   points_summary: MembershipPointSummary
+  addresses: MembershipCustomerAddress[]
+  addresses_count: number
   favorites_count: number
   pets_count: number
   active_subscription: Subscription | null
+}
+
+export interface MembershipCustomerAddress {
+  id: string
+  type: "home" | "711"
+  label: string
+  name: string
+  phone: string
+  city: string
+  district: string
+  address: string
+  is_default: boolean
+  store_name: string
+  store_id: string
+  created_at: string | null
+  updated_at: string | null
 }
 
 export interface MembershipCustomerPointsResponse {
@@ -229,6 +252,7 @@ export type MemberLevelUpdatePayload = Partial<MemberLevelPayload>
 export interface AdjustPointsPayload {
   delta: number
   note?: string | null
+  expired_at?: string | null
   source?: "admin"
 }
 

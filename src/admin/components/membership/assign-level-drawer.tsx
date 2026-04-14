@@ -28,7 +28,7 @@ export function AssignLevelDrawer({
     event.preventDefault()
 
     if (!selectedLevelId) {
-      toast.error("請先選擇會員等級")
+      toast.error("請先選擇要指派的會員等級。")
       return
     }
 
@@ -36,9 +36,7 @@ export function AssignLevelDrawer({
       await onSubmit(selectedLevelId)
       setOpen(false)
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "更新會員等級失敗"
-      toast.error(message)
+      toast.error(error instanceof Error ? error.message : "會員等級更新失敗。")
     }
   }
 
@@ -46,15 +44,15 @@ export function AssignLevelDrawer({
     <Drawer open={open} onOpenChange={setOpen}>
       <Drawer.Trigger asChild>
         <Button type="button" variant="secondary">
-          指派等級
+          手動調整等級
         </Button>
       </Drawer.Trigger>
       <Drawer.Content>
         <form className="flex h-full flex-col" onSubmit={handleSubmit}>
           <Drawer.Header className="space-y-1">
-            <Drawer.Title>指派會員等級</Drawer.Title>
+            <Drawer.Title>手動指派會員等級</Drawer.Title>
             <Drawer.Description>
-              請選擇要套用到這位顧客的會員等級。
+              後台可直接指定此會員的目前等級，調整結果會寫入稽核紀錄。
             </Drawer.Description>
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-5">
@@ -71,14 +69,14 @@ export function AssignLevelDrawer({
                 <Select.Content>
                   {levels.map((level) => (
                     <Select.Item key={level.id} value={level.id}>
-                      {`${level.name}（排序 ${level.sort_order} / 門檻 ${level.upgrade_threshold}）`}
+                      {`${level.name} / 排序 ${level.sort_order} / 升級門檻 ${level.upgrade_threshold}`}
                     </Select.Item>
                   ))}
                 </Select.Content>
               </Select>
             </div>
             <Text className="text-ui-fg-subtle">
-              儲存後會立刻更新顧客目前綁定的會員等級。
+              若之後重新執行自動重算，系統仍會依正式升等規則重新判定適用等級。
             </Text>
           </Drawer.Body>
           <Drawer.Footer>

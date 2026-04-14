@@ -303,7 +303,8 @@ class MembershipModuleService extends MedusaService({
     delta: number,
     source: PointLogSource,
     reference_id?: string,
-    note?: string
+    note?: string,
+    expired_at?: Date | null
   ): Promise<PointLogDTO> {
     return await this.createPointLog({
       customer_id,
@@ -311,7 +312,7 @@ class MembershipModuleService extends MedusaService({
       source,
       reference_id: reference_id ?? null,
       note: note ?? null,
-      expired_at: null,
+      expired_at: delta > 0 ? expired_at ?? null : null,
       metadata: null,
     })
   }

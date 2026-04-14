@@ -88,6 +88,44 @@ describe("store customer membership route", () => {
           created_at: "2026-04-10T12:00:00.000Z",
         },
       ]),
+      listMemberLevels: jest.fn(async () => [
+        {
+          id: "level_family",
+          name: "家庭會員",
+          sort_order: 10,
+          reward_rate: 1,
+          birthday_reward_rate: 2,
+          upgrade_gift_points: 0,
+          upgrade_threshold: 0,
+          auto_upgrade: true,
+          can_join_event: false,
+          is_active: true,
+        },
+        {
+          id: "level_silver",
+          name: "銀卡會員",
+          sort_order: 20,
+          reward_rate: 2,
+          birthday_reward_rate: 4,
+          upgrade_gift_points: 500,
+          upgrade_threshold: 5000,
+          auto_upgrade: true,
+          can_join_event: true,
+          is_active: true,
+        },
+        {
+          id: "level_gold",
+          name: "金卡會員",
+          sort_order: 30,
+          reward_rate: 3,
+          birthday_reward_rate: 5,
+          upgrade_gift_points: 1000,
+          upgrade_threshold: 10000,
+          auto_upgrade: true,
+          can_join_event: true,
+          is_active: true,
+        },
+      ]),
     } as never)
     retrieveCustomerMembershipLevelComputationMock.mockResolvedValue({
       current_level: {
@@ -106,7 +144,7 @@ describe("store customer membership route", () => {
     } as never)
   })
 
-  it("returns the new point summary fields, recent point logs, and recent history", async () => {
+  it("returns point summary, recent logs, recent history, and next-level progress", async () => {
     const req = {
       scope: {},
       auth_context: {
@@ -122,10 +160,20 @@ describe("store customer membership route", () => {
       current_level: expect.objectContaining({
         id: "level_silver",
       }),
+      next_level: expect.objectContaining({
+        id: "level_gold",
+      }),
       points_balance: 100,
       available_points: 100,
       yearly_spent: 4560,
       total_spent: 18900,
+      level_progress: {
+        current_threshold: 5000,
+        next_threshold: 10000,
+        progress_amount: 0,
+        remaining_amount: 5440,
+        progress_percentage: 0,
+      },
       points_summary: {
         total_points: 130,
         available_points: 100,

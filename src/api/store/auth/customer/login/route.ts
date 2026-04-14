@@ -17,6 +17,7 @@ export async function POST(
   if (!result.success) {
     res.status(result.code === "EMAIL_NOT_VERIFIED" ? 403 : 401).json({
       success: false,
+      auth_scope: "store_customer",
       code: result.code,
       message: result.message,
       email: result.email ?? null,
@@ -26,6 +27,7 @@ export async function POST(
 
   res.json({
     success: true,
+    auth_scope: "store_customer",
     customer_id: result.customer_id,
   })
 }

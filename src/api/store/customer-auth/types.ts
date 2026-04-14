@@ -7,7 +7,11 @@ export interface StoreCustomerRegisterResponse {
 
 export interface StoreCustomerLoginResponse {
   success: boolean
-  customer_id: string
+  customer_id?: string
+  code?: "INVALID_CREDENTIALS" | "EMAIL_NOT_VERIFIED" | "ACCOUNT_INCOMPLETE"
+  message?: string
+  email?: string | null
+  auth_scope: "store_customer"
 }
 
 export interface StoreCustomerAuthStatusResponse {

@@ -6,6 +6,7 @@ import {
   ensureMembershipCustomer,
   getMembershipService,
 } from "../../../helpers"
+import { mapPointLogActors } from "../../../../../../lib/membership/admin-point-log-actors"
 import type {
   AdminMembershipCustomerPointsResponse,
   PointLogRecord,
@@ -28,6 +29,11 @@ export async function GET(
     )
   const { limit, offset } = req.validatedQuery
   const paginatedLogs = logs.slice(offset, offset + limit) as PointLogRecord[]
+  const actorMap = await mapPointLogActors(
+    req.scope,
+    req.params.id,
+    paginatedLogs
+  )
 
   res.json({
     balance,
@@ -39,7 +45,14 @@ export async function GET(
       redeemed_points: summary.redeemed_points,
       refunded_points: summary.refunded_points,
     },
-    logs: paginatedLogs,
+    logs: paginatedLogs.map((log) => ({
+      ...log,
+      actor: actorMap.get(log.id) ?? {
+        actor_type: "system",
+        actor_id: "system",
+        actor_label: "系統",
+      },
+    })),
     count: logs.length,
     offset,
     limit,

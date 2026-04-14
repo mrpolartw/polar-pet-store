@@ -71,7 +71,7 @@ export function PaginationControls({
   return (
     <div className="flex flex-col gap-y-3 border-t border-ui-border-base pt-4 md:flex-row md:items-center md:justify-between">
       <Text className="text-ui-fg-subtle">
-        {count === 0 ? "沒有資料" : `${start}-${end} / 共 ${count} 筆`}
+        {count === 0 ? "目前沒有資料" : `${start}-${end} / 共 ${count} 筆`}
       </Text>
       <div className="flex items-center gap-x-2">
         <Text className="text-ui-fg-subtle">{`第 ${page} / ${totalPages} 頁`}</Text>

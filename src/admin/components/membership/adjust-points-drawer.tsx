@@ -1,9 +1,13 @@
-import { Button, Drawer, Input, Label, Textarea, toast } from "@medusajs/ui"
+import { Button, Drawer, Input, Label, Text, Textarea, toast } from "@medusajs/ui"
 import { useState, type FormEvent } from "react"
 
 interface AdjustPointsDrawerProps {
   isSubmitting?: boolean
-  onSubmit: (payload: { delta: number; note?: string | null }) => Promise<void>
+  onSubmit: (payload: {
+    delta: number
+    note?: string | null
+    expired_at?: string | null
+  }) => Promise<void>
 }
 
 export function AdjustPointsDrawer({
@@ -13,6 +17,7 @@ export function AdjustPointsDrawer({
   const [open, setOpen] = useState(false)
   const [delta, setDelta] = useState("")
   const [note, setNote] = useState("")
+  const [expiredAt, setExpiredAt] = useState("")
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -20,7 +25,12 @@ export function AdjustPointsDrawer({
     const numericDelta = Number(delta)
 
     if (!Number.isFinite(numericDelta) || numericDelta === 0) {
-      toast.error("點數異動必須是非 0 的數字")
+      toast.error("點數異動不可為 0")
+      return
+    }
+
+    if (numericDelta > 0 && !expiredAt) {
+      toast.error("新增點數時，請選擇到期日期")
       return
     }
 
@@ -28,15 +38,19 @@ export function AdjustPointsDrawer({
       await onSubmit({
         delta: numericDelta,
         note: note.trim() ? note.trim() : null,
+        expired_at: numericDelta > 0 ? expiredAt || null : null,
       })
       setDelta("")
       setNote("")
+      setExpiredAt("")
       setOpen(false)
     } catch (error) {
-      const message = error instanceof Error ? error.message : "更新點數失敗"
+      const message = error instanceof Error ? error.message : "調整點數失敗"
       toast.error(message)
     }
   }
+
+  const isPositiveAdjustment = Number(delta) > 0
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
@@ -48,7 +62,7 @@ export function AdjustPointsDrawer({
           <Drawer.Header className="space-y-1">
             <Drawer.Title>調整點數</Drawer.Title>
             <Drawer.Description>
-              請輸入這位顧客的點數增減值，正數代表增加，負數代表扣減。
+              正數代表新增點數，負數代表扣除點數。新增點數時需指定到期日期，扣點紀錄則會以扣除當天視為異動日期。
             </Drawer.Description>
           </Drawer.Header>
           <Drawer.Body className="flex flex-1 flex-col gap-y-5">
@@ -62,6 +76,25 @@ export function AdjustPointsDrawer({
                 disabled={isSubmitting}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="membership-adjust-points-expired-at">
+                到期日期
+              </Label>
+              <Input
+                id="membership-adjust-points-expired-at"
+                type="date"
+                value={expiredAt}
+                onChange={(event) => setExpiredAt(event.target.value)}
+                disabled={isSubmitting || !isPositiveAdjustment}
+              />
+              <Text size="small" className="text-ui-fg-subtle">
+                {isPositiveAdjustment
+                  ? "新增點數時必填。"
+                  : "扣除點數不需要設定到期日期。"}
+              </Text>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="membership-adjust-points-note">備註</Label>
               <Textarea

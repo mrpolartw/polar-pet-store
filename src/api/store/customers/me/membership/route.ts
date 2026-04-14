@@ -9,6 +9,7 @@ import {
   retrieveCustomerMembership,
 } from "../../../membership/helpers"
 import { retrieveCustomerMembershipLevelComputation } from "../../../../../lib/membership/customer-membership-level"
+import { buildCustomerMembershipProgress } from "../../../../../lib/membership/customer-membership-progress"
 import { normalizeMembershipHistoryItem } from "../../../../../lib/membership/customer-membership-history"
 import type { StoreCustomerMembershipResponse } from "../../../membership/types"
 
@@ -27,7 +28,7 @@ export async function GET(
     )
   }
 
-  const [points, computation, auditLogs] = await Promise.all([
+  const [points, computation, auditLogs, levels] = await Promise.all([
     membershipService.getCustomerPoints(customerId),
     retrieveCustomerMembershipLevelComputation(req.scope, customerId),
     membershipService.listAuditLogs(
@@ -43,15 +44,32 @@ export async function GET(
         take: 10,
       }
     ),
+    membershipService.listMemberLevels(
+      {},
+      {
+        order: {
+          upgrade_threshold: "ASC",
+          sort_order: "ASC",
+          id: "ASC",
+        },
+      }
+    ),
   ])
+  const progress = buildCustomerMembershipProgress({
+    currentLevel: computation.current_level,
+    yearlySpent: computation.yearly_spent,
+    levels,
+  })
 
   res.json({
     customer_id: customerId,
     current_level: computation.current_level,
+    next_level: progress.next_level,
     points_balance: points.available_balance,
     available_points: points.available_balance,
     yearly_spent: computation.yearly_spent,
     total_spent: computation.total_spent,
+    level_progress: progress.progress,
     points_summary: {
       total_points: points.summary.total_points,
       available_points: points.summary.available_points,

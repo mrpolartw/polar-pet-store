@@ -25,12 +25,17 @@ export async function POST(
   const { balance: previousBalance } = await membershipService.getCustomerPoints(
     req.params.id
   )
+  const expiredAt =
+    req.validatedBody.delta > 0 && req.validatedBody.expired_at
+      ? new Date(`${req.validatedBody.expired_at}T23:59:59.999Z`)
+      : null
   const pointLog = (await membershipService.adjustPoints(
     req.params.id,
     req.validatedBody.delta,
     "admin",
     undefined,
-    req.validatedBody.note ?? "admin adjust"
+    req.validatedBody.note ?? "admin adjust",
+    expiredAt
   )) as PointLogRecord
 
   await membershipService.createAuditLog({
@@ -49,6 +54,7 @@ export async function POST(
     },
     metadata: {
       note: req.validatedBody.note ?? null,
+      expired_at: expiredAt?.toISOString() ?? null,
     },
   })
 

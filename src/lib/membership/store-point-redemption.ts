@@ -42,7 +42,7 @@ export function validateMembershipPointRedemption(
       order_subtotal: orderSubtotal,
       remaining_amount: orderSubtotal,
       is_valid: false,
-      validation_message: "折抵點數必須是正整數",
+      validation_message: '請輸入正整數點數。',
     }
   }
 
@@ -56,7 +56,7 @@ export function validateMembershipPointRedemption(
       order_subtotal: orderSubtotal,
       remaining_amount: orderSubtotal,
       is_valid: false,
-      validation_message: "折抵點數不可小於 0",
+      validation_message: '點數折抵不得小於 0。',
     }
   }
 
@@ -84,7 +84,7 @@ export function validateMembershipPointRedemption(
       order_subtotal: orderSubtotal,
       remaining_amount: Math.max(0, orderSubtotal - maxRedeemablePoints),
       is_valid: false,
-      validation_message: "折抵點數不可超過目前可用點數",
+      validation_message: '點數折抵不得超過目前可用點數。',
     }
   }
 
@@ -98,7 +98,7 @@ export function validateMembershipPointRedemption(
       order_subtotal: orderSubtotal,
       remaining_amount: Math.max(0, orderSubtotal - maxRedeemablePoints),
       is_valid: false,
-      validation_message: "折抵點數不可超過本次訂單可折抵金額",
+      validation_message: '點數折抵不得超過本次可折抵金額。',
     }
   }
 

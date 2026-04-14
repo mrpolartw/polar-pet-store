@@ -6,6 +6,7 @@ import {
   ensureMembershipCustomer,
   getMembershipService,
 } from "../../helpers"
+import { listAdminCustomerAddresses } from "../../../../../lib/membership/admin-customer-addresses"
 import { retrieveCustomerMembershipLevelComputation } from "../../../../../lib/membership/customer-membership-level"
 import type {
   AdminMembershipCustomerResponse,
@@ -20,7 +21,7 @@ export async function GET(
 ): Promise<void> {
   const membershipService = getMembershipService(req.scope)
   const customer = await ensureMembershipCustomer(req.scope, req.params.id)
-  const [points, favorites, pets, activeSubscription, computation] =
+  const [points, favorites, pets, activeSubscription, computation, addresses] =
     await Promise.all([
       membershipService.getCustomerPoints(req.params.id),
       membershipService.listFavorites({
@@ -33,6 +34,7 @@ export async function GET(
         req.params.id
       ) as Promise<SubscriptionRecord | null>,
       retrieveCustomerMembershipLevelComputation(req.scope, req.params.id),
+      listAdminCustomerAddresses(req.scope, req.params.id),
     ])
 
   res.status(200).json({
@@ -50,6 +52,8 @@ export async function GET(
       redeemed_points: points.summary.redeemed_points,
       refunded_points: points.summary.refunded_points,
     },
+    addresses,
+    addresses_count: addresses.length,
     favorites_count: favorites.length,
     pets_count: pets.length,
     active_subscription: activeSubscription,

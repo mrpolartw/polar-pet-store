@@ -33,7 +33,7 @@ describe("store point redemption validation", () => {
         max_redeemable_points: 25,
         redeemable_points: 25,
         is_valid: false,
-        validation_message: "折抵點數不可超過目前可用點數",
+        validation_message: "點數折抵不得超過目前可用點數。",
       })
     )
   })
@@ -50,7 +50,7 @@ describe("store point redemption validation", () => {
         max_redeemable_points: 80,
         redeemable_points: 80,
         is_valid: false,
-        validation_message: "折抵點數不可超過本次訂單可折抵金額",
+        validation_message: "點數折抵不得超過本次可折抵金額。",
       })
     )
   })
