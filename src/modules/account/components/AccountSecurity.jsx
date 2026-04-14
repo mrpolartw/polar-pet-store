@@ -28,7 +28,7 @@ export default function AccountSecurity() {
 
   const handleChangePassword = async () => {
     if (!passwordForm.old || !passwordForm.next || !passwordForm.confirm) {
-      setPasswordError('請完整填寫目前密碼、新密碼與確認密碼')
+      setPasswordError('請完整填寫目前密碼、新密碼與確認密碼。')
       return
     }
 
@@ -47,13 +47,13 @@ export default function AccountSecurity() {
     const result = await changePassword(passwordForm.old, passwordForm.next)
 
     if (result?.success === false) {
-      setPasswordError(result?.message || '密碼更新失敗，請稍後再試')
+      setPasswordError(result?.message || '密碼更新失敗，請稍後再試。')
       return
     }
 
     setPasswordError('')
     setPasswordForm({ old: '', next: '', confirm: '' })
-    toast.success('密碼已更新')
+    toast.success('密碼已更新。')
   }
 
   const handleLineBind = () => {
@@ -82,8 +82,8 @@ export default function AccountSecurity() {
             </h4>
             <p>
               {isEmailVerified
-                ? '你的 Email 已完成驗證，可以正常使用 Email / 密碼登入。'
-                : '你的 Email 尚未驗證，請先完成驗證後再使用 Email / 密碼登入。'}
+                ? '此 Email 已完成驗證，可正常使用 Email / 密碼登入。'
+                : '此 Email 尚未完成驗證，建議先完成驗證，以免影響 Email / 密碼登入。'}
             </p>
           </div>
           <span
@@ -96,24 +96,43 @@ export default function AccountSecurity() {
               fontWeight: 700,
             }}
           >
-            {isEmailVerified ? '已驗證' : '待驗證'}
+            {isEmailVerified ? '已驗證' : '未驗證'}
           </span>
         </div>
 
         <div className="security-item" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
           <div className="security-item-info" style={{ marginBottom: 20 }}>
-            <h4>修改密碼</h4>
-            <p>請輸入目前密碼與新密碼。新密碼至少需要 8 個字元，並包含大寫字母與數字。</p>
+            <h4>變更密碼</h4>
+            <p>請輸入目前密碼、新密碼與確認密碼。新密碼至少需 8 碼，並符合目前的密碼規則。</p>
           </div>
 
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 380 }}>
             {[
-              { field: 'old', label: '目前密碼' },
-              { field: 'next', label: '新密碼' },
-              { field: 'confirm', label: '確認新密碼' },
-            ].map(({ field, label }) => (
+              {
+                field: 'old',
+                label: '目前密碼',
+                id: 'account-security-password-old',
+                name: 'currentPassword',
+                autoComplete: 'current-password',
+              },
+              {
+                field: 'next',
+                label: '新密碼',
+                id: 'account-security-password-new',
+                name: 'newPassword',
+                autoComplete: 'new-password',
+              },
+              {
+                field: 'confirm',
+                label: '確認新密碼',
+                id: 'account-security-password-confirm',
+                name: 'confirmPassword',
+                autoComplete: 'new-password',
+              },
+            ].map(({ field, label, id, name, autoComplete }) => (
               <div key={field}>
                 <label
+                  htmlFor={id}
                   style={{
                     display: 'block',
                     fontSize: 13,
@@ -125,7 +144,10 @@ export default function AccountSecurity() {
                   {label}
                 </label>
                 <input
+                  id={id}
+                  name={name}
                   type="password"
+                  autoComplete={autoComplete}
                   className="apple-input"
                   value={passwordForm[field]}
                   onChange={(event) => {
@@ -136,9 +158,10 @@ export default function AccountSecurity() {
               </div>
             ))}
 
-            {passwordError && <p style={{ fontSize: 13, color: '#e74c3c' }}>{passwordError}</p>}
+            {passwordError ? <p style={{ fontSize: 13, color: '#e74c3c' }}>{passwordError}</p> : null}
 
             <button
+              type="button"
               className="btn-blue"
               style={{ alignSelf: 'flex-start', padding: '12px 24px', borderRadius: 980, fontSize: 15 }}
               onClick={handleChangePassword}
@@ -157,12 +180,13 @@ export default function AccountSecurity() {
             </h4>
             <p>
               {isLineLinked
-                ? `目前已綁定 LINE 帳號：${user?.lineDisplayName || '已完成綁定'}`
-                : '綁定 LINE 後可以直接使用 LINE 登入，也能讓會員身分辨識更順暢。'}
+                ? `目前已綁定 LINE 帳號：${user?.lineDisplayName || '已綁定帳號'}`
+                : '綁定 LINE 後，可在支援的情境下使用 LINE 快速登入。'}
             </p>
           </div>
 
           <button
+            type="button"
             style={{
               padding: '10px 18px',
               borderRadius: 980,
@@ -183,11 +207,12 @@ export default function AccountSecurity() {
 
         <div className="security-item" style={{ borderColor: '#e5e7eb' }}>
           <div className="security-item-info">
-            <h4>登出目前帳號</h4>
-            <p>如果你正在共用裝置，建議在使用完成後登出，避免帳號資訊留在裝置上。</p>
+            <h4>登出目前裝置</h4>
+            <p>如果你在共用或公共裝置上使用帳號，離開前請記得登出，以保護會員資料安全。</p>
           </div>
 
           <button
+            type="button"
             style={{
               padding: '8px 16px',
               borderRadius: 980,

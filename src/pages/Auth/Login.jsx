@@ -4,6 +4,9 @@ import { AlertCircle, Eye, EyeOff, Package, ShieldCheck, Star } from 'lucide-rea
 import { motion } from 'framer-motion'
 
 import { useAuth } from '../../context/useAuth'
+import {
+  getStoreCustomerLoginErrorMessage,
+} from '../../modules/auth/authErrorMessages'
 import authService from '../../services/authService'
 import { ROUTES } from '../../constants/routes'
 import { validateEmail, validateRequired } from '../../utils/validators'
@@ -32,6 +35,9 @@ export default function Login() {
   const [isResendingVerification, setIsResendingVerification] = useState(false)
   const [verificationHint, setVerificationHint] = useState('')
   const registerPromptMessage = location.state?.message ?? ''
+  const normalizedAuthError = authError
+    ? getStoreCustomerLoginErrorMessage({ fallbackMessage: authError })
+    : ''
 
   const lineErrorMessage = useMemo(() => {
     const lineError = searchParams.get('line_error')
@@ -182,14 +188,14 @@ export default function Login() {
             <p>使用 Email / 密碼，或 LINE 帳號登入。</p>
           </div>
 
-          {(authError || lineErrorMessage) && (
+          {(normalizedAuthError || lineErrorMessage) && (
             <motion.div
               className="auth-global-error"
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
             >
               <AlertCircle size={16} />
-              {authError || lineErrorMessage}
+              {normalizedAuthError || lineErrorMessage}
             </motion.div>
           )}
 

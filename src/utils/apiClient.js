@@ -1,9 +1,33 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ""
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? ''
 const DEFAULT_TIMEOUT = 15000
-const PUBLISHABLE_KEY = import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY ?? ""
+const PUBLISHABLE_KEY = import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY ?? ''
 
 function buildApiUrl(path) {
   return `${BASE_URL}${path}`
+}
+
+function logAuthRequestDiagnostic(url, res, errorBody) {
+  if (!import.meta.env.DEV) {
+    return
+  }
+
+  if (
+    !url.includes('/store/auth/customer/login') &&
+    !url.includes('/store/customers/me/profile')
+  ) {
+    return
+  }
+
+  const hint = url.includes('/store/auth/customer/login')
+    ? '這是前台會員登入 API；Medusa 後台登入使用 /auth/user/emailpass。'
+    : '這是前台會員 session hydrate API；若登入後失敗，請優先檢查 CORS、cookie 與 credentials: include。'
+
+  console.warn('[apiClient] 驗證相關請求回傳非成功狀態', {
+    url,
+    status: res.status,
+    response: errorBody,
+    hint,
+  })
 }
 
 async function handleResponse(res) {
@@ -22,6 +46,8 @@ async function handleResponse(res) {
   } catch {
     // ignore
   }
+
+  logAuthRequestDiagnostic(res.url, res, errorBody)
 
   const message =
     errorBody?.message ??
@@ -46,8 +72,8 @@ async function fetchWithTimeout(url, options = {}) {
     })
     return res
   } catch (err) {
-    if (err.name === "AbortError") {
-      const timeout = new Error("連線逾時，請稍後再試。")
+    if (err.name === 'AbortError') {
+      const timeout = new Error('請求逾時，請稍後再試。')
       timeout.status = 408
       throw timeout
     }
@@ -60,12 +86,12 @@ async function fetchWithTimeout(url, options = {}) {
 
 function getHeaders(extra = {}) {
   const headers = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
     ...extra,
   }
 
   if (PUBLISHABLE_KEY) {
-    headers["x-publishable-api-key"] = PUBLISHABLE_KEY
+    headers['x-publishable-api-key'] = PUBLISHABLE_KEY
   }
 
   return headers
@@ -74,7 +100,7 @@ function getHeaders(extra = {}) {
 function buildRequestOptions(method, body, options = {}) {
   const {
     headers: extraHeaders = {},
-    credentials = "include",
+    credentials = 'include',
     ...rest
   } = options
 
@@ -98,7 +124,7 @@ const apiClient = {
   get: async (path, options = {}) => {
     const res = await fetchWithTimeout(
       buildApiUrl(path),
-      buildRequestOptions("GET", undefined, options)
+      buildRequestOptions('GET', undefined, options)
     )
     return handleResponse(res)
   },
@@ -106,7 +132,7 @@ const apiClient = {
   post: async (path, body = {}, options = {}) => {
     const res = await fetchWithTimeout(
       buildApiUrl(path),
-      buildRequestOptions("POST", body, options)
+      buildRequestOptions('POST', body, options)
     )
     return handleResponse(res)
   },
@@ -114,7 +140,7 @@ const apiClient = {
   put: async (path, body = {}, options = {}) => {
     const res = await fetchWithTimeout(
       buildApiUrl(path),
-      buildRequestOptions("PUT", body, options)
+      buildRequestOptions('PUT', body, options)
     )
     return handleResponse(res)
   },
@@ -122,7 +148,7 @@ const apiClient = {
   patch: async (path, body = {}, options = {}) => {
     const res = await fetchWithTimeout(
       buildApiUrl(path),
-      buildRequestOptions("PATCH", body, options)
+      buildRequestOptions('PATCH', body, options)
     )
     return handleResponse(res)
   },
@@ -130,7 +156,7 @@ const apiClient = {
   del: async (path, options = {}) => {
     const res = await fetchWithTimeout(
       buildApiUrl(path),
-      buildRequestOptions("DELETE", undefined, options)
+      buildRequestOptions('DELETE', undefined, options)
     )
     return handleResponse(res)
   },

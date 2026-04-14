@@ -37,11 +37,12 @@ export default function Account() {
   const { user } = useAuth()
   const { activeTab, switchTab } = useAccountTab()
 
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) {
+    return <Navigate to="/login" replace />
+  }
 
-  const ActiveComponent = TAB_CONFIG.find(
-    (tab) => tab.key === activeTab,
-  )?.component ?? AccountProfile
+  const ActiveComponent =
+    TAB_CONFIG.find((tab) => tab.key === activeTab)?.component ?? AccountProfile
 
   return (
     <main className="account-page">
@@ -51,6 +52,7 @@ export default function Account() {
         {TAB_CONFIG.map(({ key, label }) => (
           <button
             key={key}
+            type="button"
             className={`account-mobile-tab ${activeTab === key ? 'active' : ''}`}
             onClick={() => switchTab(key)}
           >
@@ -61,9 +63,11 @@ export default function Account() {
 
       <div className="account-profile-card account-profile-card-mobile">
         <div className="account-avatar">
-          {user?.avatar
-            ? <img src={user.avatar} alt={user.name} />
-            : <span>{user?.name?.[0] ?? '會'}</span>}
+          {user?.avatar ? (
+            <img src={user.avatar} alt={user.name} />
+          ) : (
+            <span>{user?.name?.[0] ?? '會'}</span>
+          )}
         </div>
         <div className="account-user-name">{user?.name}</div>
         <div className="account-user-email">{user?.email}</div>
@@ -75,11 +79,12 @@ export default function Account() {
             {TAB_CONFIG.map((tab) => (
               <button
                 key={tab.key}
+                type="button"
                 className={`account-nav-item ${activeTab === tab.key ? 'active' : ''}`}
                 onClick={() => switchTab(tab.key)}
                 aria-current={activeTab === tab.key ? 'page' : undefined}
               >
-                <tab.icon size={18} strokeWidth={1.5} />
+                <tab.icon size={18} strokeWidth={1.5} className="account-nav-icon" />
                 <span>{tab.label}</span>
               </button>
             ))}

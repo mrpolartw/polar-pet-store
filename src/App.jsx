@@ -541,33 +541,32 @@ function AppContent() {
                   <>
                     {/* 已登入：顯示頭像 */}
                     <button
+                      className="user-menu-avatar-btn"
                       onClick={() => {
                         setIsUserMenuOpen(!isUserMenuOpen);
                         setIsCartOpen(false);
                         setActiveDropdown(null);
                       }}
                       title={user?.name}
+                      type="button"
+                      aria-label={user?.name ? `${user.name} 的會員選單` : '開啟會員選單'}
                       style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        background: 'linear-gradient(135deg, var(--color-brand-blue) 0%, var(--color-brand-coffee) 100%)',
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontSize: 13,
-                        fontWeight: 700,
-                        flexShrink: 0,
-                        transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                         boxShadow: isUserMenuOpen ? '0 0 0 3px rgba(0,49,83,0.15)' : 'none',
                       }}
                       onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; }}
                       onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
                     >
-                      {getInitials(user?.name)}
+                      {user?.avatar ? (
+                        <img
+                          className="user-menu-avatar-image"
+                          src={user.avatar}
+                          alt={user?.name || '會員頭像'}
+                        />
+                      ) : (
+                        <span className="user-menu-avatar-fallback">
+                          {getInitials(user?.name)}
+                        </span>
+                      )}
                     </button>
 
                     {/* 用戶下拉選單（無 icon）*/}

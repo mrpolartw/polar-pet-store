@@ -1,9 +1,10 @@
-﻿import React, { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Calendar, Loader2, PauseCircle, RefreshCw, XCircle } from 'lucide-react'
+
 import { EmptyState } from '../../../components/common'
-import membershipService from '../../../services/membershipService'
 import { useToast } from '../../../context/ToastContext'
+import membershipService from '../../../services/membershipService'
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -47,31 +48,40 @@ export default function AccountSubscription() {
   const toast = useToast()
   const [subscriptions, setSubscriptions] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [updatingId, setUpdatingId] = useState('')
 
-  useEffect(() => {
-    let active = true
-
-    const load = async () => {
+  const loadSubscriptions = useCallback(
+    async (activeRef = { current: true }) => {
       setLoading(true)
+      setError('')
 
       try {
         const response = await membershipService.getCustomerSubscriptions()
-        if (!active) return
+        if (!activeRef.current) return
         setSubscriptions(response.items)
       } catch (err) {
-        if (!active) return
-        toast.error(err?.message || '訂閱資料載入失敗，請稍後再試。')
+        if (!activeRef.current) return
+        const message = err?.message || '訂閱資料載入失敗，請稍後再試。'
+        setError(message)
+        toast.error(message)
       } finally {
-        if (active) setLoading(false)
+        if (activeRef.current) {
+          setLoading(false)
+        }
       }
-    }
+    },
+    [toast]
+  )
 
-    void load()
+  useEffect(() => {
+    const activeRef = { current: true }
+    void loadSubscriptions(activeRef)
+
     return () => {
-      active = false
+      activeRef.current = false
     }
-  }, [toast])
+  }, [loadSubscriptions])
 
   const activeCount = useMemo(
     () => subscriptions.filter((item) => item.status === 'active').length,
@@ -111,6 +121,7 @@ export default function AccountSubscription() {
     }
 
     setUpdatingId(subscription.id)
+
     try {
       const response = await membershipService.cancelCustomerSubscription(subscription.id)
       const nextSubscription = response?.subscription
@@ -138,6 +149,15 @@ export default function AccountSubscription() {
           <Loader2 size={28} className="animate-spin" />
           <p style={{ marginTop: 12 }}>訂閱資料載入中...</p>
         </div>
+      ) : error ? (
+        <EmptyState
+          className="account-empty-state"
+          icon={<RefreshCw size={36} />}
+          title="訂閱資料載入失敗"
+          description={error}
+          actionLabel="重新載入"
+          onAction={() => void loadSubscriptions()}
+        />
       ) : subscriptions.length === 0 ? (
         <EmptyState
           className="account-empty-state"
@@ -190,17 +210,37 @@ export default function AccountSubscription() {
                     gap: 16,
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: 16,
+                      flexWrap: 'wrap',
+                    }}
+                  >
                     <div>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-text-dark)' }}>
+                      <div
+                        style={{
+                          fontSize: 18,
+                          fontWeight: 700,
+                          color: 'var(--color-text-dark)',
+                        }}
+                      >
                         {sub.plan_name}
                       </div>
                       <div style={{ marginTop: 6, fontSize: 13, color: '#6e6e73' }}>
-                        {STATUS_LABELS[sub.status] ?? sub.status} ・ {INTERVAL_LABELS[sub.billing_interval] ?? '未設定週期'}
+                        {STATUS_LABELS[sub.status] ?? sub.status} ・{' '}
+                        {INTERVAL_LABELS[sub.billing_interval] ?? '未設定週期'}
                       </div>
                     </div>
 
-                    <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-brand-coffee)' }}>
+                    <div
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 700,
+                        color: 'var(--color-brand-coffee)',
+                      }}
+                    >
                       {formatMoney(sub.amount, sub.currency_code)}
                     </div>
                   </div>
@@ -214,19 +254,27 @@ export default function AccountSubscription() {
                   >
                     <div>
                       <div style={{ fontSize: 12, color: '#6e6e73' }}>開始日期</div>
-                      <div style={{ marginTop: 4, fontWeight: 600 }}>{formatDate(sub.started_at)}</div>
+                      <div style={{ marginTop: 4, fontWeight: 600 }}>
+                        {formatDate(sub.started_at)}
+                      </div>
                     </div>
                     <div>
                       <div style={{ fontSize: 12, color: '#6e6e73' }}>到期日</div>
-                      <div style={{ marginTop: 4, fontWeight: 600 }}>{formatDate(sub.expires_at)}</div>
+                      <div style={{ marginTop: 4, fontWeight: 600 }}>
+                        {formatDate(sub.expires_at)}
+                      </div>
                     </div>
                     <div>
                       <div style={{ fontSize: 12, color: '#6e6e73' }}>下次扣款日</div>
-                      <div style={{ marginTop: 4, fontWeight: 600 }}>{formatDate(sub.next_billing_at)}</div>
+                      <div style={{ marginTop: 4, fontWeight: 600 }}>
+                        {formatDate(sub.next_billing_at)}
+                      </div>
                     </div>
                     <div>
                       <div style={{ fontSize: 12, color: '#6e6e73' }}>幣別</div>
-                      <div style={{ marginTop: 4, fontWeight: 600 }}>{sub.currency_code || 'TWD'}</div>
+                      <div style={{ marginTop: 4, fontWeight: 600 }}>
+                        {sub.currency_code || 'TWD'}
+                      </div>
                     </div>
                   </div>
 
@@ -238,7 +286,12 @@ export default function AccountSubscription() {
                         onClick={() => handleUpdateStatus(sub, 'paused')}
                         disabled={isUpdating}
                       >
-                        {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <PauseCircle size={14} />} 暫停訂閱
+                        {isUpdating ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <PauseCircle size={14} />
+                        )}{' '}
+                        暫停訂閱
                       </button>
                     ) : null}
 
@@ -249,7 +302,12 @@ export default function AccountSubscription() {
                         onClick={() => handleUpdateStatus(sub, 'active')}
                         disabled={isUpdating}
                       >
-                        {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <Calendar size={14} />} 恢復訂閱
+                        {isUpdating ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <Calendar size={14} />
+                        )}{' '}
+                        恢復訂閱
                       </button>
                     ) : null}
 
@@ -261,7 +319,12 @@ export default function AccountSubscription() {
                         disabled={isUpdating}
                         style={{ color: '#d14343' }}
                       >
-                        {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />} 取消訂閱
+                        {isUpdating ? (
+                          <Loader2 size={14} className="animate-spin" />
+                        ) : (
+                          <XCircle size={14} />
+                        )}{' '}
+                        取消訂閱
                       </button>
                     ) : null}
                   </div>

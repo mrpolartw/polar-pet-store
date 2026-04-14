@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 
 import {
   buildEmptyMembershipSummary,
+  getPointLogDisplayExpiry,
   normalizeMembershipHistoryItem,
   normalizeMembershipSummaryResponse,
 } from '../utils.js'
@@ -14,10 +15,21 @@ test('normalizeMembershipSummaryResponse maps backend summary fields to front sh
       id: 'level_gold',
       name: '金卡會員',
     },
+    next_level: {
+      id: 'level_black',
+      name: '黑卡會員',
+    },
     points_balance: 88,
     available_points: 88,
     yearly_spent: 4560,
     total_spent: 18900,
+    level_progress: {
+      current_threshold: 3000,
+      next_threshold: 10000,
+      progress_amount: 1560,
+      remaining_amount: 5440,
+      progress_percentage: 22.29,
+    },
     points_summary: {
       total_points: 120,
       available_points: 88,
@@ -53,9 +65,11 @@ test('normalizeMembershipSummaryResponse maps backend summary fields to front sh
 
   assert.equal(summary.customerId, 'cus_123')
   assert.equal(summary.currentLevel.name, '金卡會員')
+  assert.equal(summary.nextLevel.name, '黑卡會員')
   assert.equal(summary.availablePoints, 88)
   assert.equal(summary.yearlySpent, 4560)
   assert.equal(summary.totalSpent, 18900)
+  assert.equal(summary.levelProgress.nextThreshold, 10000)
   assert.deepEqual(summary.pointsSummary, {
     totalPoints: 120,
     availablePoints: 88,
@@ -74,6 +88,14 @@ test('buildEmptyMembershipSummary provides a stable empty state', () => {
   assert.deepEqual(buildEmptyMembershipSummary('cus_empty'), {
     customerId: 'cus_empty',
     currentLevel: null,
+    nextLevel: null,
+    levelProgress: {
+      currentThreshold: 0,
+      nextThreshold: null,
+      progressAmount: 0,
+      remainingAmount: 0,
+      progressPercentage: 0,
+    },
     pointsBalance: 0,
     availablePoints: 0,
     yearlySpent: 0,
@@ -114,5 +136,16 @@ test('normalizeMembershipHistoryItem keeps the history contract stable', () => {
         subscription_id: 'sub_123',
       },
     }
+  )
+})
+
+test('getPointLogDisplayExpiry falls back to created date for deduction logs', () => {
+  assert.equal(
+    getPointLogDisplayExpiry({
+      points: -30,
+      expiredAt: null,
+      createdAt: '2026-04-11T10:00:00.000Z',
+    }),
+    '2026-04-11T10:00:00.000Z'
   )
 })

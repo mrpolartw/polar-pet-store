@@ -1,4 +1,5 @@
 import { mockAuthHandlers } from '../mocks/mockHandlers'
+import { logStoreCustomerAuthDiagnostic } from '../modules/auth/authErrorMessages'
 import apiClient, { buildApiUrl } from '../utils/apiClient'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
@@ -126,6 +127,10 @@ export const getMe = async () => {
 
   // If the server no longer recognises the session, clear the flag.
   if (!customer) {
+    logStoreCustomerAuthDiagnostic('偵測到前台 session hint，但 /store/customers/me/profile 未回傳有效 customer。', {
+      endpoint: PATHS.ME,
+      likelyCauses: ['session 已過期', 'cookie 未建立', 'CORS 設定不一致'],
+    })
     clearSessionFlag()
   }
 

@@ -788,6 +788,9 @@
 }
 
 .btn-address-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   padding: 5px 12px;
   border-radius: 980px;
@@ -885,6 +888,16 @@
   border-radius: 3px;
   background: linear-gradient(90deg, var(--color-brand-blue), var(--color-brand-coffee));
   transition: width 1s ease;
+}
+
+.account-membership-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--color-gray-dark);
 }
 
 /* 通知 */

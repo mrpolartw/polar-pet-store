@@ -1,15 +1,7 @@
 import React from 'react'
 
 /**
- * @description 通用空狀態元件
- * @param {Object} props
- * @param {React.ReactNode} [props.icon='📭'] - 圖示（emoji 或 React node）
- * @param {string} props.title - 主標題
- * @param {string} [props.description] - 說明文字
- * @param {string} [props.actionLabel] - 按鈕文字
- * @param {Function} [props.onAction] - 按鈕點擊事件
- * @param {React.ReactNode} [props.action] - 自訂按鈕 node（優先於 actionLabel）
- * @param {string} [props.className] - 外層容器 className
+ * 通用的空狀態元件。
  */
 export default function EmptyState({
   icon = '📭',

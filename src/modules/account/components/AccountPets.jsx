@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Edit2, Loader2, PawPrint, Plus, Trash2, X } from 'lucide-react'
 
@@ -17,6 +17,7 @@ const EMPTY_PET_FORM = {
 
 const PET_TYPE_LABEL = { cat: '貓', dog: '狗', bird: '鳥', other: '其他' }
 const PET_GENDER_LABEL = { male: '男孩', female: '女孩' }
+
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
@@ -48,7 +49,7 @@ function buildPayload(form) {
 function PetModal({ open, onClose, form, setForm, onSubmit, submitting, editing, error }) {
   return (
     <AnimatePresence>
-      {open && (
+      {open ? (
         <>
           <motion.div
             className="address-modal-overlay"
@@ -66,7 +67,9 @@ function PetModal({ open, onClose, form, setForm, onSubmit, submitting, editing,
               transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
             >
               <div className="address-modal-header">
-                <h3 className="address-modal-title">{editing ? '編輯毛孩資料' : '新增毛孩資料'}</h3>
+                <h3 className="address-modal-title">
+                  {editing ? '編輯毛孩資料' : '新增毛孩資料'}
+                </h3>
                 <button className="address-modal-close" onClick={onClose}>
                   <X size={16} />
                 </button>
@@ -90,7 +93,9 @@ function PetModal({ open, onClose, form, setForm, onSubmit, submitting, editing,
                     <select
                       className="apple-input select-input"
                       value={form.species}
-                      onChange={(event) => setForm((prev) => ({ ...prev, species: event.target.value }))}
+                      onChange={(event) =>
+                        setForm((prev) => ({ ...prev, species: event.target.value }))
+                      }
                     >
                       <option value="">請選擇</option>
                       <option value="cat">貓</option>
@@ -105,7 +110,9 @@ function PetModal({ open, onClose, form, setForm, onSubmit, submitting, editing,
                     <select
                       className="apple-input select-input"
                       value={form.gender}
-                      onChange={(event) => setForm((prev) => ({ ...prev, gender: event.target.value }))}
+                      onChange={(event) =>
+                        setForm((prev) => ({ ...prev, gender: event.target.value }))
+                      }
                     >
                       <option value="">請選擇</option>
                       <option value="male">男孩</option>
@@ -153,7 +160,9 @@ function PetModal({ open, onClose, form, setForm, onSubmit, submitting, editing,
               {error ? <div className="address-form-error">{error}</div> : null}
 
               <div className="address-modal-actions">
-                <button className="btn-modal-cancel" onClick={onClose}>取消</button>
+                <button className="btn-modal-cancel" onClick={onClose}>
+                  取消
+                </button>
                 <button className="btn-blue btn-modal-submit" onClick={onSubmit} disabled={submitting}>
                   {submitting ? '儲存中...' : editing ? '更新毛孩' : '新增毛孩'}
                 </button>
@@ -161,7 +170,7 @@ function PetModal({ open, onClose, form, setForm, onSubmit, submitting, editing,
             </motion.div>
           </div>
         </>
-      )}
+      ) : null}
     </AnimatePresence>
   )
 }
@@ -170,6 +179,7 @@ export default function AccountPets() {
   const toast = useToast()
   const [pets, setPets] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editingPet, setEditingPet] = useState(null)
   const [form, setForm] = useState(EMPTY_PET_FORM)
@@ -177,30 +187,37 @@ export default function AccountPets() {
   const [submitting, setSubmitting] = useState(false)
   const [deletingId, setDeletingId] = useState('')
 
-  useEffect(() => {
-    let active = true
-
-    const load = async () => {
+  const loadPets = useCallback(
+    async (activeRef = { current: true }) => {
       setLoading(true)
+      setLoadError('')
+
       try {
         const response = await membershipService.getCustomerPets()
-        if (!active) return
+        if (!activeRef.current) return
         setPets(response.items)
       } catch (err) {
-        if (!active) return
-        toast.error(err?.message || '毛孩資料載入失敗，請稍後再試。')
+        if (!activeRef.current) return
+        const message = err?.message || '毛孩資料載入失敗，請稍後再試。'
+        setLoadError(message)
+        toast.error(message)
       } finally {
-        if (active) setLoading(false)
+        if (activeRef.current) {
+          setLoading(false)
+        }
       }
-    }
+    },
+    [toast]
+  )
 
-    void load()
+  useEffect(() => {
+    const activeRef = { current: true }
+    void loadPets(activeRef)
+
     return () => {
-      active = false
+      activeRef.current = false
     }
-  }, [toast])
-
-  const modalTitle = useMemo(() => (editingPet ? '編輯毛孩資料' : '新增毛孩資料'), [editingPet])
+  }, [loadPets])
 
   const openCreateModal = () => {
     setEditingPet(null)
@@ -305,6 +322,15 @@ export default function AccountPets() {
           <Loader2 size={28} className="animate-spin" />
           <p style={{ marginTop: 12 }}>毛孩資料載入中...</p>
         </div>
+      ) : loadError ? (
+        <EmptyState
+          className="account-empty-state"
+          icon={<PawPrint size={36} />}
+          title="毛孩資料載入失敗"
+          description={loadError}
+          actionLabel="重新載入"
+          onAction={() => void loadPets()}
+        />
       ) : pets.length === 0 ? (
         <EmptyState
           className="account-empty-state"
@@ -323,17 +349,23 @@ export default function AccountPets() {
                 <div>
                   <div className="address-name">{pet.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--color-gray-dark)', marginTop: 2 }}>
-                    {[PET_TYPE_LABEL[pet.species], pet.breed].filter(Boolean).join('｜') || '尚未填寫種類與品種'}
+                    {[PET_TYPE_LABEL[pet.species], pet.breed].filter(Boolean).join('｜') ||
+                      '尚未填寫種類與品種'}
                   </div>
                 </div>
               </div>
 
-              <div className="address-detail" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginBottom: 12 }}>
+              <div
+                className="address-detail"
+                style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginBottom: 12 }}
+              >
                 {pet.gender ? <span>{PET_GENDER_LABEL[pet.gender] ?? pet.gender}</span> : null}
                 {pet.metadata?.weight ? <span>{pet.metadata.weight} kg</span> : null}
                 {pet.birthday ? <span>{String(pet.birthday).slice(0, 10)}</span> : null}
                 {!pet.gender && !pet.metadata?.weight && !pet.birthday ? (
-                  <span style={{ color: 'var(--color-gray-dark)', fontStyle: 'italic' }}>尚未填寫更多資料</span>
+                  <span style={{ color: 'var(--color-gray-dark)', fontStyle: 'italic' }}>
+                    尚未填寫更多資料
+                  </span>
                 ) : null}
               </div>
 
@@ -348,7 +380,11 @@ export default function AccountPets() {
                   onClick={() => handleDelete(pet)}
                   disabled={deletingId === pet.id}
                 >
-                  {deletingId === pet.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} style={{ display: 'inline' }} />}
+                  {deletingId === pet.id ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Trash2 size={12} style={{ display: 'inline' }} />
+                  )}
                 </button>
               </div>
             </div>

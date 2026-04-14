@@ -9,6 +9,11 @@
 
 import authService from '../services/authService'
 import membershipService from '../services/membershipService'
+import {
+  getStoreCustomerLoginErrorMessage,
+  getStoreCustomerSessionHydrationMessage,
+  logStoreCustomerAuthDiagnostic,
+} from '../modules/auth/authErrorMessages'
 import { buildEmptyMembershipSummary } from '../modules/membership/utils'
 
 const AuthContext = createContext(null)
@@ -149,14 +154,28 @@ export const AuthProvider = ({ children }) => {
         const nextUser = await hydrateSession()
 
         if (!nextUser) {
-          throw new Error('登入成功，但讀取會員資料失敗，請重新整理後再試。')
+          logStoreCustomerAuthDiagnostic('前台會員登入成功，但 session hydrate 失敗。', {
+            email,
+            expectedEndpoint: '/store/customers/me/profile',
+            checkList: ['STORE_CORS', 'AUTH_CORS', 'cookie/session', '瀏覽器是否阻擋第三方 cookie'],
+          })
+
+          throw Object.assign(
+            new Error(getStoreCustomerSessionHydrationMessage()),
+            {
+              code: 'SESSION_HYDRATE_FAILED',
+            }
+          )
         }
 
         await refreshMembership(nextUser)
         return { success: true, user: nextUser }
       } catch (err) {
-        const message = err?.body?.message ?? err?.message ?? '登入失敗，請稍後再試。'
-        const code = err?.body?.code ?? null
+        const message = getStoreCustomerLoginErrorMessage({
+          code: err?.body?.code ?? err?.code ?? null,
+          fallbackMessage: err?.body?.message ?? err?.message,
+        })
+        const code = err?.body?.code ?? err?.code ?? null
         const nextEmail = err?.body?.email ?? email
 
         setAuthError(message)

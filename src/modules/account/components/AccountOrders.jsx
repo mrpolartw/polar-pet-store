@@ -58,12 +58,13 @@ const normalizeAccountOrder = (order) => {
   }
 }
 
-const StatusIcon = ({ status }) => ({
-  delivered: <CheckCircle size={12} />,
-  processing: <Package size={12} />,
-  shipping: <Truck size={12} />,
-  cancelled: <XCircle size={12} />,
-}[status] || null)
+const StatusIcon = ({ status }) =>
+  ({
+    delivered: <CheckCircle size={12} />,
+    processing: <Package size={12} />,
+    shipping: <Truck size={12} />,
+    cancelled: <XCircle size={12} />,
+  })[status] || null
 
 export default function AccountOrders() {
   const navigate = useNavigate()
@@ -81,7 +82,7 @@ export default function AccountOrders() {
       const data = await orderService.getOrders()
       setOrders((data?.orders ?? []).map(normalizeAccountOrder))
     } catch (err) {
-      const message = err?.message || '無法取得訂單資料'
+      const message = err?.message || '訂單資料載入失敗，請稍後再試。'
       setOrdersError(message)
       toast.error(message)
     } finally {
@@ -97,70 +98,74 @@ export default function AccountOrders() {
     <motion.div key="orders" {...fadeUp}>
       <h2 className="account-section-title">
         <ShoppingBag size={22} className="account-nav-icon" />
-        我的訂單
+        訂單紀錄
       </h2>
 
       <div className="order-list">
         {isOrdersLoading && (
-          <LoadingSpinner size="medium" label="正在載入訂單資料..." />
+          <LoadingSpinner size="medium" label="訂單資料載入中..." />
         )}
 
         {ordersError && !isOrdersLoading && (
-          <ErrorState
-            message={ordersError}
-            onRetry={fetchOrders}
-          />
+          <ErrorState message={ordersError} onRetry={fetchOrders} />
         )}
 
         {!isOrdersLoading && !ordersError && orders.length === 0 && (
           <EmptyState
-            icon="📦"
-            title="尚無訂單紀錄"
-            description="先去挑選喜歡的商品，完成第一筆下單吧。"
+            icon={<ShoppingBag size={28} className="account-nav-icon" />}
+            title="目前沒有訂單紀錄"
+            description="完成第一筆訂單後，這裡會顯示你的購買與配送狀態。"
             actionLabel="前往購物"
             onAction={() => navigate(ROUTES.PRODUCTS)}
           />
         )}
 
-        {!isOrdersLoading && !ordersError && orders.length > 0 && orders.map((order) => (
-          <div className="order-card" key={order.id}>
-            <div className="order-card-header">
-              <div>
-                <div className="order-id">訂單 {order.id}</div>
-                <div className="order-date">{order.date}</div>
+        {!isOrdersLoading &&
+          !ordersError &&
+          orders.length > 0 &&
+          orders.map((order) => (
+            <div className="order-card" key={order.id}>
+              <div className="order-card-header">
+                <div>
+                  <div className="order-id">訂單 {order.id}</div>
+                  <div className="order-date">{order.date}</div>
+                </div>
+                <span className={`order-status-badge ${order.status}`}>
+                  <StatusIcon status={order.status} />
+                  {order.statusLabel}
+                </span>
               </div>
-              <span className={`order-status-badge ${order.status}`}>
-                <StatusIcon status={order.status} />
-                {order.statusLabel}
-              </span>
+
+              <div className="order-card-body">
+                <div className="order-items-preview">
+                  {order.items.map((item, index) => (
+                    <img
+                      key={item.id || index}
+                      src={item.img}
+                      alt={item.name}
+                      className="order-item-img"
+                    />
+                  ))}
+                </div>
+
+                <div className="order-info">
+                  <div className="order-total">NT${order.total.toLocaleString()}</div>
+                  <div className="order-item-count">{order.items.length} 項商品</div>
+                </div>
+
+                <div className="order-actions">
+                  <button type="button" className="btn-order-action">
+                    查看明細
+                  </button>
+                  {order.status === 'delivered' && (
+                    <button type="button" className="btn-order-action primary">
+                      再次購買
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-
-            <div className="order-card-body">
-              <div className="order-items-preview">
-                {order.items.map((item, index) => (
-                  <img
-                    key={item.id || index}
-                    src={item.img}
-                    alt={item.name}
-                    className="order-item-img"
-                  />
-                ))}
-              </div>
-
-              <div className="order-info">
-                <div className="order-total">NT${order.total.toLocaleString()}</div>
-                <div className="order-item-count">{order.items.length} 項商品</div>
-              </div>
-
-              <div className="order-actions">
-                <button className="btn-order-action">查看明細</button>
-                {order.status === 'delivered' && (
-                  <button className="btn-order-action primary">再次購買</button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+          ))}
       </div>
     </motion.div>
   )

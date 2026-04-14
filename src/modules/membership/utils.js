@@ -6,7 +6,13 @@ const EMPTY_POINTS_SUMMARY = {
   refundedPoints: 0,
 }
 
-const EMPTY_HISTORY = []
+const EMPTY_PROGRESS = {
+  currentThreshold: 0,
+  nextThreshold: null,
+  progressAmount: 0,
+  remainingAmount: 0,
+  progressPercentage: 0,
+}
 
 export const POINT_LOG_SOURCE_LABELS = {
   order: '訂單回饋',
@@ -23,18 +29,32 @@ export function buildEmptyMembershipSummary(customerId = '') {
   return {
     customerId,
     currentLevel: null,
+    nextLevel: null,
+    levelProgress: { ...EMPTY_PROGRESS },
     pointsBalance: 0,
     availablePoints: 0,
     yearlySpent: 0,
     totalSpent: 0,
     pointsSummary: { ...EMPTY_POINTS_SUMMARY },
     recentPointLogs: [],
-    recentHistory: [...EMPTY_HISTORY],
+    recentHistory: [],
   }
 }
 
 export function getPointLogSourceLabel(source) {
   return POINT_LOG_SOURCE_LABELS[source] ?? '點數異動'
+}
+
+export function getPointLogDisplayExpiry(log) {
+  if (log?.expiredAt) {
+    return log.expiredAt
+  }
+
+  if (Number(log?.points ?? 0) < 0) {
+    return log?.createdAt ?? null
+  }
+
+  return null
 }
 
 export function normalizeMembershipPointLog(log) {
@@ -45,10 +65,11 @@ export function normalizeMembershipPointLog(log) {
   const expiredAt = log.expired_at ?? null
   const createdAt = log.created_at ?? null
   const points = Number(log.points ?? 0)
+  const resolvedExpiry = expiredAt ?? (points < 0 ? createdAt : null)
   const isExpired = Boolean(
-    expiredAt &&
+    resolvedExpiry &&
       points > 0 &&
-      new Date(expiredAt).getTime() < Date.now()
+      new Date(resolvedExpiry).getTime() < Date.now()
   )
 
   return {
@@ -58,21 +79,50 @@ export function normalizeMembershipPointLog(log) {
     points,
     note: log.note ?? '',
     referenceId: log.reference_id ?? '',
-    expiredAt,
+    expiredAt: resolvedExpiry,
     createdAt,
     metadata: log.metadata ?? null,
     isExpired,
   }
 }
 
+export function normalizeMembershipHistoryItem(item) {
+  if (!item) {
+    return null
+  }
+
+  return {
+    id: item.id ?? '',
+    action: item.action ?? '',
+    label: item.label ?? item.action ?? '會員歷程',
+    actorType: item.actor_type ?? '',
+    actorId: item.actor_id ?? '',
+    createdAt: item.created_at ?? null,
+    metadata: item.metadata ?? null,
+  }
+}
+
 export function normalizeMembershipSummaryResponse(payload) {
   const fallback = buildEmptyMembershipSummary(payload?.customer_id ?? '')
   const pointsSummary = payload?.points_summary ?? {}
+  const levelProgress = payload?.level_progress ?? {}
 
   return {
     ...fallback,
     customerId: payload?.customer_id ?? fallback.customerId,
     currentLevel: payload?.current_level ?? null,
+    nextLevel: payload?.next_level ?? null,
+    levelProgress: {
+      currentThreshold: Number(levelProgress?.current_threshold ?? 0),
+      nextThreshold:
+        levelProgress?.next_threshold === null ||
+        levelProgress?.next_threshold === undefined
+          ? null
+          : Number(levelProgress.next_threshold),
+      progressAmount: Number(levelProgress?.progress_amount ?? 0),
+      remainingAmount: Number(levelProgress?.remaining_amount ?? 0),
+      progressPercentage: Number(levelProgress?.progress_percentage ?? 0),
+    },
     pointsBalance: Number(
       payload?.points_balance ?? payload?.available_points ?? 0
     ),
@@ -92,31 +142,11 @@ export function normalizeMembershipSummaryResponse(payload) {
       refundedPoints: Number(pointsSummary?.refunded_points ?? 0),
     },
     recentPointLogs: Array.isArray(payload?.recent_point_logs)
-      ? payload.recent_point_logs
-          .map(normalizeMembershipPointLog)
-          .filter(Boolean)
+      ? payload.recent_point_logs.map(normalizeMembershipPointLog).filter(Boolean)
       : [],
     recentHistory: Array.isArray(payload?.recent_history)
-      ? payload.recent_history
-          .map(normalizeMembershipHistoryItem)
-          .filter(Boolean)
+      ? payload.recent_history.map(normalizeMembershipHistoryItem).filter(Boolean)
       : [],
-  }
-}
-
-export function normalizeMembershipHistoryItem(item) {
-  if (!item) {
-    return null
-  }
-
-  return {
-    id: item.id ?? '',
-    action: item.action ?? '',
-    label: item.label ?? item.action ?? '會員歷程',
-    actorType: item.actor_type ?? '',
-    actorId: item.actor_id ?? '',
-    createdAt: item.created_at ?? null,
-    metadata: item.metadata ?? null,
   }
 }
 

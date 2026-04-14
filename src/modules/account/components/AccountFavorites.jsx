@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Heart, Loader2, Trash2 } from 'lucide-react'
@@ -29,31 +29,30 @@ export default function AccountFavorites() {
   const [error, setError] = useState('')
   const [removingId, setRemovingId] = useState('')
 
-  useEffect(() => {
-    let active = true
+  const loadFavorites = useCallback(async (activeRef = { current: true }) => {
+    setLoading(true)
+    setError('')
 
-    const load = async () => {
-      setLoading(true)
-      setError('')
-
-      try {
-        const response = await membershipService.getCustomerFavorites()
-        if (!active) return
-        setFavorites(response.items)
-      } catch (err) {
-        if (!active) return
-        setError(err?.message || '收藏商品載入失敗，請稍後再試。')
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-
-    void load()
-
-    return () => {
-      active = false
+    try {
+      const response = await membershipService.getCustomerFavorites()
+      if (!activeRef.current) return
+      setFavorites(response.items)
+    } catch (err) {
+      if (!activeRef.current) return
+      setError(err?.message || '收藏商品載入失敗，請稍後再試。')
+    } finally {
+      if (activeRef.current) setLoading(false)
     }
   }, [])
+
+  useEffect(() => {
+    const activeRef = { current: true }
+    void loadFavorites(activeRef)
+
+    return () => {
+      activeRef.current = false
+    }
+  }, [loadFavorites])
 
   const handleRemove = async (item) => {
     setRemovingId(item.id)
@@ -87,6 +86,8 @@ export default function AccountFavorites() {
           icon="!"
           title="收藏商品載入失敗"
           description={error}
+          actionLabel="重新載入"
+          onAction={() => void loadFavorites()}
         />
       ) : favorites.length === 0 ? (
         <EmptyState
@@ -94,7 +95,7 @@ export default function AccountFavorites() {
           icon="♡"
           title="目前沒有收藏商品"
           description="將喜歡的商品加入收藏後，就能在這裡快速查看。"
-          action={(
+          action={
             <Link
               to={ROUTES.PRODUCTS}
               className="btn-blue"
@@ -108,7 +109,7 @@ export default function AccountFavorites() {
             >
               前往商品列表
             </Link>
-          )}
+          }
         />
       ) : (
         <div
@@ -170,15 +171,37 @@ export default function AccountFavorites() {
                         cursor: removingId === item.id ? 'default' : 'pointer',
                       }}
                     >
-                      {removingId === item.id ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                      {removingId === item.id ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Trash2 size={16} />
+                      )}
                     </button>
                   </div>
 
-                  <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-brand-coffee)' }}>
+                  <div
+                    style={{
+                      marginTop: 12,
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: 8,
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: 'var(--color-brand-coffee)',
+                      }}
+                    >
                       {formatPrice(item.price, item.currencyCode)}
                     </span>
-                    <span style={{ fontSize: 12, color: item.isAvailable ? '#15803d' : '#b45309' }}>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: item.isAvailable ? '#15803d' : '#b45309',
+                      }}
+                    >
                       {item.isAvailable ? '可購買' : '目前不可販售'}
                     </span>
                   </div>

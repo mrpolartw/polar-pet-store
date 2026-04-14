@@ -26,6 +26,8 @@ function AccountProfileCard({ user, onAvatarUpload }) {
   return (
     <div className="account-profile-card" style={{ marginBottom: 24 }}>
       <input
+        id="account-avatar-upload"
+        name="avatar"
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/gif"
@@ -193,9 +195,12 @@ export default function AccountProfile() {
       <div className="profile-form" style={{ marginTop: 32 }}>
         <div className="profile-form-row">
           <div className="profile-field">
-            <label>姓名</label>
+            <label htmlFor="account-profile-name">姓名</label>
             <input
+              id="account-profile-name"
+              name="name"
               type="text"
+              autoComplete="name"
               className="apple-input"
               value={profileForm.name}
               onChange={(event) => {
@@ -205,9 +210,12 @@ export default function AccountProfile() {
           </div>
 
           <div className="profile-field">
-            <label>手機</label>
+            <label htmlFor="account-profile-phone">手機</label>
             <input
+              id="account-profile-phone"
+              name="phone"
               type="tel"
+              autoComplete="tel"
               className="apple-input"
               value={profileForm.phone}
               onChange={(event) => {
@@ -219,9 +227,12 @@ export default function AccountProfile() {
 
         <div className="profile-form-row">
           <div className="profile-field">
-            <label>Email</label>
+            <label htmlFor="account-profile-email">Email</label>
             <input
+              id="account-profile-email"
+              name="email"
               type="email"
+              autoComplete="email"
               className="apple-input"
               value={user?.email || ''}
               disabled
@@ -230,9 +241,12 @@ export default function AccountProfile() {
           </div>
 
           <div className="profile-field">
-            <label>生日</label>
+            <label htmlFor="account-profile-birthday">生日</label>
             <input
+              id="account-profile-birthday"
+              name="birthday"
               type="date"
+              autoComplete="bday"
               className="apple-input"
               value={profileForm.birthday}
               onChange={(event) => {
@@ -243,8 +257,10 @@ export default function AccountProfile() {
         </div>
 
         <div className="profile-field" style={{ maxWidth: 320 }}>
-          <label>性別</label>
+          <label htmlFor="account-profile-gender">性別</label>
           <select
+            id="account-profile-gender"
+            name="gender"
             className="apple-input select-input"
             value={profileForm.gender}
             onChange={(event) => {
