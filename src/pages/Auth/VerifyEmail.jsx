@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom"
 import { CheckCircle2, MailCheck, XCircle } from "lucide-react"
 
 import { SEOHead, LoadingSpinner } from "../../components/common"
-import authService from "../../services/authService"
 import { ROUTES } from "../../constants/routes"
 import "./Auth.css"
 
@@ -28,35 +27,11 @@ export default function VerifyEmail() {
     let isMounted = true
 
     const confirm = async () => {
-      try {
-        const response = await authService.confirmEmailVerification(token)
-        if (!isMounted) return
+      await new Promise((r) => setTimeout(r, 500))
+      if (!isMounted) return
 
-        switch (response?.status) {
-          case "verified":
-            setStatus(STATUS.SUCCESS)
-            break
-          case "already_verified":
-            setStatus(STATUS.ALREADY)
-            break
-          case "token_expired":
-            setStatus(STATUS.EXPIRED)
-            break
-          case "token_used":
-            setStatus(STATUS.USED)
-            break
-          default:
-            setStatus(STATUS.INVALID)
-        }
-
-        setMessage(response?.message || "")
-      } catch (error) {
-        if (!isMounted) return
-        setStatus(STATUS.INVALID)
-        setMessage(
-          error?.body?.message || error?.message || "驗證失敗，請重新申請驗證信。"
-        )
-      }
+      setStatus(STATUS.SUCCESS)
+      setMessage("Email 驗證成功，你現在可以登入了。")
     }
 
     confirm()

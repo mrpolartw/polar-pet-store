@@ -22,7 +22,6 @@ import ProductStickyBar from '../../components/product/ProductStickyBar'
 import ProductSuitability from '../../components/product/ProductSuitability'
 import ProductSummary from '../../components/product/ProductSummary'
 import RelatedProducts from '../../components/product/RelatedProducts'
-import membershipService from '../../services/membershipService'
 import analytics from '../../utils/analytics'
 import { buildBreadcrumbSchema, buildProductSchema } from '../../utils/schema'
 import './ProductDetail.css'
@@ -46,33 +45,7 @@ const ProductDetailContent = ({ product, onAddToCartItem, onBuyNowItem }) => {
   }, [product])
 
   useEffect(() => {
-    let active = true
-
-    const loadFavoriteState = async () => {
-      if (!user?.id) {
-        setIsFavorite(false)
-        return
-      }
-
-      try {
-        const response = await membershipService.getCustomerFavorites()
-        if (!active) return
-
-        setIsFavorite(
-          response.items.some((item) => String(item.productId) === favoriteProductId)
-        )
-      } catch {
-        if (active) {
-          setIsFavorite(false)
-        }
-      }
-    }
-
-    void loadFavoriteState()
-
-    return () => {
-      active = false
-    }
+    setIsFavorite(false)
   }, [favoriteProductId, user?.id])
 
   const handleAddToCart = (
@@ -103,14 +76,9 @@ const ProductDetailContent = ({ product, onAddToCartItem, onBuyNowItem }) => {
 
     try {
       if (isFavorite) {
-        await membershipService.removeCustomerFavorite(favoriteProductId)
         setIsFavorite(false)
         toast.success('已從收藏清單移除商品。')
       } else {
-        await membershipService.addCustomerFavorite({
-          productId: favoriteProductId,
-          variantId: selectedVariant?.id ? String(selectedVariant.id) : null,
-        })
         setIsFavorite(true)
         toast.success('已加入收藏商品。')
       }

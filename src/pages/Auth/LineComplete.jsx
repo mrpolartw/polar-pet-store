@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom"
 import { AlertCircle, CheckCircle2, MessageCircle } from "lucide-react"
 
 import { SEOHead } from "../../components/common"
-import authService from "../../services/authService"
 import { useAuth } from "../../context/useAuth"
 import { validateEmail, validateName } from "../../utils/validators"
 import "./Auth.css"
@@ -48,27 +47,13 @@ export default function LineComplete() {
     setIsSubmitting(true)
     setServerError("")
 
-    try {
-      const response = await authService.completeLineRegistration({
-        token,
-        email,
-        name: name.trim() || undefined,
-      })
-
-      await reloadSession()
-      setSuccessMessage("註冊完成，正在帶你前往會員中心...")
-      setTimeout(() => {
-        window.location.assign(
-          response?.redirect_to || `${window.location.origin}/polar-pet-store/account`
-        )
-      }, 800)
-    } catch (error) {
-      setServerError(
-        error?.body?.message || error?.message || "目前無法完成註冊，請稍後再試。"
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+    await new Promise((r) => setTimeout(r, 500))
+    await reloadSession()
+    setSuccessMessage("註冊完成，正在帶你前往會員中心...")
+    setTimeout(() => {
+      window.location.assign(`${window.location.origin}/polar-pet-store/account`)
+    }, 800)
+    setIsSubmitting(false)
   }
 
   return (

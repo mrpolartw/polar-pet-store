@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { CheckCircle2, KeyRound, XCircle } from "lucide-react"
 
 import { SEOHead, LoadingSpinner } from "../../components/common"
-import authService from "../../services/authService"
 import { ROUTES } from "../../constants/routes"
 import { validatePassword, validatePasswordConfirm } from "../../utils/validators"
 import "./ResetPassword.css"
@@ -39,37 +38,10 @@ export default function ResetPassword() {
     let isMounted = true
 
     const validateToken = async () => {
-      try {
-        const response = await authService.validatePasswordResetToken(token)
-        if (!isMounted) return
+      await new Promise((r) => setTimeout(r, 300))
+      if (!isMounted) return
 
-        if (response?.status === "valid") {
-          setStatus(STATUS.VALID)
-          setServerMessage(response?.message || "")
-          return
-        }
-
-        if (response?.status === "token_expired") {
-          setStatus(STATUS.EXPIRED)
-          setServerMessage(response?.message || "重設密碼連結已過期。")
-          return
-        }
-
-        if (response?.status === "token_used") {
-          setStatus(STATUS.USED)
-          setServerMessage(response?.message || "此重設密碼連結已使用。")
-          return
-        }
-
-        setStatus(STATUS.INVALID)
-        setServerMessage(response?.message || "重設密碼連結無效。")
-      } catch (error) {
-        if (!isMounted) return
-        setStatus(STATUS.INVALID)
-        setServerMessage(
-          error?.body?.message || error?.message || "重設密碼連結無效。"
-        )
-      }
+      setStatus(STATUS.VALID)
     }
 
     validateToken()
@@ -107,30 +79,10 @@ export default function ResetPassword() {
     setErrors({})
     setServerMessage("")
 
-    try {
-      const response = await authService.confirmPasswordReset(token, password)
-
-      if (response?.status !== "reset") {
-        setServerMessage(response?.message || "重設密碼失敗，請重新申請。")
-        setStatus(
-          response?.status === "token_expired"
-            ? STATUS.EXPIRED
-            : response?.status === "token_used"
-              ? STATUS.USED
-              : STATUS.INVALID
-        )
-        return
-      }
-
-      setStatus(STATUS.SUCCESS)
-      setServerMessage(response?.message || "密碼已更新，請使用新密碼登入。")
-    } catch (error) {
-      setServerMessage(
-        error?.body?.message || error?.message || "重設密碼失敗，請稍後再試。"
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+    await new Promise((r) => setTimeout(r, 500))
+    setStatus(STATUS.SUCCESS)
+    setServerMessage("密碼已更新，請使用新密碼登入。")
+    setIsSubmitting(false)
   }
 
   if (status === STATUS.LOADING) {

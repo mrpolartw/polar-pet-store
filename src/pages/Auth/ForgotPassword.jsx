@@ -5,7 +5,6 @@ import { AlertCircle, ArrowLeft, Mail } from "lucide-react"
 
 import LogoImg from "../../png/LOGO.png"
 import MLogoImg from "../../png/LOGO_remove_background.png"
-import authService from "../../services/authService"
 import { validateEmail } from "../../utils/validators"
 import "./Auth.css"
 
@@ -27,17 +26,11 @@ const ForgotPassword = () => {
     setIsLoading(true)
     setError("")
 
-    try {
-      const response = await authService.requestPasswordReset(email)
-      setSuccessMessage(
-        response?.message ||
-          "如果這個 E-mail 已完成註冊，我們會寄出重設密碼的信。請在 15 分鐘內完成設定。"
-      )
-    } catch (err) {
-      setError(err?.body?.message || err?.message || "目前無法送出申請，請稍後再試。")
-    } finally {
-      setIsLoading(false)
-    }
+    await new Promise((r) => setTimeout(r, 500))
+    setSuccessMessage(
+      "如果這個 E-mail 已完成註冊，我們會寄出重設密碼的信。請在 15 分鐘內完成設定。"
+    )
+    setIsLoading(false)
   }
 
   return (

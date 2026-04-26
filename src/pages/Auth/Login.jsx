@@ -7,7 +7,6 @@ import { useAuth } from '../../context/useAuth'
 import {
   getStoreCustomerLoginErrorMessage,
 } from '../../modules/auth/authErrorMessages'
-import authService from '../../services/authService'
 import { ROUTES } from '../../constants/routes'
 import { validateEmail, validateRequired } from '../../utils/validators'
 import analytics from '../../utils/analytics'
@@ -82,9 +81,7 @@ export default function Login() {
   }
 
   const handleLineLogin = () => {
-    const redirectPath = location.state?.from || ROUTES.ACCOUNT
-    const redirectTo = `${window.location.origin}/polar-pet-store${redirectPath}`
-    window.location.assign(authService.getLineLoginUrl(redirectTo))
+    // LINE login not available in frontend-only mode
   }
 
   const handleResendVerification = async () => {
@@ -93,16 +90,9 @@ export default function Login() {
     setIsResendingVerification(true)
     setVerificationHint('')
 
-    try {
-      const response = await authService.requestEmailVerification(verificationEmail)
-      setVerificationHint(response?.message || '驗證信已重新寄出，請前往信箱完成驗證。')
-    } catch (error) {
-      setVerificationHint(
-        error?.body?.message || error?.message || '重新寄送驗證信失敗，請稍後再試。'
-      )
-    } finally {
-      setIsResendingVerification(false)
-    }
+    await new Promise((r) => setTimeout(r, 500))
+    setVerificationHint('驗證信已重新寄出，請前往信箱完成驗證。')
+    setIsResendingVerification(false)
   }
 
   const fadeUp = {

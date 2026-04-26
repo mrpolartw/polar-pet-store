@@ -11,7 +11,6 @@ import {
 } from 'lucide-react'
 
 import { EmptyState, ErrorState, LoadingSpinner } from '../../components/common'
-import orderService from '../../services/orderService'
 import './OrderQuery.css'
 
 const STATUS_MAP = {
@@ -270,45 +269,14 @@ export default function OrderQuery() {
     setOrderData(null)
     setOrderList([])
 
-    try {
-      if (mode === 'orderId') {
-        // TODO: [BACKEND] orderService.getOrder 需後端實作
-        const data = await orderService.getOrder(trimmedId)
-        const normalizedOrder = normalizeOrder(data?.order ?? data)
+    await new Promise((r) => setTimeout(r, 500))
 
-        if (normalizedOrder) {
-          setOrderData(normalizedOrder)
-        } else {
-          setError('找不到符合條件的訂單，請確認訂單編號後再試')
-        }
-
-        return
-      }
-
-      // TODO: [BACKEND] orderService.getOrders 需後端實作
-      const data = await orderService.getOrders({ phone: trimmedPhone })
-      const remoteOrders = (data?.orders ?? [])
-        .map(normalizeOrder)
-        .filter((order) => order?.phone === trimmedPhone)
-
-      if (remoteOrders.length > 0) {
-        setOrderList(remoteOrders)
-      } else {
-        setError('找不到符合條件的訂單，請確認手機號碼後再試')
-      }
-    } catch (err) {
-      if (err?.status === 404) {
-        setError(
-          mode === 'orderId'
-            ? '找不到符合條件的訂單，請確認訂單編號後再試'
-            : '找不到符合條件的訂單，請確認手機號碼後再試'
-        )
-      } else {
-        setQueryError(err?.message || '查詢失敗，請確認訂單編號後再試')
-      }
-    } finally {
-      setIsLoading(false)
-    }
+    setError(
+      mode === 'orderId'
+        ? '找不到符合條件的訂單，請確認訂單編號後再試'
+        : '找不到符合條件的訂單，請確認手機號碼後再試'
+    )
+    setIsLoading(false)
   }
 
   const hasResults = orderData !== null || orderList.length > 0

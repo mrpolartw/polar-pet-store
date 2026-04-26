@@ -15,7 +15,6 @@ import {
 } from "lucide-react"
 
 import { useAuth } from "../../context/useAuth"
-import authService from "../../services/authService"
 import { ROUTES } from "../../constants/routes"
 import LogoImg from "../../png/LOGO.png"
 import MLogoImg from "../../png/LOGO_remove_background.png"
@@ -208,35 +207,9 @@ const Register = () => {
     setIsCheckingEmail(true)
     setAuthError("")
 
-    try {
-      const response = await authService.checkRegisterEmail(form.email)
-
-      if (response.status === "registered_verified") {
-        navigate(ROUTES.LOGIN, {
-          replace: true,
-          state: {
-            email: response.email,
-            message: `${response.email} 已經註冊過，請登入使用。`,
-          },
-        })
-        return
-      }
-
-      if (response.status === "registered_unverified") {
-        setRegisteredEmail(response.email)
-        setResendHint(
-          response.message || "此 Email 尚未完成驗證，已重新寄送驗證信，請前往信箱完成驗證。"
-        )
-        setStep(3)
-        return
-      }
-
-      setStep(1)
-    } catch (error) {
-      setAuthError(error?.body?.message || error?.message || "Email 檢查失敗，請稍後再試。")
-    } finally {
-      setIsCheckingEmail(false)
-    }
+    await new Promise((r) => setTimeout(r, 300))
+    setIsCheckingEmail(false)
+    setStep(1)
   }
 
   const handleNext = async () => {
@@ -290,21 +263,13 @@ const Register = () => {
     setIsResending(true)
     setResendHint("")
 
-    try {
-      const response = await authService.requestEmailVerification(registeredEmail)
-      setResendHint(response?.message || "驗證信已重新寄出，請前往信箱查看。")
-    } catch (error) {
-      setResendHint(
-        error?.body?.message || error?.message || "重新寄送驗證信失敗，請稍後再試。"
-      )
-    } finally {
-      setIsResending(false)
-    }
+    await new Promise((r) => setTimeout(r, 500))
+    setResendHint("驗證信已重新寄出，請前往信箱查看。")
+    setIsResending(false)
   }
 
   const handleLineRegister = () => {
-    const redirectTo = `${window.location.origin}/polar-pet-store/account`
-    window.location.assign(authService.getLineLoginUrl(redirectTo))
+    // LINE register not available in frontend-only mode
   }
 
   const handlePetWeightChange = (index, value) => {

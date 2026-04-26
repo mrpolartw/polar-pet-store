@@ -1,17 +1,9 @@
 import React, { createContext, useCallback, useEffect, useState } from 'react'
 
 import { CONFIG } from '../constants/config'
-import cartService from '../services/cartService'
 import analytics from '../utils/analytics'
 import { cartStorage } from '../utils/storage'
 import { useToast } from './ToastContext'
-
-// Re-use the same session-flag key written by authService so CartContext
-// does not need to import authService just for this check.
-const SESSION_FLAG = 'pps_has_session'
-function hasSessionFlag() {
-  try { return sessionStorage.getItem(SESSION_FLAG) === '1' } catch { return false }
-}
 
 const CartContext = createContext(null)
 
@@ -47,13 +39,12 @@ const EMPTY_POINT_REDEMPTION = {
 export const CartProvider = ({ children }) => {
   const toast = useToast()
   const [cartItems, setCartItems] = useState(() => cartStorage.getItems())
-  const [isCartLoading, setIsCartLoading] = useState(false)
+  const [isCartLoading] = useState(false)
   const [cartError, setCartError] = useState(null)
   const [pointRedemption, setPointRedemptionState] = useState(
     EMPTY_POINT_REDEMPTION
   )
 
-  // Persist cart to localStorage (debounced 300 ms)
   useEffect(() => {
     const timer = setTimeout(() => {
       cartStorage.setItems(cartItems)
@@ -61,7 +52,6 @@ export const CartProvider = ({ children }) => {
     return () => clearTimeout(timer)
   }, [cartItems])
 
-  // Sync cart across tabs
   useEffect(() => {
     if (typeof window === 'undefined') return undefined
 
@@ -89,45 +79,7 @@ export const CartProvider = ({ children }) => {
     }
   }, [])
 
-  // Load cart on mount.
-  // Priority: localStorage → backend API (only when a session exists).
-  // We intentionally skip the API call for anonymous visitors to avoid
-  // an unnecessary network round-trip (and a potential 401 error) on
-  // every cold page load.
-  useEffect(() => {
-    const loadCart = async () => {
-      // 1. localStorage 有資料就直接用，不打 API
-      const storedItems = normalizeCartItems(cartStorage.getItems())
-      if (storedItems.length > 0) {
-        setCartItems(storedItems)
-        return
-      }
-
-      // 2. 沒有 session 的訪客跳過 API，避免多餘請求
-      if (!hasSessionFlag()) return
-
-      setIsCartLoading(true)
-      setCartError(null)
-
-      try {
-        const data = await cartService.getCart()
-        const nextItems = normalizeCartItems(data?.cart?.items ?? data?.items ?? [])
-        setCartItems(nextItems)
-      } catch (err) {
-        setCartError(err?.message ?? null)
-
-        if (import.meta.env.DEV) {
-          console.warn('[Cart] getCart failed (falling back to local storage)')
-        }
-      } finally {
-        setIsCartLoading(false)
-      }
-    }
-
-    loadCart()
-  }, [])
-
-  const addToCart = useCallback(async (item) => {
+  const addToCart = useCallback((item) => {
     const quantityToAdd = clampCartQuantity(item.quantity)
 
     setCartError(null)
@@ -152,67 +104,31 @@ export const CartProvider = ({ children }) => {
     toast.success('已加入購物車 🐾')
 
     analytics.addToCart(item, quantityToAdd)
-
-    try {
-      // TODO: [BACKEND] await cartService.addItem(item.variantId, quantityToAdd)
-    } catch (err) {
-      setCartError(err?.message ?? null)
-
-      if (import.meta.env.DEV) {
-        console.warn('[Cart] addItem API failed')
-      }
-    }
   }, [toast])
 
-  const removeFromCart = useCallback(async (id) => {
+  const removeFromCart = useCallback((id) => {
     const item = cartItems.find((cartItem) => cartItem.id === id)
     setCartError(null)
-    setCartItems((prev) => normalizeCartItems(prev).filter((item) => item.id !== id))
+    setCartItems((prev) => normalizeCartItems(prev).filter((i) => i.id !== id))
     toast.info('已從購物車移除')
 
     analytics.removeFromCart(item, item?.quantity ?? 1)
-
-    try {
-      // TODO: [BACKEND] await cartService.removeItem(id)
-    } catch (err) {
-      setCartError(err?.message ?? null)
-
-      if (import.meta.env.DEV) {
-        console.warn('[Cart] removeItem API failed')
-      }
-    }
   }, [cartItems, toast])
 
-  const updateQuantity = useCallback(async (id, quantity) => {
+  const updateQuantity = useCallback((id, quantity) => {
     setCartError(null)
     setCartItems((prev) => (
       normalizeCartItems(prev).map((item) => (
         item.id === id ? { ...item, quantity: clampCartQuantity(quantity) } : item
       ))
     ))
-
-    try {
-      // TODO: [BACKEND] await cartService.updateItem(id, quantity)
-    } catch (err) {
-      setCartError(err?.message ?? null)
-
-      if (import.meta.env.DEV) {
-        console.warn('[Cart] updateItem API failed')
-      }
-    }
   }, [])
 
-  const clearCart = useCallback(async () => {
+  const clearCart = useCallback(() => {
     setCartError(null)
     setCartItems([])
     setPointRedemptionState(EMPTY_POINT_REDEMPTION)
     cartStorage.clear()
-    try {
-      // TODO BACKEND: await cartService.clearCart()
-      await cartService.clearCart?.()
-    } catch {
-      // 後端清除失敗不阻斷流程
-    }
   }, [])
 
   const subtotal = cartItems.reduce(

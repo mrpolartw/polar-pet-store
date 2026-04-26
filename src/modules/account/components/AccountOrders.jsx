@@ -11,7 +11,6 @@ import {
 import { LoadingSpinner, EmptyState, ErrorState } from '../../../components/common'
 import { ROUTES } from '../../../constants/routes'
 import { useToast } from '../../../context/ToastContext'
-import orderService from '../../../services/orderService'
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -75,20 +74,8 @@ export default function AccountOrders() {
   const [ordersError, setOrdersError] = useState(null)
 
   const fetchOrders = useCallback(async () => {
-    setIsOrdersLoading(true)
-    setOrdersError(null)
-
-    try {
-      const data = await orderService.getOrders()
-      setOrders((data?.orders ?? []).map(normalizeAccountOrder))
-    } catch (err) {
-      const message = err?.message || '訂單資料載入失敗，請稍後再試。'
-      setOrdersError(message)
-      toast.error(message)
-    } finally {
-      setIsOrdersLoading(false)
-    }
-  }, [toast])
+    setIsOrdersLoading(false)
+  }, [])
 
   useEffect(() => {
     fetchOrders()

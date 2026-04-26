@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import orderService from '../../../services/orderService'
 
-/**
- * 優惠碼邏輯 hook
- * 管理優惠碼輸入、驗證、套用、移除
- */
+const MOCK_PROMO_CODES = {
+  POLAR10: { discountAmount: 100, message: '折扣 NT$100' },
+  WELCOME: { discountAmount: 50, message: '新會員折扣 NT$50' },
+}
+
 export function usePromoCode() {
   const [code, setCode]           = useState('')
   const [isApplied, setIsApplied] = useState(false)
@@ -19,20 +19,19 @@ export function usePromoCode() {
     setIsLoading(true)
     setError(null)
 
-    try {
-      const data = await orderService.validatePromoCode(code)
-      if (!data || data.valid === false) {
-        throw new Error(data?.message || '優惠碼無效或已過期')
-      }
-      setDiscount(data?.discountAmount ?? 0)
+    await new Promise((r) => setTimeout(r, 300))
+
+    const promo = MOCK_PROMO_CODES[code.trim().toUpperCase()]
+    if (promo) {
+      setDiscount(promo.discountAmount)
       setIsApplied(true)
-    } catch (err) {
-      setError(err?.message || '優惠碼驗證失敗，請再試一次')
+    } else {
+      setError('優惠碼無效或已過期')
       setIsApplied(false)
       setDiscount(0)
-    } finally {
-      setIsLoading(false)
     }
+
+    setIsLoading(false)
   }
 
   const remove = () => {

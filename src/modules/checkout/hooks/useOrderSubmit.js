@@ -2,9 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { ROUTES } from '../../../constants/routes'
-import { useAuth } from '../../../context/useAuth'
 import { useCart } from '../../../context/useCart'
-import orderService from '../../../services/orderService'
 import analytics from '../../../utils/analytics'
 import {
   validateEmail,
@@ -16,7 +14,6 @@ import {
 export function useOrderSubmit() {
   const navigate = useNavigate()
   const { cartItems, clearCart } = useCart()
-  const { refreshMembership } = useAuth()
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState(null)
@@ -52,39 +49,30 @@ export function useOrderSubmit() {
       return
     }
 
-    try {
-      const data = await orderService.createOrder({
-        ...payload,
-        items: cartItems,
-      })
-      const order = data?.order ?? data ?? null
-      const orderId = order?.id
-
-      if (!orderId) {
-        throw new Error('訂單建立失敗，系統未回傳有效的訂單編號。')
-      }
-
-      await refreshMembership()
-      await clearCart()
-
-      analytics.purchase({
-        id: orderId,
-        total: payload.total,
-        shippingFee: payload.shippingFee,
-        promoCode: payload.promoCode,
-        items: cartItems,
-      })
-
-      navigate(ROUTES.ORDER_CONFIRM.replace(':orderId', orderId), {
-        state: {
-          order,
-        },
-      })
-    } catch (err) {
-      setSubmitError(err?.message || '送出訂單失敗，請稍後再試。')
-    } finally {
-      setIsSubmitting(false)
+    const orderId = `PL-${Date.now()}`
+    const order = {
+      id: orderId,
+      ...payload,
+      items: cartItems,
     }
+
+    await clearCart()
+
+    analytics.purchase({
+      id: orderId,
+      total: payload.total,
+      shippingFee: payload.shippingFee,
+      promoCode: payload.promoCode,
+      items: cartItems,
+    })
+
+    navigate(ROUTES.ORDER_CONFIRM.replace(':orderId', orderId), {
+      state: {
+        order,
+      },
+    })
+
+    setIsSubmitting(false)
   }
 
   return {

@@ -6,7 +6,6 @@ import { Heart, Loader2, Trash2 } from 'lucide-react'
 import { EmptyState } from '../../../components/common'
 import { ROUTES } from '../../../constants/routes'
 import { useToast } from '../../../context/ToastContext'
-import membershipService from '../../../services/membershipService'
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -30,19 +29,7 @@ export default function AccountFavorites() {
   const [removingId, setRemovingId] = useState('')
 
   const loadFavorites = useCallback(async (activeRef = { current: true }) => {
-    setLoading(true)
-    setError('')
-
-    try {
-      const response = await membershipService.getCustomerFavorites()
-      if (!activeRef.current) return
-      setFavorites(response.items)
-    } catch (err) {
-      if (!activeRef.current) return
-      setError(err?.message || '收藏商品載入失敗，請稍後再試。')
-    } finally {
-      if (activeRef.current) setLoading(false)
-    }
+    if (activeRef.current) setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -56,16 +43,9 @@ export default function AccountFavorites() {
 
   const handleRemove = async (item) => {
     setRemovingId(item.id)
-
-    try {
-      await membershipService.removeCustomerFavorite(item.productId)
-      setFavorites((prev) => prev.filter((favorite) => favorite.id !== item.id))
-      toast.success('已從收藏清單移除商品。')
-    } catch (err) {
-      toast.error(err?.message || '移除收藏失敗，請稍後再試。')
-    } finally {
-      setRemovingId('')
-    }
+    setFavorites((prev) => prev.filter((favorite) => favorite.id !== item.id))
+    toast.success('已從收藏清單移除商品。')
+    setRemovingId('')
   }
 
   return (

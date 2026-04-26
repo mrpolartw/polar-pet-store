@@ -18,8 +18,6 @@ import { ROUTES } from '../../constants/routes';
 import { useAuth } from '../../context/useAuth';
 import { useCart } from '../../context/useCart';
 import { useToast } from '../../context/ToastContext'
-import orderService from '../../services/orderService';
-import membershipService from '../../services/membershipService'
 import {
   validateRequired,
   validateName,
@@ -36,7 +34,6 @@ import { useOrderSubmit }  from '../../modules/checkout/hooks/useOrderSubmit'
 import { buildCheckoutSummary, validateRedeemablePoints } from '../../modules/checkout/pointRedemption'
 
 void useNavigate;
-void orderService;
 void validateRequired;
 void validateName;
 void validatePhone;
@@ -143,59 +140,23 @@ const Checkout = () => {
       return undefined
     }
 
-    const controller = new AbortController()
-    const timer = setTimeout(async () => {
-      setIsPointPreviewLoading(true)
-
-      try {
-        const data = await membershipService.previewPointRedemption({
-          points: normalizedRequestedPoints,
-          orderSubtotal: subtotal,
-        })
-
-        if (controller.signal.aborted) return
-
-        const preview = data?.preview ?? {}
-        setPointRedemption({
-          requestedPoints: Number(preview.requested_points ?? normalizedRequestedPoints),
-          availablePoints: Number(preview.available_points ?? 0),
-          maxRedeemablePoints: Number(preview.max_redeemable_points ?? 0),
-          redeemablePoints: Number(preview.redeemable_points ?? 0),
-          redemptionAmount: Number(preview.redemption_amount ?? 0),
-          orderSubtotal: Number(preview.order_subtotal ?? subtotal),
-          remainingAmount: Number(preview.remaining_amount ?? subtotal),
-          isValid: Boolean(preview.is_valid),
-          validationMessage: preview.validation_message ?? null,
-        })
-        setPointRedemptionError(preview.validation_message ?? null)
-      } catch (err) {
-        if (controller.signal.aborted) return
-
-        setPointRedemption({
-          requestedPoints: localRedemptionPreview.requestedPoints,
-          availablePoints: localRedemptionPreview.availablePoints,
-          maxRedeemablePoints: localRedemptionPreview.maxRedeemablePoints,
-          redeemablePoints: localRedemptionPreview.redeemablePoints,
-          redemptionAmount: localRedemptionPreview.redemptionAmount,
-          orderSubtotal: localRedemptionPreview.orderSubtotal,
-          remainingAmount: localRedemptionPreview.remainingAmount,
-          isValid: localRedemptionPreview.isValid,
-          validationMessage: localRedemptionPreview.validationMessage,
-        })
-        setPointRedemptionError(
-          err?.message ??
-            localRedemptionPreview.validationMessage ??
-            '點數折抵驗證失敗，請稍後再試'
-        )
-      } finally {
-        setIsPointPreviewLoading(false)
-      }
-    }, 250)
+    const timer = setTimeout(() => {
+      setPointRedemption({
+        requestedPoints: localRedemptionPreview.requestedPoints,
+        availablePoints: localRedemptionPreview.availablePoints,
+        maxRedeemablePoints: localRedemptionPreview.maxRedeemablePoints,
+        redeemablePoints: localRedemptionPreview.redeemablePoints,
+        redemptionAmount: localRedemptionPreview.redemptionAmount,
+        orderSubtotal: localRedemptionPreview.orderSubtotal,
+        remainingAmount: localRedemptionPreview.remainingAmount,
+        isValid: localRedemptionPreview.isValid,
+        validationMessage: localRedemptionPreview.validationMessage,
+      })
+      setPointRedemptionError(localRedemptionPreview.validationMessage ?? null)
+    }, 150)
 
     return () => {
-      controller.abort()
       clearTimeout(timer)
-      setIsPointPreviewLoading(false)
     }
   }, [
     clearPointRedemption,

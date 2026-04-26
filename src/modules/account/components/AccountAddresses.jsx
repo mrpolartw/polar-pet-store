@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Edit2, MapPin, Plus, Store, Trash2, X } from 'lucide-react'
 
-import customerService from '../../../services/customerService'
-import { ErrorState, LoadingSpinner, EmptyState } from '../../../components/common'
+import { LoadingSpinner, EmptyState } from '../../../components/common'
 import { useToast } from '../../../context/ToastContext'
 
 const EMPTY_ADDRESS_FORM = {
@@ -327,17 +326,7 @@ export default function AccountAddresses() {
   }, [addresses])
 
   const fetchAddresses = useCallback(async () => {
-    setIsLoading(true)
-    setError('')
-
-    try {
-      const response = await customerService.getAddresses()
-      setAddresses(response.addresses)
-    } catch (err) {
-      setError(err?.message || '地址資料載入失敗，請稍後再試。')
-    } finally {
-      setIsLoading(false)
-    }
+    setIsLoading(false)
   }, [])
 
   useEffect(() => {
@@ -416,36 +405,39 @@ export default function AccountAddresses() {
     setIsSaving(true)
     setAddressError('')
 
-    try {
-      if (editingAddress?.id) {
-        await customerService.updateAddress(editingAddress.id, buildPayload())
-        toast.success('地址已更新。')
-      } else {
-        await customerService.createAddress(buildPayload())
-        toast.success('地址已新增。')
-      }
-
-      closeAddressModal()
-      await fetchAddresses()
-    } catch (err) {
-      setAddressError(err?.message || '地址儲存失敗，請稍後再試。')
-    } finally {
-      setIsSaving(false)
+    const payload = buildPayload()
+    const newAddress = {
+      id: editingAddress?.id || `addr-${Date.now()}`,
+      type: payload.type,
+      label: payload.label,
+      name: payload.name,
+      phone: payload.phone,
+      city: payload.city,
+      district: payload.district,
+      address: payload.address,
+      isDefault: payload.is_default,
+      storeName: payload.store_name,
+      storeId: payload.store_id,
+      updatedAt: new Date().toISOString(),
     }
+
+    if (editingAddress?.id) {
+      setAddresses((prev) => prev.map((a) => (a.id === editingAddress.id ? newAddress : a)))
+      toast.success('地址已更新。')
+    } else {
+      setAddresses((prev) => [...prev, newAddress])
+      toast.success('地址已新增。')
+    }
+
+    closeAddressModal()
+    setIsSaving(false)
   }
 
   const handleDeleteAddress = async (address) => {
     setIsDeletingId(address.id)
-
-    try {
-      await customerService.deleteAddress(address.id)
-      toast.success('地址已刪除。')
-      await fetchAddresses()
-    } catch (err) {
-      toast.error(err?.message || '地址刪除失敗，請稍後再試。')
-    } finally {
-      setIsDeletingId('')
-    }
+    setAddresses((prev) => prev.filter((a) => a.id !== address.id))
+    toast.success('地址已刪除。')
+    setIsDeletingId('')
   }
 
   return (

@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useLocation, Link } from 'react-router-dom'
 import { CheckCircle2, Package, ArrowRight, RotateCcw } from 'lucide-react'
 
-import { ErrorState, LoadingSpinner } from '../../components/common'
+import { LoadingSpinner } from '../../components/common'
 import { ROUTES } from '../../constants/routes'
-import orderService from '../../services/orderService'
 
 /**
  * @description 訂單確認頁
@@ -25,29 +24,8 @@ const OrderConfirm = () => {
   useEffect(() => {
     if (locationOrder) return
 
-    const fetchOrder = async () => {
-      setIsLoading(true)
-      setError(null)
-
-      try {
-        // TODO: [BACKEND] orderService.getOrder 需後端
-        //   GET /store/orders/:id 實作後才能取得真實訂單資料
-        const data = await orderService.getOrder(orderId)
-        const nextOrder = data?.order ?? data ?? null
-
-        if (!nextOrder) {
-          throw new Error('無法取得訂單資訊，請前往訂單查詢頁確認')
-        }
-
-        setOrder(nextOrder)
-      } catch (err) {
-        setError(err?.message || '無法取得訂單資訊，請前往訂單查詢頁確認')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchOrder()
+    setOrder({ id: orderId })
+    setIsLoading(false)
   }, [orderId, locationOrder])
 
   if (isLoading) {

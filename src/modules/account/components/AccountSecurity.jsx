@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { MailCheck, MessageCircle, ShieldCheck } from 'lucide-react'
 
-import authService from '../../../services/authService'
 import { ROUTES } from '../../../constants/routes'
 import { useAuth } from '../../../context/useAuth'
 import { useToast } from '../../../context/ToastContext'
@@ -57,8 +56,7 @@ export default function AccountSecurity() {
   }
 
   const handleLineBind = () => {
-    const redirectTo = `${window.location.origin}/polar-pet-store/account#security`
-    window.location.assign(authService.getLineBindUrl(redirectTo))
+    toast.info('LINE 綁定功能目前不可用。')
   }
 
   const handleLogout = async () => {

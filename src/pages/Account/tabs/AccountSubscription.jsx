@@ -4,7 +4,6 @@ import { Calendar, Loader2, PauseCircle, RefreshCw, XCircle } from 'lucide-react
 
 import { EmptyState } from '../../../components/common'
 import { useToast } from '../../../context/ToastContext'
-import membershipService from '../../../services/membershipService'
 
 const fadeUp = {
   initial: { opacity: 0, y: 16 },
@@ -53,25 +52,9 @@ export default function AccountSubscription() {
 
   const loadSubscriptions = useCallback(
     async (activeRef = { current: true }) => {
-      setLoading(true)
-      setError('')
-
-      try {
-        const response = await membershipService.getCustomerSubscriptions()
-        if (!activeRef.current) return
-        setSubscriptions(response.items)
-      } catch (err) {
-        if (!activeRef.current) return
-        const message = err?.message || '訂閱資料載入失敗，請稍後再試。'
-        setError(message)
-        toast.error(message)
-      } finally {
-        if (activeRef.current) {
-          setLoading(false)
-        }
-      }
+      if (activeRef.current) setLoading(false)
     },
-    [toast]
+    []
   )
 
   useEffect(() => {
@@ -91,28 +74,20 @@ export default function AccountSubscription() {
   const handleUpdateStatus = async (subscription, nextStatus) => {
     setUpdatingId(subscription.id)
 
-    try {
-      const response = await membershipService.updateCustomerSubscription(subscription.id, {
-        status: nextStatus,
-      })
-      const nextSubscription = response?.subscription
-
-      setSubscriptions((prev) =>
-        prev.map((item) => (item.id === nextSubscription.id ? nextSubscription : item))
+    setSubscriptions((prev) =>
+      prev.map((item) =>
+        item.id === subscription.id ? { ...item, status: nextStatus } : item
       )
+    )
 
-      toast.success(
-        nextStatus === 'paused'
-          ? '訂閱已暫停。'
-          : nextStatus === 'active'
-            ? '訂閱已恢復。'
-            : '訂閱狀態已更新。'
-      )
-    } catch (err) {
-      toast.error(err?.message || '更新訂閱狀態失敗，請稍後再試。')
-    } finally {
-      setUpdatingId('')
-    }
+    toast.success(
+      nextStatus === 'paused'
+        ? '訂閱已暫停。'
+        : nextStatus === 'active'
+          ? '訂閱已恢復。'
+          : '訂閱狀態已更新。'
+    )
+    setUpdatingId('')
   }
 
   const handleCancel = async (subscription) => {
@@ -122,19 +97,13 @@ export default function AccountSubscription() {
 
     setUpdatingId(subscription.id)
 
-    try {
-      const response = await membershipService.cancelCustomerSubscription(subscription.id)
-      const nextSubscription = response?.subscription
-
-      setSubscriptions((prev) =>
-        prev.map((item) => (item.id === nextSubscription.id ? nextSubscription : item))
+    setSubscriptions((prev) =>
+      prev.map((item) =>
+        item.id === subscription.id ? { ...item, status: 'canceled' } : item
       )
-      toast.success('訂閱已取消。')
-    } catch (err) {
-      toast.error(err?.message || '取消訂閱失敗，請稍後再試。')
-    } finally {
-      setUpdatingId('')
-    }
+    )
+    toast.success('訂閱已取消。')
+    setUpdatingId('')
   }
 
   return (

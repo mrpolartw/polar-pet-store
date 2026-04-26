@@ -4,7 +4,6 @@ import { Edit2, Loader2, PawPrint, Plus, Trash2, X } from 'lucide-react'
 
 import { EmptyState } from '../../../components/common'
 import { useToast } from '../../../context/ToastContext'
-import membershipService from '../../../services/membershipService'
 
 const EMPTY_PET_FORM = {
   name: '',
@@ -189,25 +188,9 @@ export default function AccountPets() {
 
   const loadPets = useCallback(
     async (activeRef = { current: true }) => {
-      setLoading(true)
-      setLoadError('')
-
-      try {
-        const response = await membershipService.getCustomerPets()
-        if (!activeRef.current) return
-        setPets(response.items)
-      } catch (err) {
-        if (!activeRef.current) return
-        const message = err?.message || '毛孩資料載入失敗，請稍後再試。'
-        setLoadError(message)
-        toast.error(message)
-      } finally {
-        if (activeRef.current) {
-          setLoading(false)
-        }
-      }
+      if (activeRef.current) setLoading(false)
     },
-    [toast]
+    []
   )
 
   useEffect(() => {
@@ -254,32 +237,23 @@ export default function AccountPets() {
     setSubmitting(true)
     setFormError('')
 
-    try {
-      const payload = buildPayload(form)
-      const response = editingPet
-        ? await membershipService.updateCustomerPet(editingPet.id, payload)
-        : await membershipService.createCustomerPet(payload)
-      const pet = response?.pet ?? null
+    const payload = buildPayload(form)
+    const pet = {
+      id: editingPet?.id || `pet-${Date.now()}`,
+      ...payload,
+    }
 
-      if (!pet) {
-        throw new Error('毛孩資料儲存失敗。')
+    setPets((prev) => {
+      if (editingPet) {
+        return prev.map((item) => (item.id === pet.id ? pet : item))
       }
 
-      setPets((prev) => {
-        if (editingPet) {
-          return prev.map((item) => (item.id === pet.id ? pet : item))
-        }
+      return [pet, ...prev]
+    })
 
-        return [pet, ...prev]
-      })
-
-      toast.success(editingPet ? '毛孩資料已更新。' : '毛孩資料已新增。')
-      setModalOpen(false)
-    } catch (err) {
-      setFormError(err?.message || '毛孩資料儲存失敗，請稍後再試。')
-    } finally {
-      setSubmitting(false)
-    }
+    toast.success(editingPet ? '毛孩資料已更新。' : '毛孩資料已新增。')
+    setModalOpen(false)
+    setSubmitting(false)
   }
 
   const handleDelete = async (pet) => {
@@ -288,15 +262,9 @@ export default function AccountPets() {
     }
 
     setDeletingId(pet.id)
-    try {
-      await membershipService.deleteCustomerPet(pet.id)
-      setPets((prev) => prev.filter((item) => item.id !== pet.id))
-      toast.success('毛孩資料已刪除。')
-    } catch (err) {
-      toast.error(err?.message || '刪除毛孩資料失敗，請稍後再試。')
-    } finally {
-      setDeletingId('')
-    }
+    setPets((prev) => prev.filter((item) => item.id !== pet.id))
+    toast.success('毛孩資料已刪除。')
+    setDeletingId('')
   }
 
   return (
